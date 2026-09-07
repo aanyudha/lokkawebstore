@@ -1,0 +1,20 @@
+name: lokka-webstore
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: lokka
+      POSTGRES_USER: lokka
+      POSTGRES_PASSWORD: development_only
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U lokka -d lokka']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+volumes:
+  postgres_data:

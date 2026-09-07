@@ -1,0 +1,48 @@
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.6rem 6%;
+  border-bottom: 1px solid var(--color-border);
+}
+.site-header nav {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.8rem;
+}
+.hero {
+  display: grid;
+  gap: 3rem;
+  padding: 3rem 6%;
+  align-items: center;
+}
+.hero-copy > * + * {
+  margin-top: 1.7rem;
+}
+.foundation {
+  padding: 5rem 6%;
+  border-top: 1px solid var(--color-border);
+  max-width: 70rem;
+}
+.foundation > * + * {
+  margin-top: 1.3rem;
+}
+.site-footer {
+  border-top: 1px solid var(--color-border);
+  padding: 2rem 6%;
+  font-size: 0.8rem;
+}
+.error-page {
+  min-height: 60vh;
+  padding: 6rem 6%;
+}
+.error-page > * + * {
+  margin-top: 1.5rem;
+}
+@media (min-width: 760px) {
+  .hero {
+    grid-template-columns: 1.1fr 1fr;
+    padding-block: 5rem;
+  }
+}

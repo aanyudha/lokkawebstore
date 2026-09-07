@@ -1,0 +1,14 @@
+:root {
+  --color-ink: #1c1a17;
+  --color-charcoal: #35312d;
+  --color-ivory: #faf8f3;
+  --color-warm-white: #fffdf9;
+  --color-sand: #ebe5db;
+  --color-stone: #c9c1b6;
+  --color-batik: #70483b;
+  --color-batik-dark: #4d3028;
+  --color-border: #ded9d1;
+  --color-muted: #77716a;
+  --font-body: Arial, Helvetica, sans-serif;
+  --font-editorial: Georgia, 'Times New Roman', serif;
+}

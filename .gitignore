@@ -1,0 +1,10 @@
+node_modules/
+.npm-cache/
+.env
+.env.*
+!.env.example
+dist/
+public/build/
+coverage/
+*.log
+.docker-local/

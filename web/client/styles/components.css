@@ -1,0 +1,52 @@
+.announcement {
+  background: var(--color-batik-dark);
+  color: var(--color-warm-white);
+  text-align: center;
+  padding: 0.6rem 1rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+}
+.wordmark {
+  font-size: 1.9rem;
+  letter-spacing: 0.2em;
+  text-decoration: none;
+}
+.site-header nav a {
+  text-decoration: none;
+}
+.text-link {
+  display: inline-block;
+  padding-block: 0.5rem;
+  text-underline-offset: 0.4rem;
+}
+.image-placeholder {
+  min-height: 23rem;
+  background: var(--color-sand);
+  color: var(--color-batik-dark);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+}
+.image-placeholder span {
+  font-family: var(--font-editorial);
+  font-size: 3rem;
+  letter-spacing: 0.25em;
+}
+.image-placeholder small {
+  margin-top: 4rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+}
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -5rem;
+  padding: 0.8rem;
+  background: var(--color-warm-white);
+}
+.skip-link:focus {
+  top: 1rem;
+}
