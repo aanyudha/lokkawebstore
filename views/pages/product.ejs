@@ -1,0 +1,99 @@
+<main id="main" class="catalog-page">
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+<a href="/">Beranda</a> / <a href="/koleksi">Koleksi</a>
+<% if (category) { %> / <a href="/kategori/<%= category.slug %>">
+<%= category.name %>
+</a>
+<% } %> / <span>
+<%= product.name %>
+</span>
+</nav>
+<div class="product-detail">
+<div class="gallery">
+<% if (!images.length) { %>
+<div class="product-placeholder">Foto segera hadir</div>
+<% } %>
+<% images.forEach((picture, index) => { %>
+<img src="<%= storage.url(picture.storageKey, 'detail') %>" alt="<%= picture.altText || product.name %>" width="<%= picture.width %>" height="<%= picture.height %>" <% if (index > 0) { %>loading="lazy"<% } %> />
+<% }); %>
+</div>
+<section class="product-copy">
+<p class="eyebrow">LOKKA<% if (category) { %> / <%= category.name %>
+<% } %>
+</p>
+<h1>
+<%= product.name %>
+</h1>
+<% if (variants.length) { %>
+<p class="detail-price" data-variant-price>
+<%= formatIdr(variants[0].price) %>
+</p>
+<% } %>
+<p>
+<%= product.shortDescription %>
+</p>
+<% if (variants.length) { %>
+<fieldset class="variant-picker">
+<legend>Pilih ukuran / varian</legend>
+<% variants.forEach((variant, i) => { %>
+<label>
+<input type="radio" name="variant" value="<%= variant.id %>" data-price="<%= formatIdr(variant.price) %>" data-sku="<%= variant.sku %>" data-stock="<%= variant.stockQuantity > 0 ? 'Tersedia' : 'Stok habis' %>" <%= i === 0 ? 'checked' : '' %> />
+<span>
+<%= variant.name %>
+</span>
+</label>
+<% }); %>
+</fieldset>
+<p data-variant-info>SKU: <%= variants[0].sku %> · <%= variants[0].stockQuantity > 0 ? 'Tersedia' : 'Stok habis' %>
+</p>
+<div class="table-scroll">
+<table>
+<caption>Detail semua varian</caption>
+<thead>
+<tr>
+<th>Varian / SKU</th>
+<th>Harga</th>
+<th>Ketersediaan</th>
+<th>Berat</th>
+</tr>
+</thead>
+<tbody>
+<% for (const variant of variants) { %>
+<tr>
+<td>
+<%= variant.name %>
+<br />
+<small>
+<%= variant.sku %>
+</small>
+</td>
+<td>
+<%= formatIdr(variant.price) %>
+<% if (variant.compareAtPrice && variant.compareAtPrice > variant.price) { %>
+<br />
+<del>
+<%= formatIdr(variant.compareAtPrice) %>
+</del>
+<% } %>
+</td>
+<td>
+<%= variant.stockQuantity > 0 ? 'Tersedia' : 'Stok habis' %>
+</td>
+<td>
+<%= variant.weightGrams %> g</td>
+</tr>
+<% } %>
+</tbody>
+</table>
+</div>
+<% } else { %>
+<p>Varian sedang disiapkan.</p>
+<% } %>
+<p class="purchase-note">Fitur pembelian akan tersedia pada tahap berikutnya.</p>
+<h2>Tentang karya ini</h2>
+<div class="prose">
+<%= product.description || 'Detail produk akan segera dilengkapi.' %>
+</div>
+</section>
+</div>
+</main>

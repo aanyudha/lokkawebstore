@@ -1,0 +1,102 @@
+<%- include('../partials/admin-header.ejs') %>
+<main id="main" class="admin-main">
+<h1>
+<%= values.id ? 'Edit produk' : 'Produk baru' %>
+</h1>
+<%- include('../partials/form-error.ejs') %>
+<form method="post" action="/admin/products<%= values.id ? '/' + values.id : '' %>" class="form-stack" aria-describedby="<%= error ? 'form-error' : '' %>">
+<input type="hidden" name="csrf" value="<%= csrf %>" />
+<label>Nama<input name="name" required maxlength="200" value="<%= values.name || '' %>" />
+</label>
+<label>Slug<input name="slug" maxlength="150" value="<%= values.slug || '' %>" />
+<small>Otomatis bila kosong; pertahankan untuk menjaga URL.</small>
+</label>
+<label>Kategori<select name="categoryId">
+<option value="">Tanpa kategori</option>
+<% for (const category of categories) { %>
+<option value="<%= category.id %>" <%= values.categoryId === category.id ? 'selected' : '' %>>
+<%= category.name %> (<%= category.status %>)</option>
+<% } %>
+</select>
+</label>
+<label>Status<select name="status">
+<% for (const status of ['draft','active','archived']) { %>
+<option <%= values.status === status ? 'selected' : '' %>>
+<%= status %>
+</option>
+<% } %>
+</select>
+</label>
+<label class="check-label">
+<input type="checkbox" name="featured" <%= values.featured ? 'checked' : '' %> /> Pilihan LOKKA</label>
+<label>Deskripsi singkat<textarea name="shortDescription" maxlength="500">
+<%= values.shortDescription || '' %>
+</textarea>
+</label>
+<label>Deskripsi lengkap<textarea name="description" rows="8" maxlength="20000">
+<%= values.description || '' %>
+</textarea>
+</label>
+<label>Judul SEO<input name="seoTitle" maxlength="150" value="<%= values.seoTitle || '' %>" />
+</label>
+<label>Deskripsi SEO<textarea name="seoDescription" maxlength="320">
+<%= values.seoDescription || '' %>
+</textarea>
+</label>
+<button>Simpan produk</button>
+</form>
+<% if (values.id) { %>
+<% if (values.status === 'active') { %>
+<p>
+<a href="/produk/<%= values.slug %>">Lihat halaman publik ↗</a>
+</p>
+<% } %>
+<form method="post" action="/admin/products/<%= values.id %>/archive">
+<input type="hidden" name="csrf" value="<%= csrf %>" />
+<button class="secondary">Arsipkan produk</button>
+</form>
+<section id="variants" class="admin-section">
+<h2>Varian</h2>
+<% for (const saved of variants) { const variant = typeof variantValues !== 'undefined' && variantValues?.id === saved.id ? variantValues : saved; %>
+<%- include('../partials/variant-form.ejs', { variant, productId: values.id }) %>
+<% } %>
+<h3>Varian baru</h3>
+<%- include('../partials/variant-form.ejs', { variant: typeof variantValues !== 'undefined' && !variantValues?.id ? variantValues || {} : {}, productId: values.id }) %>
+</section>
+<section id="images" class="admin-section">
+<h2>Gambar produk</h2>
+<p>JPEG, PNG, WebP · Maksimum 5 gambar per unggahan, 10 MB per gambar.</p>
+<form method="post" enctype="multipart/form-data" action="/admin/products/<%= values.id %>/images" class="form-stack">
+<input type="hidden" name="csrf" value="<%= csrf %>" />
+<label>Teks alternatif<input name="altText" maxlength="300" />
+</label>
+<label>Gambar<input type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple required />
+</label>
+<button>Unggah gambar</button>
+</form>
+<div class="media-grid">
+<% for (const image of images) { %>
+<article>
+<img src="/admin/products/<%= values.id %>/images/<%= image.id %>/preview" width="<%= image.width %>" height="<%= image.height %>" alt="<%= image.altText || values.name %>" loading="lazy" />
+<form method="post" action="/admin/products/<%= values.id %>/images/<%= image.id %>" class="form-stack">
+<input type="hidden" name="csrf" value="<%= csrf %>" />
+<label>Teks alternatif<input name="altText" maxlength="300" value="<%= image.altText || '' %>" />
+</label>
+<label>Urutan<input type="number" min="0" name="sortOrder" required value="<%= image.sortOrder %>" />
+</label>
+<label class="check-label">
+<input type="checkbox" name="isPrimary" <%= image.isPrimary ? 'checked' : '' %> /> Gambar utama</label>
+<button>Simpan gambar</button>
+</form>
+<form method="post" action="/admin/products/<%= values.id %>/images/<%= image.id %>/delete">
+<input type="hidden" name="csrf" value="<%= csrf %>" />
+<button class="secondary">Hapus gambar</button>
+</form>
+</article>
+<% } %>
+</div>
+</section>
+<% } else { %>
+<p>Simpan detail produk, lalu tambahkan varian dan gambar.</p>
+<% } %>
+</main>

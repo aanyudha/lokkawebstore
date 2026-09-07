@@ -1,0 +1,48 @@
+<%- include('../partials/admin-header.ejs') %>
+<main id="main" class="admin-main">
+<h1>Inventory</h1>
+<p>Stok rendah: <%= threshold %> atau kurang.</p>
+<%- include('../partials/form-error.ejs') %>
+<div class="table-scroll">
+<table>
+<thead>
+<tr>
+<th>Produk / Varian</th>
+<th>SKU</th>
+<th>Status</th>
+<th>Stok</th>
+</tr>
+</thead>
+<tbody>
+<% for (const row of inventory) { %>
+<tr>
+<td>
+<a href="/admin/products/<%= row.product.id %>/edit">
+<%= row.product.name %>
+</a>
+<br />
+<%= row.variant.name %>
+</td>
+<td>
+<%= row.variant.sku %>
+</td>
+<td>
+<%= row.variant.status %>
+<% if (row.variant.stockQuantity <= threshold) { %>
+<br />Stok rendah<% } %>
+</td>
+<td>
+<form method="post" action="/admin/products/<%= row.product.id %>/variants/<%= row.variant.id %>/stock" class="stock-form">
+<input type="hidden" name="csrf" value="<%= csrf %>" />
+<label>Stok <%= row.variant.sku %>
+<input name="stockQuantity" type="number" min="0" required value="<%= values.id === row.variant.id ? values.stockQuantity : row.variant.stockQuantity %>" />
+</label>
+<button>Simpan</button>
+</form>
+</td>
+</tr>
+<% } %>
+</tbody>
+</table>
+</div>
+</main>

@@ -3,7 +3,8 @@
 server {
     listen 80;
     server_name lokka.id;
-    client_max_body_size 64k;
+    # Fastify retains a 64 KiB form limit; only product upload routes accept 51 MiB.
+    client_max_body_size 51m;
 
     # If Cloudflare is used, configure real_ip only with official, current
     # Cloudflare CIDRs. Never trust CF-Connecting-IP from arbitrary sources.

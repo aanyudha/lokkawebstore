@@ -35,7 +35,7 @@ describe('foundation routes', () => {
     const response = await app.inject('/');
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toContain('text/html');
-    expect(response.body).toContain('LOKKA Webstore foundation is running');
+    expect(response.body).toContain('/images/lokka_logo.png');
     expect(response.body).toContain('/build/main.css');
     expect(response.headers['content-security-policy']).toContain(
       "script-src 'self'",

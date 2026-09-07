@@ -4,3 +4,7 @@ node_modules
 .npm-cache
 dist
 coverage
+storage
+test-results
+.env.*
+!.env.example

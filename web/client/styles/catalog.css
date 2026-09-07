@@ -1,0 +1,339 @@
+.brand {
+  display: block;
+  flex-shrink: 0;
+  width: 144px;
+}
+.brand img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 1;
+  object-fit: contain;
+}
+.site-header {
+  padding-block: 0.5rem;
+  flex-wrap: wrap;
+}
+.site-header nav {
+  flex-wrap: wrap;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.intro-home {
+  padding: clamp(4rem, 10vw, 9rem) 6%;
+}
+.intro-home > * + * {
+  margin-top: 2rem;
+}
+.catalog-page,
+.admin-main {
+  padding: 2rem 6% 5rem;
+}
+.page-intro {
+  margin: 1rem 0 3rem;
+}
+.page-intro > * + * {
+  margin-top: 1rem;
+}
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2.5rem 1rem;
+}
+.product-card a {
+  text-decoration: none;
+}
+.product-card img,
+.product-placeholder {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: contain;
+  background: var(--color-sand);
+  height: auto;
+}
+.product-placeholder {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 1rem;
+  color: var(--color-charcoal);
+  font-size: 0.8rem;
+}
+.product-card h2 {
+  overflow-wrap: anywhere;
+  font: 1rem/1.4 var(--font-body);
+  margin-top: 1rem;
+}
+.product-card p,
+.product-card small {
+  font-size: 0.85rem;
+}
+del {
+  color: var(--color-charcoal);
+  font-size: 0.85em;
+  margin-left: 0.4rem;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 3rem;
+}
+.empty-state {
+  padding-block: 4rem;
+  border-block: 1px solid var(--color-border);
+}
+.breadcrumbs {
+  font-size: 0.8rem;
+  margin-bottom: 2rem;
+  overflow-wrap: anywhere;
+}
+.product-detail {
+  display: grid;
+  gap: 2rem;
+}
+.gallery img {
+  width: 100%;
+  height: auto;
+  margin-bottom: 1rem;
+}
+.product-copy {
+  min-width: 0;
+}
+.product-copy h1 {
+  font-size: clamp(2rem, 3vw, 3rem);
+}
+.product-copy > * + * {
+  margin-top: 1.5rem;
+}
+.detail-price {
+  font-size: 1.3rem;
+}
+.variant-picker {
+  border: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+.variant-picker legend {
+  margin-bottom: 0.8rem;
+}
+.variant-picker label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--color-border);
+  padding: 0.7rem;
+}
+.variant-picker input {
+  width: auto;
+}
+.purchase-note {
+  padding-block: 1.5rem;
+  border-block: 1px solid var(--color-border);
+}
+.prose {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+button,
+.button {
+  background: var(--color-batik-dark);
+  color: var(--color-warm-white);
+  border: 1px solid var(--color-batik-dark);
+  padding: 0.85rem 1.4rem;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+.secondary {
+  background: transparent;
+  color: var(--color-ink);
+  border-color: var(--color-border);
+}
+input,
+select,
+textarea {
+  font: inherit;
+  padding: 0.7rem;
+  border: 1px solid var(--color-stone);
+  background: var(--color-warm-white);
+  color: var(--color-ink);
+  width: 100%;
+  min-width: 0;
+  border-radius: 0;
+}
+textarea {
+  resize: vertical;
+}
+.form-stack {
+  display: grid;
+  gap: 1.2rem;
+  max-width: 46rem;
+  margin-block: 1.5rem;
+}
+.form-stack label,
+.variant-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+.form-stack small {
+  font-size: 0.8rem;
+}
+.check-label {
+  display: flex !important;
+  align-items: center;
+}
+.check-label input {
+  width: auto;
+}
+.form-error {
+  padding: 1rem;
+  border: 2px solid var(--color-batik);
+  margin-block: 1rem;
+}
+.login-page {
+  max-width: 34rem;
+  margin: 3rem auto;
+  padding: 1.5rem;
+}
+.login-page h1 {
+  font-size: 2.5rem;
+  margin-block: 1rem;
+}
+.login-page .brand {
+  width: 180px;
+  margin-bottom: 2rem;
+}
+.admin-header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 0.5rem 6%;
+}
+.admin-header form {
+  margin-left: auto;
+}
+.admin-header > span {
+  font-size: 0.8rem;
+}
+.admin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  padding: 1rem 6%;
+  border-block: 1px solid var(--color-border);
+}
+.admin-main h1 {
+  font-size: 2.8rem;
+  margin-bottom: 1.5rem;
+}
+.admin-section {
+  margin-top: 3rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 2rem;
+}
+.admin-section h3 {
+  margin-top: 2rem;
+}
+.table-scroll {
+  overflow-x: auto;
+  margin-block: 1.5rem;
+  max-width: 100%;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+th,
+td {
+  text-align: left;
+  padding: 1rem 0.7rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+caption {
+  text-align: left;
+  font-weight: bold;
+  padding-block: 0.7rem;
+}
+.stock-form {
+  min-width: 9rem;
+}
+.stock-form button {
+  margin-top: 0.5rem;
+}
+.variant-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  padding-block: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+.media-grid article {
+  min-width: 0;
+  max-width: 400px;
+}
+.media-grid img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  object-fit: contain;
+  background: var(--color-sand);
+}
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-block: 2rem;
+}
+.metrics dd {
+  margin: 0;
+  font-size: 2.5rem;
+  font-family: var(--font-editorial);
+}
+@media (max-width: 500px) {
+  .site-header {
+    justify-content: center;
+    gap: 0.4rem;
+  }
+  .site-header nav {
+    justify-content: center;
+    gap: 0.8rem;
+    font-size: 0.7rem;
+    padding-bottom: 0.8rem;
+  }
+  .brand {
+    width: 120px;
+  }
+  .admin-header > span {
+    display: none;
+  }
+}
+@media (min-width: 700px) {
+  .product-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .product-detail {
+    grid-template-columns: 1.1fr 1fr;
+    gap: 4%;
+  }
+  .variant-form {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1100px) {
+  .product-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 3rem 1.5rem;
+  }
+}

@@ -8,3 +8,5 @@ public/build/
 coverage/
 *.log
 .docker-local/
+storage/
+test-results/

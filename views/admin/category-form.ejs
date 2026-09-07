@@ -1,0 +1,45 @@
+<%- include('../partials/admin-header.ejs') %>
+<main id="main" class="admin-main">
+<h1>
+<%= values.id ? 'Edit kategori' : 'Kategori baru' %>
+</h1>
+<%- include('../partials/form-error.ejs') %>
+<form method="post" action="/admin/categories<%= values.id ? '/' + values.id : '' %>" class="form-stack" aria-describedby="<%= error ? 'form-error' : '' %>">
+<input type="hidden" name="csrf" value="<%= csrf %>" />
+<label>Nama<input name="name" required maxlength="150" value="<%= values.name || '' %>" />
+</label>
+<label>Slug<input name="slug" maxlength="150" value="<%= values.slug || '' %>" />
+<small>Otomatis dari nama bila kosong. Pertahankan slug agar URL tetap stabil.</small>
+</label>
+<label>Kategori induk<select name="parentId">
+<option value="">Tanpa induk</option>
+<% for (const category of categories) { if (category.id !== values.id) { %>
+<option value="<%= category.id %>" <%= values.parentId === category.id ? 'selected' : '' %>>
+<%= category.name %>
+</option>
+<% } } %>
+</select>
+</label>
+<label>Status<select name="status">
+<% for (const status of ['active','hidden']) { %>
+<option <%= values.status === status ? 'selected' : '' %>>
+<%= status %>
+</option>
+<% } %>
+</select>
+</label>
+<label>Urutan<input type="number" min="0" name="sortOrder" required value="<%= values.sortOrder ?? 0 %>" />
+</label>
+<label>Deskripsi singkat<textarea name="shortDescription" maxlength="500">
+<%= values.shortDescription || '' %>
+</textarea>
+</label>
+<label>Judul SEO<input name="seoTitle" maxlength="150" value="<%= values.seoTitle || '' %>" />
+</label>
+<label>Deskripsi SEO<textarea name="seoDescription" maxlength="320">
+<%= values.seoDescription || '' %>
+</textarea>
+</label>
+<button>Simpan kategori</button>
+</form>
+</main>

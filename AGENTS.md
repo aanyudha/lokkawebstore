@@ -15,4 +15,8 @@
 - Do not copy third-party website code, images, fonts or assets.
 - Run formatting, lint, typecheck, tests and production build before committing.
 
-Next milestone: LOKKA Catalog & Admin Product Management.
+- Preserve owner-supplied docs/basic_concept and the official public/images/lokka_logo.png. Never auto-format concept sources or process the logo as catalog media.
+- Admin mutations require active DB sessions, CSRF validation, ownership checks and server-side validation. Use existing catalog services and storage abstraction.
+- Integration tests require migrated PostgreSQL. Browser checks use npm run test:browser after build.
+
+Next milestone after review: Cart, Checkout Foundation & Stock Reservation.

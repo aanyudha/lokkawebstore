@@ -1,0 +1,33 @@
+<%- include('../partials/admin-header.ejs') %>
+<main id="main" class="admin-main">
+<h1>Products</h1>
+<a class="button" href="/admin/products/new">Tambah produk</a>
+<div class="table-scroll">
+<table>
+<thead>
+<tr>
+<th>Produk</th>
+<th>Status</th>
+<th>Slug</th>
+</tr>
+</thead>
+<tbody>
+<% for (const product of products) { %>
+<tr>
+<td>
+<a href="/admin/products/<%= product.id %>/edit">
+<%= product.name %>
+</a>
+</td>
+<td>
+<%= product.status %>
+</td>
+<td>
+<%= product.slug %>
+</td>
+</tr>
+<% } %>
+</tbody>
+</table>
+</div>
+</main>

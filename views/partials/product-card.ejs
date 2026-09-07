@@ -1,0 +1,26 @@
+<article class="product-card">
+<a href="/produk/<%= item.slug %>">
+<% if (picture) { %>
+<img src="<%= storage.url(picture.storageKey, 'card') %>" alt="<%= picture.altText || item.name %>" width="<%= picture.width %>" height="<%= picture.height %>" <% if (position > 3) { %>loading="lazy"<% } %> />
+<% } else { %>
+<div class="product-placeholder">Foto segera hadir</div>
+<% } %>
+<h2>
+<%= item.name %>
+</h2>
+</a>
+<% if (priceVariant) { %>
+<p>
+<%= formatIdr(priceVariant.price) %> <% if (priceVariant.compareAtPrice && priceVariant.compareAtPrice > priceVariant.price) { %>
+<del>
+<%= formatIdr(priceVariant.compareAtPrice) %>
+</del>
+<% } %>
+</p>
+<% } else { %>
+<p>Detail harga segera hadir</p>
+<% } %>
+<% if (item.featured) { %>
+<small>Pilihan LOKKA</small>
+<% } %>
+</article>

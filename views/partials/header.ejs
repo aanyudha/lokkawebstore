@@ -1,5 +1,14 @@
-<div class="announcement">A new chapter in Indonesian heritage</div>
+<div class="announcement">Warisan Indonesia, untuk keseharian</div>
 <header class="site-header">
-  <a class="wordmark" href="/" aria-label="LOKKA home">LOKKA</a>
-  <nav aria-label="Main navigation"><a href="#story">Our story</a><a href="#foundation">The beginning</a></nav>
+<a class="brand" href="/" aria-label="LOKKA beranda">
+<img src="/images/lokka_logo.png" alt="LOKKA" width="4000" height="2000" />
+</a>
+<nav aria-label="Navigasi utama">
+<a href="/koleksi">KOLEKSI</a>
+<% for (const category of categories) { if (!category.parentId) { %>
+<a href="/kategori/<%= category.slug %>">
+<%= category.name %>
+</a>
+<% } } %>
+</nav>
 </header>

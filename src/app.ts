@@ -11,14 +11,25 @@ import { resolve } from 'node:path';
 import type { AppEnv } from './config/env.js';
 import { createDatabase } from './db/client.js';
 import { registerRoutes } from './routes/index.js';
+import multipart from '@fastify/multipart';
+import { createCatalog } from './modules/catalog/service.js';
+import { LocalCatalogImageStorage } from './modules/catalog/storage.js';
+import { registerCatalog } from './modules/catalog/routes.js';
+import { registerAdmin } from './modules/admin/routes.js';
+import type { Database } from './db/client.js';
 export async function buildApp(
   env: AppEnv,
   options: {
-    database?: { check: () => Promise<void>; close: () => Promise<void> };
+    database?: {
+      check: () => Promise<void>;
+      close: () => Promise<void>;
+      db?: Database['db'];
+    };
     logger?: boolean;
   } = {},
 ) {
   const app = Fastify({
+    routerOptions: { maxParamLength: 200 },
     bodyLimit: 64 * 1024,
     trustProxy: env.trustProxy ? ['127.0.0.1', '::1'] : false,
     logController: new LogController({ disableRequestLogging: true }),
@@ -47,6 +58,7 @@ export async function buildApp(
   });
   try {
     await app.register(helmet, {
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
@@ -62,6 +74,15 @@ export async function buildApp(
     await app.register(sensible);
     await app.register(formbody);
     await app.register(cookie);
+    await app.register(multipart, {
+      limits: {
+        fileSize: 10 * 1024 * 1024,
+        files: 5,
+        fields: 4,
+        parts: 9,
+        fieldSize: 2048,
+      },
+    });
     await app.register(rateLimit, {
       global: false,
       max: 60,
@@ -78,7 +99,20 @@ export async function buildApp(
       engine: { ejs },
       root: resolve('views'),
       layout: 'layouts/base.ejs',
+      defaultContext: {
+        admin: false,
+        categories: [],
+        description: 'LOKKA — busana dan batik Indonesia.',
+        canonical: env.appUrl,
+        ogImage: undefined,
+        jsonLd: undefined,
+      },
     });
+    app.get('/images/lokka_logo.png', async (_request, reply) =>
+      reply
+        .header('Cache-Control', 'public, max-age=86400')
+        .sendFile('lokka_logo.png', resolve('public/images')),
+    );
     app.setNotFoundHandler(async (request, reply) => {
       reply.code(404);
       if (request.url.startsWith('/api/')) return { error: 'Not found' };
@@ -115,7 +149,15 @@ export async function buildApp(
         message,
       });
     });
-    await registerRoutes(app, database);
+    const storage = new LocalCatalogImageStorage(env.catalogStorageRoot);
+    const catalog = database.db
+      ? createCatalog(database.db, storage)
+      : undefined;
+    await registerRoutes(app, database, catalog, env);
+    if (catalog && database.db) {
+      await registerCatalog(app, catalog, storage, env);
+      await registerAdmin(app, database.db, catalog, env, storage);
+    }
     return app;
   } catch (error) {
     await app.close();

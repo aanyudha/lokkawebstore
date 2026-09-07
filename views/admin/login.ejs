@@ -1,0 +1,19 @@
+<main id="main" class="login-page">
+<a class="brand" href="/">
+<img src="/images/lokka_logo.png" width="4000" height="2000" alt="LOKKA" />
+</a>
+<p class="eyebrow">Catalog administration</p>
+<h1>Selamat datang kembali.</h1>
+<%- include('../partials/form-error.ejs') %>
+<form method="post" action="/admin/login" class="form-stack" aria-describedby="<%= error ? 'form-error' : '' %>">
+<input type="hidden" name="csrf" value="<%= loginCsrf %>" />
+<label>Email<input type="email" name="email" required maxlength="254" autocomplete="username" value="<%= values.email || '' %>" />
+</label>
+<label>Kata sandi<input type="password" name="password" required maxlength="128" autocomplete="current-password" />
+</label>
+<button>Masuk</button>
+</form>
+<p>
+<a href="/">Kembali ke LOKKA</a>
+</p>
+</main>

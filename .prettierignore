@@ -5,3 +5,5 @@ public/build
 package-lock.json
 drizzle/meta
 .docker-local
+docs/basic_concept/
+storage/

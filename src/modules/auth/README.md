@@ -1,3 +1,3 @@
 # auth
 
-Authentication and future sessions. Reserved boundary; implementation is deferred.
+Owns Argon2id admin passwords, opaque database sessions, token hashing and the interactive administrator-creation command. Customer identity is deferred.

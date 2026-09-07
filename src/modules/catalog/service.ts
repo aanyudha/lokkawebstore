@@ -1,0 +1,390 @@
+import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import type { Database } from '../../db/client.js';
+import {
+  categories,
+  products,
+  productVariants,
+  productImages,
+  vendors,
+} from '../../db/schema/index.js';
+import {
+  FormError,
+  type Form,
+  textField,
+  id,
+  integer,
+  choice,
+  slug,
+  variantInput,
+  databaseError,
+} from './validation.js';
+import type { CatalogImageStorage } from './storage.js';
+export function createCatalog(
+  db: Database['db'],
+  storage: CatalogImageStorage,
+) {
+  async function vendorId() {
+    const [vendor] = await db
+      .select()
+      .from(vendors)
+      .where(eq(vendors.slug, 'lokka'));
+    if (!vendor) throw new Error('Run vendor seed');
+    return vendor.id;
+  }
+  async function product(productId: string) {
+    const [p] = await db
+      .select()
+      .from(products)
+      .where(
+        and(
+          eq(products.id, id(productId)),
+          eq(products.vendorId, await vendorId()),
+        ),
+      );
+    if (!p) throw new FormError('id', 'Produk tidak ditemukan.');
+    return p;
+  }
+  async function categoryList() {
+    return db
+      .select()
+      .from(categories)
+      .orderBy(asc(categories.sortOrder), asc(categories.name));
+  }
+  async function relations(ids: string[]) {
+    if (!ids.length) return { variants: [], images: [] };
+    const [variants, images] = await Promise.all([
+      db
+        .select()
+        .from(productVariants)
+        .where(inArray(productVariants.productId, ids))
+        .orderBy(asc(productVariants.sortOrder), asc(productVariants.sku)),
+      db
+        .select()
+        .from(productImages)
+        .where(inArray(productImages.productId, ids))
+        .orderBy(
+          desc(productImages.isPrimary),
+          asc(productImages.sortOrder),
+          asc(productImages.id),
+        ),
+    ]);
+    return { variants, images };
+  }
+  return {
+    product,
+    categoryList,
+    relations,
+    async publicImage(key: string) {
+      if (!/^[a-f0-9-]{36}$/.test(key)) return null;
+      const [row] = await db
+        .select({ image: productImages })
+        .from(productImages)
+        .innerJoin(products, eq(products.id, productImages.productId))
+        .innerJoin(vendors, eq(vendors.id, products.vendorId))
+        .where(
+          and(
+            eq(productImages.storageKey, key),
+            eq(products.status, 'active'),
+            eq(vendors.slug, 'lokka'),
+          ),
+        )
+        .limit(1);
+      return row?.image ?? null;
+    },
+    async publicList(page: number, categoryId?: string) {
+      const condition = and(
+        eq(products.vendorId, await vendorId()),
+        eq(products.status, 'active'),
+        categoryId ? eq(products.categoryId, categoryId) : undefined,
+      );
+      const [rows, total] = await Promise.all([
+        db
+          .select()
+          .from(products)
+          .where(condition)
+          .orderBy(desc(products.publishedAt), asc(products.id))
+          .limit(24)
+          .offset((page - 1) * 24),
+        db.select({ value: count() }).from(products).where(condition),
+      ]);
+      const related = await relations(rows.map((p) => p.id));
+      return {
+        rows,
+        total: total[0]!.value,
+        variants: related.variants.filter((v) => v.status === 'active'),
+        images: related.images,
+      };
+    },
+    async publicProduct(slugValue: string) {
+      const [p] = await db
+        .select()
+        .from(products)
+        .where(
+          and(
+            eq(products.slug, slugValue),
+            eq(products.status, 'active'),
+            eq(products.vendorId, await vendorId()),
+          ),
+        );
+      if (!p) return null;
+      const related = await relations([p.id]);
+      return {
+        product: p,
+        variants: related.variants.filter((v) => v.status === 'active'),
+        images: related.images,
+      };
+    },
+    async adminProducts() {
+      return db
+        .select()
+        .from(products)
+        .where(eq(products.vendorId, await vendorId()))
+        .orderBy(desc(products.updatedAt));
+    },
+    async inventory() {
+      return db
+        .select({ variant: productVariants, product: products })
+        .from(productVariants)
+        .innerJoin(products, eq(products.id, productVariants.productId))
+        .where(eq(products.vendorId, await vendorId()))
+        .orderBy(asc(products.name), asc(productVariants.sortOrder));
+    },
+    async saveCategory(form: Form, categoryId?: string) {
+      const name = textField(form, 'name', 150, true);
+      const parentId = textField(form, 'parentId')
+        ? id(form.parentId, 'parentId')
+        : null;
+      const values = {
+        name,
+        slug: slug(form, name),
+        parentId,
+        status: choice(form, 'status', ['active', 'hidden']),
+        sortOrder: integer({ sortOrder: '0', ...form }, 'sortOrder'),
+        shortDescription: textField(form, 'shortDescription', 500) || null,
+        seoTitle: textField(form, 'seoTitle', 150) || null,
+        seoDescription: textField(form, 'seoDescription', 320) || null,
+        updatedAt: new Date(),
+      };
+      try {
+        return await db.transaction(async (tx) => {
+          // Serialize hierarchy writes, including an empty table, to prevent concurrent cycles.
+          await tx.execute(sql`SELECT pg_advisory_xact_lock(724011)`);
+          const all = await tx.select().from(categories);
+          if (categoryId && !all.some((c) => c.id === id(categoryId)))
+            throw new FormError('id', 'Kategori tidak ditemukan.');
+          const seen = new Set(categoryId ? [categoryId] : []);
+          let cursor = parentId;
+          while (cursor) {
+            if (seen.has(cursor))
+              throw new FormError(
+                'parentId',
+                'Hierarki kategori tidak boleh berputar.',
+              );
+            seen.add(cursor);
+            const parent = all.find((c) => c.id === cursor);
+            if (!parent)
+              throw new FormError(
+                'parentId',
+                'Kategori induk tidak ditemukan.',
+              );
+            cursor = parent.parentId;
+          }
+          const [row] = categoryId
+            ? await tx
+                .update(categories)
+                .set(values)
+                .where(eq(categories.id, categoryId))
+                .returning()
+            : await tx.insert(categories).values(values).returning();
+          return row!;
+        });
+      } catch (error) {
+        return databaseError(error);
+      }
+    },
+    async saveProduct(form: Form, productId?: string) {
+      const existing = productId ? await product(productId) : null;
+      const name = textField(form, 'name', 200, true);
+      const categoryId = textField(form, 'categoryId')
+        ? id(form.categoryId, 'categoryId')
+        : null;
+      if (
+        categoryId &&
+        !(await categoryList()).some((c) => c.id === categoryId)
+      )
+        throw new FormError('categoryId', 'Kategori tidak ditemukan.');
+      const status = choice(form, 'status', ['draft', 'active', 'archived']);
+      const values = {
+        vendorId: await vendorId(),
+        categoryId,
+        name,
+        slug: slug(form, name),
+        shortDescription: textField(form, 'shortDescription', 500) || null,
+        description: textField(form, 'description', 20000) || null,
+        status,
+        featured: form.featured === 'on',
+        seoTitle: textField(form, 'seoTitle', 150) || null,
+        seoDescription: textField(form, 'seoDescription', 320) || null,
+        publishedAt:
+          existing?.publishedAt ?? (status === 'active' ? new Date() : null),
+        updatedAt: new Date(),
+      };
+      try {
+        const [row] = productId
+          ? await db
+              .update(products)
+              .set(values)
+              .where(eq(products.id, productId))
+              .returning()
+          : await db.insert(products).values(values).returning();
+        return row!;
+      } catch (error) {
+        return databaseError(error);
+      }
+    },
+    async archive(productId: string) {
+      await product(productId);
+      await db
+        .update(products)
+        .set({ status: 'archived', updatedAt: new Date() })
+        .where(eq(products.id, productId));
+    },
+    async saveVariant(productId: string, form: Form, variantId?: string) {
+      await product(productId);
+      const values = variantInput(form);
+      try {
+        if (variantId) {
+          const [row] = await db
+            .update(productVariants)
+            .set({ ...values, updatedAt: new Date() })
+            .where(
+              and(
+                eq(productVariants.id, id(variantId)),
+                eq(productVariants.productId, productId),
+              ),
+            )
+            .returning();
+          if (!row) throw new FormError('id', 'Varian tidak ditemukan.');
+          return row;
+        }
+        const [row] = await db
+          .insert(productVariants)
+          .values({ ...values, productId })
+          .returning();
+        return row!;
+      } catch (error) {
+        return databaseError(error);
+      }
+    },
+    async stock(productId: string, variantId: string, form: Form) {
+      await product(productId);
+      const [row] = await db
+        .update(productVariants)
+        .set({
+          stockQuantity: integer(form, 'stockQuantity'),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(productVariants.id, id(variantId)),
+            eq(productVariants.productId, productId),
+          ),
+        )
+        .returning();
+      if (!row) throw new FormError('id', 'Varian tidak ditemukan.');
+    },
+    async addImages(productId: string, inputs: Buffer[], altText: string) {
+      await product(productId);
+      const saved: Awaited<ReturnType<CatalogImageStorage['save']>>[] = [];
+      try {
+        for (const input of inputs) saved.push(await storage.save(input));
+        await db.transaction(async (tx) => {
+          await tx
+            .select()
+            .from(products)
+            .where(eq(products.id, productId))
+            .for('update');
+          const previous = await tx
+            .select()
+            .from(productImages)
+            .where(eq(productImages.productId, productId));
+          if (previous.length + saved.length > 20)
+            throw new FormError('images', 'Maksimum 20 gambar per produk.');
+          for (const [i, image] of saved.entries())
+            await tx.insert(productImages).values({
+              ...image,
+              productId,
+              altText,
+              sortOrder: previous.length + i,
+              isPrimary: previous.length === 0 && i === 0,
+            });
+        });
+      } catch (error) {
+        await Promise.all(
+          saved.map((image) => storage.remove(image.storageKey)),
+        );
+        throw error;
+      }
+    },
+    async editImage(
+      productId: string,
+      imageId: string,
+      form: Form,
+      remove = false,
+    ) {
+      await product(productId);
+      let deletedKey: string | undefined;
+      await db.transaction(async (tx) => {
+        await tx
+          .select()
+          .from(products)
+          .where(eq(products.id, productId))
+          .for('update');
+        const [image] = await tx
+          .select()
+          .from(productImages)
+          .where(
+            and(
+              eq(productImages.id, id(imageId)),
+              eq(productImages.productId, productId),
+            ),
+          );
+        if (!image) throw new FormError('images', 'Gambar tidak ditemukan.');
+        if (remove) {
+          await tx.delete(productImages).where(eq(productImages.id, image.id));
+          deletedKey = image.storageKey;
+          if (image.isPrimary) {
+            const [next] = await tx
+              .select()
+              .from(productImages)
+              .where(eq(productImages.productId, productId))
+              .orderBy(asc(productImages.sortOrder), asc(productImages.id))
+              .limit(1);
+            if (next)
+              await tx
+                .update(productImages)
+                .set({ isPrimary: true })
+                .where(eq(productImages.id, next.id));
+          }
+        } else {
+          if (form.isPrimary === 'on')
+            await tx
+              .update(productImages)
+              .set({ isPrimary: false })
+              .where(eq(productImages.productId, productId));
+          await tx
+            .update(productImages)
+            .set({
+              altText: textField(form, 'altText', 300),
+              sortOrder: integer(form, 'sortOrder'),
+              isPrimary: form.isPrimary === 'on' || image.isPrimary,
+            })
+            .where(eq(productImages.id, image.id));
+        }
+      });
+      // DB first: a failed filesystem cleanup leaves an unreachable orphan, never a broken DB reference.
+      if (deletedKey) await storage.remove(deletedKey);
+    },
+  };
+}
+export type Catalog = ReturnType<typeof createCatalog>;

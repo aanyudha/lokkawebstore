@@ -1,0 +1,18 @@
+<%- include('../partials/admin-header.ejs') %>
+<main id="main" class="admin-main">
+<p class="eyebrow">LOKKA / Catalog</p>
+<h1>Dashboard</h1>
+<dl class="metrics">
+<% for (const [name, value] of Object.entries(metrics)) { %>
+<div>
+<dt>
+<%= name %>
+</dt>
+<dd>
+<%= value %>
+</dd>
+</div>
+<% } %>
+</dl>
+<a class="button" href="/admin/products/new">Tambah produk</a>
+</main>

@@ -29,10 +29,20 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
     throw new Error('Invalid LOG_LEVEL');
   const host = source.HOST ?? '127.0.0.1';
   if (!host.trim()) throw new Error('Invalid HOST');
+  const lowStockThreshold = Number(source.LOW_STOCK_THRESHOLD ?? '5');
+  if (
+    !Number.isInteger(lowStockThreshold) ||
+    lowStockThreshold < 0 ||
+    lowStockThreshold > 2147483647
+  )
+    throw new Error('Invalid LOW_STOCK_THRESHOLD');
   return {
     nodeEnv,
     port,
     host,
+    lowStockThreshold,
+    catalogStorageRoot:
+      source.CATALOG_STORAGE_ROOT ?? 'storage/uploads/catalog',
     logLevel,
     trustProxy: trustProxy === 'true',
     databaseUrl: url('DATABASE_URL', ['postgres:', 'postgresql:']),
