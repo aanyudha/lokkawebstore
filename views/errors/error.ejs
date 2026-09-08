@@ -1,1 +1,8 @@
-<main class="error-page" id="main"><p class="eyebrow"><%= status %></p><h1><%= title %></h1><p><%= message %></p><a class="text-link" href="/">Return to LOKKA</a></main>
+<% const errLocale = locale || 'en'; %>
+<% const errT = typeof t === 'function' ? t : (k) => k; %>
+<main class="error-page" id="main">
+  <p class="eyebrow"><%= status %></p>
+  <h1><%= title %></h1>
+  <p><%= message %></p>
+  <a class="text-link" href="<%= errLocale === 'id' ? '/id' : '/' %>"><%= errT('error.returnHome') %></a>
+</main>

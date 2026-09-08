@@ -6,6 +6,8 @@ import {
   productVariants,
   productImages,
   vendors,
+  productTranslations,
+  categoryTranslations,
 } from '../../db/schema/index.js';
 import {
   FormError,
@@ -19,6 +21,8 @@ import {
   databaseError,
 } from './validation.js';
 import type { CatalogImageStorage } from './storage.js';
+import { supportedLocaleCodes } from '../../i18n/index.js';
+
 export function createCatalog(
   db: Database['db'],
   storage: CatalogImageStorage,
@@ -70,10 +74,311 @@ export function createCatalog(
     ]);
     return { variants, images };
   }
+
+  // ─── Locale-aware catalog methods ──────────────────────────
+
+  /** Get a product translation by locale and slug */
+  async function localizedProduct(locale: string, localeSlug: string) {
+    const [translation] = await db
+      .select({
+        translation: productTranslations,
+        product: products,
+      })
+      .from(productTranslations)
+      .innerJoin(products, eq(products.id, productTranslations.productId))
+      .where(
+        and(
+          eq(productTranslations.locale, locale),
+          eq(productTranslations.slug, localeSlug),
+          eq(products.status, 'active'),
+          eq(products.vendorId, await vendorId()),
+        ),
+      )
+      .limit(1);
+    if (!translation) return null;
+    const related = await relations([translation.product.id]);
+    return {
+      product: translation.product,
+      translation: translation.translation,
+      variants: related.variants.filter((v) => v.status === 'active'),
+      images: related.images,
+    };
+  }
+
+  /** Get a category translation by locale and slug */
+  async function localizedCategory(locale: string, localeSlug: string) {
+    const [result] = await db
+      .select({
+        translation: categoryTranslations,
+        category: categories,
+      })
+      .from(categoryTranslations)
+      .innerJoin(categories, eq(categories.id, categoryTranslations.categoryId))
+      .where(
+        and(
+          eq(categoryTranslations.locale, locale),
+          eq(categoryTranslations.slug, localeSlug),
+        ),
+      )
+      .limit(1);
+    return result ?? null;
+  }
+
+  /** Get all translations for a product */
+  async function productTranslationsList(productId: string) {
+    return db
+      .select()
+      .from(productTranslations)
+      .where(eq(productTranslations.productId, productId));
+  }
+
+  /** Get all translations for a category */
+  async function categoryTranslationsList(categoryId: string) {
+    return db
+      .select()
+      .from(categoryTranslations)
+      .where(eq(categoryTranslations.categoryId, categoryId));
+  }
+
+  /** Get a product translation by product ID and locale */
+  async function productTranslationFor(productId: string, locale: string) {
+    const [result] = await db
+      .select()
+      .from(productTranslations)
+      .where(
+        and(
+          eq(productTranslations.productId, productId),
+          eq(productTranslations.locale, locale),
+        ),
+      );
+    return result ?? null;
+  }
+
+  /** Get a category translation by category ID and locale */
+  async function categoryTranslationFor(categoryId: string, locale: string) {
+    const [result] = await db
+      .select()
+      .from(categoryTranslations)
+      .where(
+        and(
+          eq(categoryTranslations.categoryId, categoryId),
+          eq(categoryTranslations.locale, locale),
+        ),
+      );
+    return result ?? null;
+  }
+
+  /** Save or update a product translation */
+  async function saveProductTranslation(
+    productId: string,
+    locale: string,
+    form: Form,
+  ) {
+    if (!supportedLocaleCodes.includes(locale as never))
+      throw new FormError('locale', 'Locale tidak valid.');
+    await product(productId);
+    const name = textField(form, 'name', 200, true);
+    const localeSlug = slug(form, name);
+    const values = {
+      productId,
+      locale,
+      name,
+      slug: localeSlug,
+      shortDescription: textField(form, 'shortDescription', 500) || null,
+      description: textField(form, 'description', 20000) || null,
+      seoTitle: textField(form, 'seoTitle', 150) || null,
+      seoDescription: textField(form, 'seoDescription', 320) || null,
+      updatedAt: new Date(),
+    };
+    try {
+      const existing = await productTranslationFor(productId, locale);
+      if (existing) {
+        const [row] = await db
+          .update(productTranslations)
+          .set(values)
+          .where(eq(productTranslations.id, existing.id))
+          .returning();
+        return row!;
+      }
+      const [row] = await db
+        .insert(productTranslations)
+        .values(values)
+        .returning();
+      return row!;
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === '23505') {
+        throw new FormError(
+          'slug',
+          `Slug "${localeSlug}" already used for locale "${locale}". Use a unique slug.`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  /** Save or update a category translation */
+  async function saveCategoryTranslation(
+    categoryId: string,
+    locale: string,
+    form: Form,
+  ) {
+    if (!supportedLocaleCodes.includes(locale as never))
+      throw new FormError('locale', 'Locale tidak valid.');
+    const name = textField(form, 'name', 150, true);
+    const localeSlug = slug(form, name);
+    const values = {
+      categoryId,
+      locale,
+      name,
+      slug: localeSlug,
+      shortDescription: textField(form, 'shortDescription', 500) || null,
+      seoTitle: textField(form, 'seoTitle', 150) || null,
+      seoDescription: textField(form, 'seoDescription', 320) || null,
+      updatedAt: new Date(),
+    };
+    try {
+      const existing = await categoryTranslationFor(categoryId, locale);
+      if (existing) {
+        const [row] = await db
+          .update(categoryTranslations)
+          .set(values)
+          .where(eq(categoryTranslations.id, existing.id))
+          .returning();
+        return row!;
+      }
+      const [row] = await db
+        .insert(categoryTranslations)
+        .values(values)
+        .returning();
+      return row!;
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === '23505') {
+        throw new FormError(
+          'slug',
+          `Slug "${localeSlug}" already used for locale "${locale}". Use a unique slug.`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  /** Locale-aware public collection listing */
+  async function publicListLocale(
+    page: number,
+    locale: string,
+    categoryId?: string,
+  ) {
+    const baseCondition = and(
+      eq(products.vendorId, await vendorId()),
+      eq(products.status, 'active'),
+      categoryId ? eq(products.categoryId, categoryId) : undefined,
+    );
+    const [rows, total] = await Promise.all([
+      db
+        .select({
+          product: products,
+          translation: productTranslations,
+        })
+        .from(products)
+        .innerJoin(
+          productTranslations,
+          and(
+            eq(productTranslations.productId, products.id),
+            eq(productTranslations.locale, locale),
+          ),
+        )
+        .where(baseCondition)
+        .orderBy(desc(products.publishedAt), asc(products.id))
+        .limit(24)
+        .offset((page - 1) * 24),
+      db.select({ value: count() }).from(products).where(baseCondition),
+    ]);
+    const ids = rows.map((r) => r.product.id);
+    const related = await relations(ids);
+    return {
+      rows: rows.map((r) => ({
+        ...r.product,
+        name: r.translation.name,
+        slug: r.translation.slug,
+        shortDescription: r.translation.shortDescription,
+        description: r.translation.description,
+        seoTitle: r.translation.seoTitle,
+        seoDescription: r.translation.seoDescription,
+      })),
+      total: total[0]!.value,
+      variants: related.variants.filter((v) => v.status === 'active'),
+      images: related.images,
+    };
+  }
+
+  /** Get all active category translations for a locale */
+  async function categoryListLocale(locale: string) {
+    return db
+      .select({
+        category: categories,
+        translation: categoryTranslations,
+      })
+      .from(categories)
+      .innerJoin(
+        categoryTranslations,
+        and(
+          eq(categoryTranslations.categoryId, categories.id),
+          eq(categoryTranslations.locale, locale),
+        ),
+      )
+      .where(eq(categories.status, 'active'))
+      .orderBy(asc(categories.sortOrder), asc(categoryTranslations.name));
+  }
+
+  /** Get the translation for a category by its base ID and locale (for admin use) */
+  async function categoryTranslationBase(
+    categoryBaseId: string,
+    locale: string,
+  ) {
+    return categoryTranslationFor(categoryBaseId, locale);
+  }
+
+  /** Get the translation for a product by its base ID and locale (for admin use) */
+  async function productTranslationBase(productBaseId: string, locale: string) {
+    return productTranslationFor(productBaseId, locale);
+  }
+
+  /** List all categories (base) for admin */
+  async function allCategories() {
+    return categoryList();
+  }
+
+  /** Get all product translations for admin */
+  async function adminProductTranslations(productId: string) {
+    return productTranslationsList(productId);
+  }
+
+  /** Get all category translations for admin */
+  async function adminCategoryTranslations(categoryId: string) {
+    return categoryTranslationsList(categoryId);
+  }
+
+  // ─── Legacy methods (preserved for backward compat) ─────────
+
   return {
     product,
     categoryList,
+    allCategories,
     relations,
+    localizedProduct,
+    localizedCategory,
+    productTranslationsList,
+    categoryTranslationsList,
+    productTranslationFor,
+    categoryTranslationFor,
+    productTranslationBase,
+    categoryTranslationBase,
+    saveProductTranslation,
+    saveCategoryTranslation,
+    publicListLocale,
+    categoryListLocale,
+    adminProductTranslations,
+    adminCategoryTranslations,
     async publicImage(key: string) {
       if (!/^[a-f0-9-]{36}$/.test(key)) return null;
       const [row] = await db

@@ -1,8 +1,47 @@
+<% const homeLocale = locale || 'en'; %>
+<% const homeT = typeof t === 'function' ? t : (k) => k; %>
 <main id="main">
-<section class="intro-home">
-<p class="eyebrow">Busana & batik Indonesia</p>
-<h1>Warisan, hadir<br />dalam keseharian.</h1>
-<p>Ekspresi tenang dari kekayaan Indonesia.<br />Temukan karya LOKKA untuk cerita Anda.</p>
-<a class="button" href="/koleksi">Jelajahi koleksi</a>
-</section>
+  <section class="hero">
+    <div class="hero-content">
+      <p class="eyebrow"><%= homeT('home.eyebrow') %></p>
+      <h1><%- homeT('home.heroTitle').replace(/\n/g, '<br />') %></h1>
+      <p class="hero-sub"><%- homeT('home.heroSubtitle').replace(/\n/g, '<br />') %></p>
+      <a class="btn btn-primary" href="<%= homeLocale === 'id' ? '/id/koleksi' : '/collections' %>"><%= homeT('home.exploreCollections') %></a>
+    </div>
+    <div class="hero-visual" aria-hidden="true">
+      <div class="hero-placeholder"></div>
+    </div>
+  </section>
+
+  <% if (featuredProducts && featuredProducts.length) { %>
+  <section class="featured">
+    <div class="section-header">
+      <h2><%= homeT('home.featuredTitle') %></h2>
+      <a href="<%= homeLocale === 'id' ? '/id/koleksi' : '/collections' %>" class="text-link"><%= homeT('nav.collections') %> &rarr;</a>
+    </div>
+    <div class="product-grid product-grid--4">
+      <% featuredProducts.forEach((item, idx) => { %>
+        <article class="product-card">
+          <a href="<%= homeLocale === 'id' ? '/id/produk/' + item.slug : '/product/' + item.slug %>" class="product-card__link">
+            <div class="product-card__image">
+              <div class="product-placeholder" aria-hidden="true">
+                <span>LOKKA</span>
+              </div>
+            </div>
+            <div class="product-card__info">
+              <h3 class="product-card__title"><%= item.name %></h3>
+            </div>
+          </a>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+  <% } %>
+
+  <section class="about-block">
+    <div class="about-inner">
+      <h2><%= homeT('home.aboutTitle') %></h2>
+      <p><%= homeT('home.aboutText') %></p>
+    </div>
+  </section>
 </main>

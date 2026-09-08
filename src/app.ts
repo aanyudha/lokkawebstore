@@ -16,6 +16,9 @@ import { createCatalog } from './modules/catalog/service.js';
 import { LocalCatalogImageStorage } from './modules/catalog/storage.js';
 import { registerCatalog } from './modules/catalog/routes.js';
 import { registerAdmin } from './modules/admin/routes.js';
+import { getAssets, resetAssets } from './config/assets.js';
+import { orderedLocales } from './i18n/index.js';
+import { t } from './i18n/translator.js';
 import type { Database } from './db/client.js';
 export async function buildApp(
   env: AppEnv,
@@ -64,7 +67,7 @@ export async function buildApp(
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'"],
           styleSrc: ["'self'"],
-          imgSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:'],
           objectSrc: ["'none'"],
           upgradeInsecureRequests: env.nodeEnv === 'production' ? [] : null,
         },
@@ -88,12 +91,22 @@ export async function buildApp(
       max: 60,
       timeWindow: '1 minute',
     });
+    // ─── Static asset serving with proper cache strategy ────
+    // Content-hashed assets get immutable cache; unversioned get no-store.
     await app.register(fastifyStatic, {
       root: resolve('public/build'),
       prefix: '/build/',
       dotfiles: 'deny',
       index: false,
-      maxAge: 0,
+      maxAge: env.nodeEnv === 'production' ? 31536000 : 0,
+      immutable: env.nodeEnv === 'production',
+      setHeaders: (reply: import('fastify').FastifyReply) => {
+        if (env.nodeEnv !== 'production') {
+          // Development: prevent ALL browser caching of built assets
+          reply.header('Cache-Control', 'no-store, no-cache, must-revalidate');
+          reply.header('Pragma', 'no-cache');
+        }
+      },
     });
     await app.register(view, {
       engine: { ejs },
@@ -102,24 +115,56 @@ export async function buildApp(
       defaultContext: {
         admin: false,
         categories: [],
-        description: 'LOKKA — busana dan batik Indonesia.',
+        description: 'LOKKA — Contemporary Indonesian fashion.',
         canonical: env.appUrl,
         ogImage: undefined,
         jsonLd: undefined,
+        locale: 'en',
+        locales: orderedLocales,
+        htmlLang: 'en',
+        alternateLinks: '',
+        t: (key: string) => key,
+        assets: getAssets(),
       },
     });
+    // ─── Official logo route (original PNG, not for web delivery) ───
     app.get('/images/lokka_logo.png', async (_request, reply) =>
       reply
         .header('Cache-Control', 'public, max-age=86400')
         .sendFile('lokka_logo.png', resolve('public/images')),
     );
+    // ─── Optimized brand logo ───
+    app.get('/images/brand/lokka-logo.webp', async (_request, reply) =>
+      reply
+        .header(
+          'Cache-Control',
+          env.nodeEnv === 'production'
+            ? 'public, max-age=31536000, immutable'
+            : 'public, max-age=3600',
+        )
+        .sendFile('lokka-logo.webp', resolve('public/images/brand')),
+    );
+    // ─── HTML cache headers ───
+    app.addHook('onSend', async (_request, reply) => {
+      const contentType = reply.getHeader('content-type');
+      if (contentType && String(contentType).includes('text/html')) {
+        if (env.nodeEnv !== 'production') {
+          reply.header('Cache-Control', 'no-store, no-cache, must-revalidate');
+        }
+      }
+    });
     app.setNotFoundHandler(async (request, reply) => {
       reply.code(404);
       if (request.url.startsWith('/api/')) return { error: 'Not found' };
+      const locale = request.url.startsWith('/id') ? 'id' : 'en';
       return reply.viewAsync('errors/error.ejs', {
-        title: 'Page not found',
+        title: t(locale, 'error.notFound'),
         status: 404,
-        message: 'The page you are looking for could not be found.',
+        message: t(locale, 'error.notFoundMessage'),
+        locale,
+        locales: orderedLocales,
+        htmlLang: locale === 'id' ? 'id-ID' : 'en',
+        t: (key: string) => t(locale, key),
       });
     });
     app.setErrorHandler(async (error, request, reply) => {
@@ -130,12 +175,13 @@ export async function buildApp(
       const status =
         typeof code === 'number' && code >= 400 && code < 500 ? code : 500;
       app.log.error({ requestId: request.id, status }, 'Request failed');
+      const locale = request.url.startsWith('/id') ? 'id' : 'en';
       const message =
         status === 500
-          ? 'Something went wrong. Please try again later.'
+          ? t(locale, 'error.serverError')
           : status === 429
-            ? 'Too many requests. Please try again later.'
-            : 'The request could not be processed.';
+            ? t(locale, 'error.tooManyRequests')
+            : t(locale, 'error.requestError');
       reply.code(status);
       if (
         request.url.startsWith('/api/') ||
@@ -144,15 +190,21 @@ export async function buildApp(
       )
         return { error: message };
       return reply.viewAsync('errors/error.ejs', {
-        title: 'Request error',
+        title: t(locale, 'error.notFound'),
         status,
         message,
+        locale,
+        locales: orderedLocales,
+        htmlLang: locale === 'id' ? 'id-ID' : 'en',
+        t: (key: string) => t(locale, key),
       });
     });
     const storage = new LocalCatalogImageStorage(env.catalogStorageRoot);
     const catalog = database.db
       ? createCatalog(database.db, storage)
       : undefined;
+    // Reset asset cache after build
+    resetAssets();
     await registerRoutes(app, database, catalog, env);
     if (catalog && database.db) {
       await registerCatalog(app, catalog, storage, env);

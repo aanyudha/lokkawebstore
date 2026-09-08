@@ -7,8 +7,17 @@ export default defineConfig({
     lib: {
       entry: 'web/client/main.ts',
       formats: ['es'],
-      fileName: () => 'main.js',
-      cssFileName: 'main',
+      fileName: () => 'main.[hash].js',
+    },
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name && assetInfo.name.endsWith('.css')) {
+            return 'main.[hash].css';
+          }
+          return '[name].[hash][extname]';
+        },
+      },
     },
   },
 });

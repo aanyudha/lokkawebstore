@@ -30,19 +30,39 @@ describe('foundation routes', () => {
       });
     },
   );
-  it('renders the SSR shell with local assets and security headers', async () => {
+  it('renders the SSR shell with localized content and security headers', async () => {
     const { app } = await setup();
     const response = await app.inject('/');
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toContain('text/html');
-    expect(response.body).toContain('/images/lokka_logo.png');
-    expect(response.body).toContain('/build/main.css');
+    // English homepage should have lang="en"
+    expect(response.body).toContain('lang="en"');
+    // Should contain English translation text
+    expect(response.body).toContain('Contemporary Indonesian fashion');
+    // Should include content-hashed assets
+    expect(response.body).toContain('/build/');
+    // Should have language switcher
+    expect(response.body).toContain('EN');
+    expect(response.body).toContain('ID');
     expect(response.headers['content-security-policy']).toContain(
       "script-src 'self'",
     );
     expect(response.headers['content-security-policy']).not.toContain(
       'upgrade-insecure-requests',
     );
+  });
+  it('renders Indonesian homepage at /id', async () => {
+    const { app } = await setup();
+    const response = await app.inject('/id');
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toContain('lang="id-ID"');
+    expect(response.body).toContain('Fashion Indonesia kontemporer');
+  });
+  it('redirects old unprefixed Indonesian routes', async () => {
+    const { app } = await setup();
+    const koleksi = await app.inject('/koleksi');
+    expect(koleksi.statusCode).toBe(301);
+    expect(koleksi.headers.location).toBe('/id/koleksi');
   });
   it('returns HTML and API 404s', async () => {
     const { app } = await setup();
@@ -52,6 +72,12 @@ describe('foundation routes', () => {
     const api = await app.inject('/api/v1/missing');
     expect(api.statusCode).toBe(404);
     expect(api.json()).toEqual({ error: 'Not found' });
+  });
+  it('returns Indonesian 404 for /id prefixed URLs', async () => {
+    const { app } = await setup();
+    const html = await app.inject('/id/missing');
+    expect(html.statusCode).toBe(404);
+    expect(html.body).toContain('Halaman tidak ditemukan');
   });
   it('checks readiness and closes the pool', async () => {
     const { app, database } = await setup();

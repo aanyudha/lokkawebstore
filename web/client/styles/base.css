@@ -1,26 +1,208 @@
 body {
-  background: var(--color-ivory);
-  color: var(--color-ink);
-  font: 1rem/1.6 var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Headings ── */
+
 h1,
-h2 {
-  font-family: var(--font-editorial);
-  font-weight: 400;
-  line-height: 1.12;
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--color-ink);
 }
+
 h1 {
-  font-size: clamp(2.7rem, 5vw, 5rem);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
+
 h2 {
-  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
+
+h3 {
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  font-weight: 500;
+}
+
+/* ── Links ── */
+
+a {
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-brand);
+}
+
+/* ── Focus ── */
+
 :focus-visible {
-  outline: 3px solid var(--color-batik);
-  outline-offset: 5px;
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
 }
+
+/* ── Eyebrow / label text ── */
+
 .eyebrow {
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.15em;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+/* ── Skip link ── */
+
+.skip-link {
+  position: absolute;
+  left: var(--space-md);
+  top: -100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-ink);
+  color: var(--color-white);
+  font-size: 0.875rem;
+  z-index: 1000;
+  border-radius: 2px;
+}
+
+.skip-link:focus {
+  top: var(--space-md);
+}
+
+/* ── Buttons ── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 2rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  line-height: 1;
+}
+
+.btn-primary {
+  background: var(--color-ink);
+  color: var(--color-white);
+  border-color: var(--color-ink);
+}
+
+.btn-primary:hover {
+  background: var(--color-charcoal);
+  color: var(--color-white);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-ink);
+  border-color: var(--color-border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-ink);
+}
+
+/* ── Text link ── */
+
+.text-link {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 2px;
+  transition: border-color var(--transition-fast);
+}
+
+.text-link:hover {
+  border-color: var(--color-brand);
+}
+
+/* ── Form elements ── */
+
+input,
+select,
+textarea {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-ink);
+  width: 100%;
+  min-width: 0;
+  font-size: 0.9375rem;
+  transition: border-color var(--transition-fast);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-ink);
+}
+
+textarea {
+  resize: vertical;
+}
+
+/* ── Tables ── */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+th {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+caption {
+  text-align: left;
+  font-weight: 600;
+  padding-block: 0.75rem;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Delete element ── */
+
+del {
+  color: var(--color-muted);
+  font-size: 0.85em;
+  text-decoration: line-through;
 }

@@ -1,0 +1,80 @@
+{
+  "site": {
+    "brand": "LOKKA",
+    "tagline": "Contemporary Indonesian fashion",
+    "copyright": "LOKKA. Rooted in Indonesia. Present in everyday life."
+  },
+  "nav": {
+    "newIn": "New In",
+    "women": "Women",
+    "men": "Men",
+    "batik": "Batik",
+    "accessories": "Accessories",
+    "journal": "Journal",
+    "collections": "Collections"
+  },
+  "home": {
+    "eyebrow": "Fashion & batik from Indonesia",
+    "heroTitle": "Rooted in heritage,\npresent in everyday life.",
+    "heroSubtitle": "Quiet expression from Indonesia's richness.\nDiscover LOKKA pieces for your story.",
+    "exploreCollections": "Explore collections",
+    "featuredTitle": "Selected pieces",
+    "aboutTitle": "About LOKKA",
+    "aboutText": "LOKKA bridges Indonesian textile heritage with contemporary design. Each piece carries the story of skilled artisans and timeless craft, reimagined for modern life."
+  },
+  "catalog": {
+    "title": "Collection",
+    "empty": "The collection is being prepared. Check back soon to see the latest LOKKA pieces.",
+    "productsCount": "{{count}} products",
+    "productCount": "{{count}} product"
+  },
+  "product": {
+    "selectVariant": "Select size / variant",
+    "size": "Size",
+    "availability": "Availability",
+    "inStock": "In stock",
+    "outOfStock": "Out of stock",
+    "sku": "SKU",
+    "weight": "Weight",
+    "allVariants": "All variants",
+    "variantTable": {
+      "variant": "Variant / SKU",
+      "price": "Price",
+      "availability": "Availability",
+      "weight": "Weight"
+    },
+    "aboutThisWork": "About this piece",
+    "descriptionPlaceholder": "Product details will be added soon.",
+    "comingSoon": "Shopping functionality will be available soon.",
+    "imageComingSoon": "Photo coming soon"
+  },
+  "pagination": {
+    "previous": "\u2190 Previous",
+    "next": "Next \u2192",
+    "page": "Page {{page}}"
+  },
+  "breadcrumb": {
+    "home": "Home",
+    "collections": "Collections"
+  },
+  "footer": {
+    "about": "About LOKKA",
+    "collections": "Collections",
+    "madeInIndonesia": "Made in Indonesia",
+    "comingSoon": "Coming soon",
+    "copyright": "\u00a9 2026 LOKKA. All rights reserved."
+  },
+  "error": {
+    "notFound": "Page not found",
+    "notFoundMessage": "The page you are looking for could not be found.",
+    "serverError": "Something went wrong. Please try again later.",
+    "tooManyRequests": "Too many requests. Please try again later.",
+    "requestError": "The request could not be processed.",
+    "returnHome": "Return to LOKKA"
+  },
+  "language": {
+    "switchLabel": "Language",
+    "en": "EN",
+    "id": "ID"
+  }
+}

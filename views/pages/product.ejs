@@ -1,99 +1,80 @@
+<% const pdpLocale = locale || 'en'; %>
+<% const pdpT = typeof t === 'function' ? t : (k) => k; %>
 <main id="main" class="catalog-page">
-<nav class="breadcrumbs" aria-label="Breadcrumb">
-<a href="/">Beranda</a> / <a href="/koleksi">Koleksi</a>
-<% if (category) { %> / <a href="/kategori/<%= category.slug %>">
-<%= category.name %>
-</a>
-<% } %> / <span>
-<%= product.name %>
-</span>
-</nav>
-<div class="product-detail">
-<div class="gallery">
-<% if (!images.length) { %>
-<div class="product-placeholder">Foto segera hadir</div>
-<% } %>
-<% images.forEach((picture, index) => { %>
-<img src="<%= storage.url(picture.storageKey, 'detail') %>" alt="<%= picture.altText || product.name %>" width="<%= picture.width %>" height="<%= picture.height %>" <% if (index > 0) { %>loading="lazy"<% } %> />
-<% }); %>
-</div>
-<section class="product-copy">
-<p class="eyebrow">LOKKA<% if (category) { %> / <%= category.name %>
-<% } %>
-</p>
-<h1>
-<%= product.name %>
-</h1>
-<% if (variants.length) { %>
-<p class="detail-price" data-variant-price>
-<%= formatIdr(variants[0].price) %>
-</p>
-<% } %>
-<p>
-<%= product.shortDescription %>
-</p>
-<% if (variants.length) { %>
-<fieldset class="variant-picker">
-<legend>Pilih ukuran / varian</legend>
-<% variants.forEach((variant, i) => { %>
-<label>
-<input type="radio" name="variant" value="<%= variant.id %>" data-price="<%= formatIdr(variant.price) %>" data-sku="<%= variant.sku %>" data-stock="<%= variant.stockQuantity > 0 ? 'Tersedia' : 'Stok habis' %>" <%= i === 0 ? 'checked' : '' %> />
-<span>
-<%= variant.name %>
-</span>
-</label>
-<% }); %>
-</fieldset>
-<p data-variant-info>SKU: <%= variants[0].sku %> · <%= variants[0].stockQuantity > 0 ? 'Tersedia' : 'Stok habis' %>
-</p>
-<div class="table-scroll">
-<table>
-<caption>Detail semua varian</caption>
-<thead>
-<tr>
-<th>Varian / SKU</th>
-<th>Harga</th>
-<th>Ketersediaan</th>
-<th>Berat</th>
-</tr>
-</thead>
-<tbody>
-<% for (const variant of variants) { %>
-<tr>
-<td>
-<%= variant.name %>
-<br />
-<small>
-<%= variant.sku %>
-</small>
-</td>
-<td>
-<%= formatIdr(variant.price) %>
-<% if (variant.compareAtPrice && variant.compareAtPrice > variant.price) { %>
-<br />
-<del>
-<%= formatIdr(variant.compareAtPrice) %>
-</del>
-<% } %>
-</td>
-<td>
-<%= variant.stockQuantity > 0 ? 'Tersedia' : 'Stok habis' %>
-</td>
-<td>
-<%= variant.weightGrams %> g</td>
-</tr>
-<% } %>
-</tbody>
-</table>
-</div>
-<% } else { %>
-<p>Varian sedang disiapkan.</p>
-<% } %>
-<p class="purchase-note">Fitur pembelian akan tersedia pada tahap berikutnya.</p>
-<h2>Tentang karya ini</h2>
-<div class="prose">
-<%= product.description || 'Detail produk akan segera dilengkapi.' %>
-</div>
-</section>
-</div>
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href="<%= pdpLocale === 'id' ? '/id' : '/' %>"><%= pdpT('breadcrumb.home') %></a>
+    <span class="breadcrumb-sep" aria-hidden="true">/</span>
+    <a href="<%= pdpLocale === 'id' ? '/id/koleksi' : '/collections' %>"><%= pdpT('breadcrumb.collections') %></a>
+    <% if (category) { %>
+      <span class="breadcrumb-sep" aria-hidden="true">/</span>
+      <a href="<%= pdpLocale === 'id' ? '/id/kategori/' + category.slug : '/category/' + category.slug %>"><%= category.name %></a>
+    <% } %>
+    <span class="breadcrumb-sep" aria-hidden="true">/</span>
+    <span aria-current="page"><%= product.name %></span>
+  </nav>
+
+  <div class="product-detail">
+    <div class="gallery">
+      <% if (!images.length) { %>
+        <div class="product-placeholder product-placeholder--large"><span><%= pdpT('product.imageComingSoon') %></span></div>
+      <% } %>
+      <% images.forEach((picture, index) => { %>
+        <img
+          src="<%= storage.url(picture.storageKey, 'detail') %>"
+          alt="<%= picture.altText || product.name %>"
+          width="<%= picture.width %>"
+          height="<%= picture.height %>"
+          <% if (index > 0) { %>loading="lazy"<% } %>
+          class="gallery__img"
+        />
+      <% }); %>
+    </div>
+
+    <section class="product-copy">
+      <p class="eyebrow">LOKKA<% if (category) { %> / <%= category.name %><% } %></p>
+      <h1 class="product-title"><%= product.name %></h1>
+
+      <% if (variants.length) { %>
+        <p class="detail-price" data-variant-price><%= formatIdr(variants[0].price) %></p>
+      <% } %>
+
+      <% if (product.shortDescription) { %>
+        <p class="product-short-desc"><%= product.shortDescription %></p>
+      <% } %>
+
+      <% if (variants.length) { %>
+        <fieldset class="variant-picker">
+          <legend><%= pdpT('product.selectVariant') %></legend>
+          <% variants.forEach((variant, i) => { %>
+            <label class="variant-label">
+              <input
+                type="radio"
+                name="variant"
+                value="<%= variant.id %>"
+                data-price="<%= formatIdr(variant.price) %>"
+                data-sku="<%= variant.sku %>"
+                data-stock="<%= variant.stockQuantity > 0 ? pdpT('product.inStock') : pdpT('product.outOfStock') %>"
+                <%= i === 0 ? 'checked' : '' %>
+              />
+              <span><%= variant.name %></span>
+            </label>
+          <% }); %>
+        </fieldset>
+        <p class="variant-info" data-variant-info>
+          <%= pdpT('product.sku') %>: <%= variants[0].sku %> · <%= variants[0].stockQuantity > 0 ? pdpT('product.inStock') : pdpT('product.outOfStock') %>
+        </p>
+      <% } else { %>
+        <p class="variant-info"><%= pdpT('product.selectVariant') %></p>
+      <% } %>
+
+      <div class="purchase-note">
+        <p><%= pdpT('product.comingSoon') %></p>
+      </div>
+
+      <% if (product.description) { %>
+        <h2 class="section-heading"><%= pdpT('product.aboutThisWork') %></h2>
+        <div class="prose"><%= product.description %></div>
+      <% } %>
+    </section>
+  </div>
 </main>

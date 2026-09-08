@@ -1,8 +1,11 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { Catalog } from './service.js';
 import type { AppEnv } from '../../config/env.js';
 import type { CatalogImageStorage, ImageSize } from './storage.js';
 import { formatIdr } from './validation.js';
+import { locales, orderedLocales, type LocaleCode } from '../../i18n/index.js';
+import { t } from '../../i18n/translator.js';
+
 const xml = (value: string) =>
   value.replace(
     /[<>&"']/g,
@@ -15,135 +18,274 @@ const xml = (value: string) =>
         "'": '&apos;',
       })[ch]!,
   );
+
 export async function registerCatalog(
   app: FastifyInstance,
   catalog: Catalog,
   storage: CatalogImageStorage,
   env: AppEnv,
 ) {
-  app.get<{ Querystring: { page?: string }; Params: { slug?: string } }>(
-    '/koleksi',
-    list,
+  async function getLocalizedCategories(locale: string) {
+    const cats = await catalog.categoryListLocale(locale);
+    return cats.map((c) => ({
+      id: c.category.id,
+      parentId: c.category.parentId,
+      status: c.category.status,
+      sortOrder: c.category.sortOrder,
+      name: c.translation.name,
+      slug: c.translation.slug,
+      shortDescription: c.translation.shortDescription,
+      seoTitle: c.translation.seoTitle,
+      seoDescription: c.translation.seoDescription,
+    }));
+  }
+
+  // ─── English collection routes (no prefix) ────────────────
+  app.get('/collections', async (request, reply) =>
+    listHandler(request, reply, 'en'),
   );
-  app.get<{ Querystring: { page?: string }; Params: { slug?: string } }>(
-    '/kategori/:slug',
-    list,
+  app.get('/category/:slug', async (request, reply) =>
+    listHandler(request, reply, 'en'),
   );
-  async function list(
-    request: { query: { page?: string }; params: { slug?: string } },
-    reply: import('fastify').FastifyReply,
+
+  // ─── Indonesian collection routes (with /id prefix) ───────
+  app.get('/id/koleksi', async (request, reply) =>
+    listHandler(request, reply, 'id'),
+  );
+  app.get('/id/kategori/:slug', async (request, reply) =>
+    listHandler(request, reply, 'id'),
+  );
+
+  // ─── English product route ─────────────────────────────────
+  app.get('/product/:slug', async (request, reply) =>
+    productHandler(request, reply, 'en'),
+  );
+
+  // ─── Indonesian product route ──────────────────────────────
+  app.get('/id/produk/:slug', async (request, reply) =>
+    productHandler(request, reply, 'id'),
+  );
+
+  // Note: Redirects for old unprefixed Indonesian routes (/koleksi, /kategori/:slug, /produk/:slug)
+  // are registered in the main routes (src/routes/index.ts) so they work without a database.
+
+  // ─── List handler (shared) ─────────────────────────────────
+  async function listHandler(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    locale: LocaleCode,
   ) {
-    const pageValue = request.query.page ?? '1';
-    if (!/^[1-9]\d{0,5}$/.test(pageValue))
-      return reply.code(400).send('Halaman tidak valid.');
-    const page = Number(pageValue);
-    const categories = (await catalog.categoryList()).filter(
-      (c) => c.status === 'active',
-    );
-    const category = request.params.slug
-      ? categories.find((c) => c.slug === request.params.slug)
-      : undefined;
-    if (request.params.slug && !category) return reply.callNotFound();
-    const data = await catalog.publicList(page, category?.id);
+    const { page: pageValue } = request.query as { page?: string };
+    const { slug } = request.params as { slug?: string };
+    const pv = pageValue ?? '1';
+    if (!/^[1-9]\d{0,5}$/.test(pv))
+      return reply.code(400).send('Invalid page.');
+    const page = Number(pv);
+    const categories = await getLocalizedCategories(locale);
+    const category = slug ? categories.find((c) => c.slug === slug) : undefined;
+    if (slug && !category) return reply.callNotFound();
+
+    const data = await catalog.publicListLocale(page, locale, category?.id);
     if (page > 1 && (page - 1) * 24 >= data.total) return reply.callNotFound();
-    const path = category ? `/kategori/${category.slug}` : '/koleksi';
+
+    const prefix = locales[locale].pathPrefix;
+    const collectionPath = locale === 'id' ? '/id/koleksi' : '/collections';
+    const categoryPath = slug ? `${prefix}/kategori/${slug}` : collectionPath;
+
+    const titlePrefix =
+      category?.seoTitle || category?.name || t(locale, 'catalog.title');
+    const pageTitle = `${titlePrefix}${page > 1 ? ` — ${t(locale, 'pagination.page', { page })}` : ''} | LOKKA`;
+    const description =
+      category?.seoDescription ||
+      category?.shortDescription ||
+      t(locale, 'catalog.title');
+    const canonical = new URL(
+      categoryPath + (page > 1 ? `?page=${page}` : ''),
+      env.appUrl,
+    ).href;
+
+    const alternateLinks = orderedLocales
+      .map((loc) => {
+        const locPrefix = loc.pathPrefix;
+        let locPath: string;
+        if (slug && category) {
+          const locCat = categories.find((c) => c.id === category.id);
+          if (!locCat) return '';
+          locPath = `${locPrefix}/kategori/${locCat.slug}`;
+        } else {
+          locPath = loc.code === 'id' ? `${locPrefix}/koleksi` : '/collections';
+        }
+        if (page > 1) locPath += `?page=${page}`;
+        return `<link rel="alternate" hreflang="${loc.htmlLang}" href="${new URL(locPath, env.appUrl).href}" />`;
+      })
+      .filter(Boolean)
+      .join('\n    ');
+
     return reply.viewAsync('pages/collection.ejs', {
-      title: `${category?.seoTitle || category?.name || 'Koleksi'}${page > 1 ? ` — Halaman ${page}` : ''} | LOKKA`,
-      description:
-        category?.seoDescription ||
-        category?.shortDescription ||
-        'Temukan koleksi busana dan batik LOKKA.',
-      canonical: new URL(path + (page > 1 ? `?page=${page}` : ''), env.appUrl)
-        .href,
+      title: pageTitle,
+      description,
+      canonical,
       categories,
       category,
       page,
-      path,
+      path: categoryPath,
       ...data,
       formatIdr,
       storage,
+      locale,
+      locales: orderedLocales,
+      t: (key: string, interp?: Record<string, string | number>) =>
+        t(locale, key, interp),
+      alternateLinks,
+      htmlLang: locales[locale].htmlLang,
+      collectionPath,
     });
   }
-  app.get<{ Params: { slug: string } }>(
-    '/produk/:slug',
-    async (request, reply) => {
-      const data = await catalog.publicProduct(request.params.slug);
-      if (!data) return reply.callNotFound();
-      const categories = (await catalog.categoryList()).filter(
-        (c) => c.status === 'active',
-      );
-      const category = categories.find((c) => c.id === data.product.categoryId);
-      const canonical = new URL(`/produk/${data.product.slug}`, env.appUrl)
-        .href;
-      const schema = {
-        '@context': 'https://schema.org',
-        '@type': 'Product',
-        name: data.product.name,
-        description:
-          data.product.description ||
-          data.product.shortDescription ||
-          undefined,
-        image: data.images.map(
-          (i) => new URL(storage.url(i.storageKey, 'detail'), env.appUrl).href,
-        ),
-        brand: { '@type': 'Brand', name: 'LOKKA' },
-        sku: data.variants[0]?.sku,
-        offers: data.variants.map((v) => ({
-          '@type': 'Offer',
-          priceCurrency: 'IDR',
-          price: v.price.toString(),
-          sku: v.sku,
-          availability: `https://schema.org/${v.stockQuantity > 0 ? 'InStock' : 'OutOfStock'}`,
-          url: canonical,
-        })),
-      };
-      const jsonLd = JSON.stringify(schema)
-        .replace(/</g, '\\u003c')
-        .replace(/>/g, '\\u003e')
-        .replace(/&/g, '\\u0026');
-      return reply.viewAsync('pages/product.ejs', {
-        ...data,
-        categories,
-        category,
-        title: `${data.product.seoTitle || data.product.name} | LOKKA`,
-        description:
-          data.product.seoDescription ||
-          data.product.shortDescription ||
-          data.product.name,
-        canonical,
-        ogImage: data.images[0]
-          ? new URL(
-              storage.url(data.images[0].storageKey, 'detail'),
-              env.appUrl,
-            ).href
-          : undefined,
-        jsonLd,
-        storage,
-        formatIdr,
-      });
-    },
-  );
+
+  // ─── Product handler (shared) ──────────────────────────────
+  async function productHandler(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    locale: LocaleCode,
+  ) {
+    const { slug } = request.params as { slug: string };
+    const data = await catalog.localizedProduct(locale, slug);
+    if (!data) return reply.callNotFound();
+
+    const categories = await getLocalizedCategories(locale);
+    const category = categories.find((c) => c.id === data.product.categoryId);
+
+    const prefix = locales[locale].pathPrefix;
+    const canonical = new URL(
+      `${prefix}/product/${data.translation.slug}`,
+      env.appUrl,
+    ).href;
+
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: data.translation.name,
+      description:
+        data.translation.description ||
+        data.translation.shortDescription ||
+        undefined,
+      image: data.images.map(
+        (i) => new URL(storage.url(i.storageKey, 'detail'), env.appUrl).href,
+      ),
+      brand: { '@type': 'Brand', name: 'LOKKA' },
+      sku: data.variants[0]?.sku,
+      offers: data.variants.map((v) => ({
+        '@type': 'Offer',
+        priceCurrency: 'IDR',
+        price: v.price.toString(),
+        sku: v.sku,
+        availability: `https://schema.org/${v.stockQuantity > 0 ? 'InStock' : 'OutOfStock'}`,
+        url: canonical,
+      })),
+    };
+    const jsonLd = JSON.stringify(schema)
+      .replace(/</g, '\\u003c')
+      .replace(/>/g, '\\u003e')
+      .replace(/&/g, '\\u0026');
+
+    const alternateLinks = orderedLocales
+      .map((loc) => {
+        const locPrefix = loc.pathPrefix;
+        const locPath = `${locPrefix}/product/${data.translation.slug}`;
+        return `<link rel="alternate" hreflang="${loc.htmlLang}" href="${new URL(locPath, env.appUrl).href}" />`;
+      })
+      .join('\n    ');
+
+    return reply.viewAsync('pages/product.ejs', {
+      product: {
+        ...data.product,
+        name: data.translation.name,
+        description: data.translation.description,
+        shortDescription: data.translation.shortDescription,
+        seoTitle: data.translation.seoTitle,
+        seoDescription: data.translation.seoDescription,
+      },
+      translation: data.translation,
+      variants: data.variants,
+      images: data.images,
+      categories,
+      category,
+      title: `${data.translation.seoTitle || data.translation.name} | LOKKA`,
+      description:
+        data.translation.seoDescription ||
+        data.translation.shortDescription ||
+        data.translation.name,
+      canonical,
+      ogImage: data.images[0]
+        ? new URL(storage.url(data.images[0].storageKey, 'detail'), env.appUrl)
+            .href
+        : undefined,
+      jsonLd,
+      storage,
+      formatIdr,
+      locale,
+      locales: orderedLocales,
+      t: (key: string, interp?: Record<string, string | number>) =>
+        t(locale, key, interp),
+      alternateLinks,
+      htmlLang: locales[locale].htmlLang,
+    });
+  }
+
+  // ─── Sitemap (localized) ──────────────────────────────────
   app.get('/sitemap.xml', async (_request, reply) => {
     const [categories, products] = await Promise.all([
       catalog.categoryList(),
       catalog.adminProducts(),
     ]);
-    const paths = [
-      '/',
-      '/koleksi',
-      ...categories
-        .filter((c) => c.status === 'active')
-        .map((c) => `/kategori/${c.slug}`),
-      ...products
-        .filter((p) => p.status === 'active')
-        .map((p) => `/produk/${p.slug}`),
-    ];
+
+    const urls: string[] = [];
+
+    for (const loc of orderedLocales) {
+      const homePath = loc.pathPrefix || '/';
+      urls.push(
+        `<url><loc>${xml(new URL(homePath, env.appUrl).href)}</loc></url>`,
+      );
+    }
+
+    for (const cat of categories.filter((c) => c.status === 'active')) {
+      for (const loc of orderedLocales) {
+        const catTrans = await catalog.categoryTranslationFor(cat.id, loc.code);
+        if (catTrans) {
+          const catPath =
+            loc.code === 'id'
+              ? `/id/kategori/${catTrans.slug}`
+              : `/category/${catTrans.slug}`;
+          urls.push(
+            `<url><loc>${xml(new URL(catPath, env.appUrl).href)}</loc></url>`,
+          );
+        }
+      }
+    }
+
+    for (const p of products.filter((p) => p.status === 'active')) {
+      for (const loc of orderedLocales) {
+        const prodTrans = await catalog.productTranslationFor(p.id, loc.code);
+        if (prodTrans) {
+          const prodPath =
+            loc.code === 'id'
+              ? `/id/produk/${prodTrans.slug}`
+              : `/product/${prodTrans.slug}`;
+          urls.push(
+            `<url><loc>${xml(new URL(prodPath, env.appUrl).href)}</loc></url>`,
+          );
+        }
+      }
+    }
+
     return reply
       .type('application/xml')
       .send(
-        `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((path) => `<url><loc>${xml(new URL(path, env.appUrl).href)}</loc></url>`).join('')}</urlset>`,
+        `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join('')}</urlset>`,
       );
   });
+
+  // ─── Robots ────────────────────────────────────────────────
   app.get('/robots.txt', async (_request, reply) =>
     reply
       .type('text/plain')
@@ -151,23 +293,25 @@ export async function registerCatalog(
         `User-agent: *\nDisallow: /admin\nSitemap: ${new URL('/sitemap.xml', env.appUrl).href}\n`,
       ),
   );
-  app.get<{ Params: { key: string; size: string } }>(
-    '/media/catalog/:key/:size',
-    async (request, reply) => {
-      const size = request.params.size.replace(/\.webp$/, '') as ImageSize;
-      if (!/^(thumb|card|detail)\.webp$/.test(request.params.size))
-        return reply.callNotFound();
-      // Do not expose draft media through predictable static paths; authorize against catalog state.
-      const image = await catalog.publicImage(request.params.key);
-      if (!image) return reply.callNotFound();
-      try {
-        return reply
-          .type('image/webp')
-          .header('Cache-Control', 'public, max-age=300')
-          .send(await storage.read(image.storageKey, size));
-      } catch {
-        return reply.callNotFound();
-      }
-    },
-  );
+
+  // ─── Media ─────────────────────────────────────────────────
+  app.get('/media/catalog/:key/:size', async (request, reply) => {
+    const { key, size: rawSize } = request.params as {
+      key: string;
+      size: string;
+    };
+    const size = rawSize.replace(/\.webp$/, '') as ImageSize;
+    if (!/^(thumb|card|detail)\.webp$/.test(rawSize))
+      return reply.callNotFound();
+    const image = await catalog.publicImage(key);
+    if (!image) return reply.callNotFound();
+    try {
+      return reply
+        .type('image/webp')
+        .header('Cache-Control', 'public, max-age=300')
+        .send(await storage.read(image.storageKey, size));
+    } catch {
+      return reply.callNotFound();
+    }
+  });
 }

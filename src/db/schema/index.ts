@@ -146,6 +146,53 @@ export const adminSessions = pgTable(
     index('sessions_user_idx').on(t.adminUserId),
   ],
 );
+export const productTranslations = pgTable(
+  'product_translations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    locale: text('locale').notNull(),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    shortDescription: text('short_description'),
+    description: text('description'),
+    seoTitle: text('seo_title'),
+    seoDescription: text('seo_description'),
+    ...timestamps(),
+  },
+  (t) => [
+    uniqueIndex('product_translations_product_locale_idx').on(
+      t.productId,
+      t.locale,
+    ),
+    uniqueIndex('product_translations_locale_slug_idx').on(t.locale, t.slug),
+  ],
+);
+export const categoryTranslations = pgTable(
+  'category_translations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => categories.id, { onDelete: 'cascade' }),
+    locale: text('locale').notNull(),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    shortDescription: text('short_description'),
+    seoTitle: text('seo_title'),
+    seoDescription: text('seo_description'),
+    ...timestamps(),
+  },
+  (t) => [
+    uniqueIndex('category_translations_category_locale_idx').on(
+      t.categoryId,
+      t.locale,
+    ),
+    uniqueIndex('category_translations_locale_slug_idx').on(t.locale, t.slug),
+  ],
+);
 export const productImages = pgTable(
   'product_images',
   {

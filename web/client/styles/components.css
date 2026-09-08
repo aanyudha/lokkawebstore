@@ -1,52 +1,289 @@
-.announcement {
-  background: var(--color-batik-dark);
-  color: var(--color-warm-white);
-  text-align: center;
-  padding: 0.6rem 1rem;
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
+/* ──────────────────────────────────────────────
+   FORM COMPONENTS
+   ────────────────────────────────────────────── */
+
+.form-stack {
+  display: grid;
+  gap: var(--space-lg);
+  max-width: 46rem;
+  margin-block: var(--space-xl);
 }
-.wordmark {
-  font-size: 1.9rem;
-  letter-spacing: 0.2em;
-  text-decoration: none;
+
+.form-stack label,
+.variant-form label {
+  display: grid;
+  gap: 0.3rem;
 }
-.site-header nav a {
-  text-decoration: none;
+
+.form-stack small,
+.variant-form small {
+  font-size: 0.75rem;
+  color: var(--color-muted);
 }
-.text-link {
-  display: inline-block;
-  padding-block: 0.5rem;
-  text-underline-offset: 0.4rem;
-}
-.image-placeholder {
-  min-height: 23rem;
-  background: var(--color-sand);
-  color: var(--color-batik-dark);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+
+.check-label {
+  display: flex !important;
   align-items: center;
-  text-align: center;
-  padding: 2rem;
+  gap: var(--space-sm);
 }
-.image-placeholder span {
-  font-family: var(--font-editorial);
-  font-size: 3rem;
-  letter-spacing: 0.25em;
+
+.check-label input {
+  width: auto;
 }
-.image-placeholder small {
-  margin-top: 4rem;
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
+
+.form-error {
+  padding: var(--space-md);
+  border-left: 3px solid var(--color-brand);
+  background: var(--color-brand-bg);
+  margin-block: var(--space-md);
+  font-size: 0.875rem;
 }
-.skip-link {
+
+/* ── Login ── */
+
+.login-page {
+  max-width: 34rem;
+  margin: var(--space-3xl) auto;
+  padding: var(--space-xl);
+}
+
+.login-page h1 {
+  font-size: 2rem;
+  margin-block: var(--space-lg);
+}
+
+.login-page .brand {
+  width: 160px;
+  margin-bottom: var(--space-xl);
+}
+
+.login-page .brand-logo {
+  height: 32px;
+}
+
+/* ── Admin header ── */
+
+.admin-header {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  flex-wrap: wrap;
+  padding: var(--space-sm) var(--space-xl);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.admin-header form {
+  margin-left: auto;
+}
+
+.admin-header > span {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.admin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-xl);
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: 0.8125rem;
+}
+
+.admin-nav a {
+  color: var(--color-text-secondary);
+}
+
+.admin-main {
+  padding: var(--space-xl) var(--space-xl) var(--space-4xl);
+}
+
+.admin-main h1 {
+  font-size: 2rem;
+  margin-bottom: var(--space-xl);
+}
+
+.admin-section {
+  margin-top: var(--space-3xl);
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--space-xl);
+}
+
+.admin-section h3 {
+  margin-top: var(--space-lg);
+}
+
+/* ── Table scroll ── */
+
+.table-scroll {
+  overflow-x: auto;
+  margin-block: var(--space-lg);
+  max-width: 100%;
+}
+
+/* ── Stock form ── */
+
+.stock-form {
+  min-width: 9rem;
+}
+
+.stock-form button {
+  margin-top: var(--space-sm);
+}
+
+/* ── Variant form ── */
+
+.variant-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  padding-block: var(--space-lg);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+/* ── Media grid ── */
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--space-xl);
+  margin-top: var(--space-xl);
+}
+
+.media-grid article {
+  min-width: 0;
+  max-width: 360px;
+}
+
+.media-grid img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  background: var(--color-bg-secondary);
+}
+
+/* ── Metrics ── */
+
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xl);
+  margin-block: var(--space-xl);
+}
+
+.metrics dt {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.metrics dd {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+/* ── Variant picker ── */
+
+.variant-picker {
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.variant-picker legend {
+  margin-bottom: var(--space-sm);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
+}
+
+.variant-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  border: 1px solid var(--color-border);
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.variant-label:hover {
+  border-color: var(--color-ink);
+}
+
+.variant-label:has(input:checked) {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-white);
+}
+
+.variant-label input {
+  width: auto;
   position: absolute;
-  left: 1rem;
-  top: -5rem;
-  padding: 0.8rem;
-  background: var(--color-warm-white);
+  opacity: 0;
+  pointer-events: none;
 }
-.skip-link:focus {
-  top: 1rem;
+
+/* ── Purchase note ── */
+
+.purchase-note {
+  padding-block: var(--space-lg);
+  border-block: 1px solid var(--color-border-light);
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+/* ── Prose ── */
+
+.prose {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}
+
+/* ── Section heading ── */
+
+.section-heading {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  margin-top: var(--space-2xl);
+}
+
+/* ── Variant info ── */
+
+.variant-info {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+/* ──────────────────────────────────────────────
+   RESPONSIVE: Admin
+   ────────────────────────────────────────────── */
+
+@media (max-width: 500px) {
+  .admin-header > span {
+    display: none;
+  }
+
+  .variant-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 700px) {
+  .variant-form {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }

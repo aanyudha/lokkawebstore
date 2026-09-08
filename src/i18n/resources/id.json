@@ -1,0 +1,80 @@
+{
+  "site": {
+    "brand": "LOKKA",
+    "tagline": "Fashion Indonesia kontemporer",
+    "copyright": "LOKKA. Berakar di Indonesia. Hadir dalam keseharian."
+  },
+  "nav": {
+    "newIn": "Terbaru",
+    "women": "Wanita",
+    "men": "Pria",
+    "batik": "Batik",
+    "accessories": "Aksesori",
+    "journal": "Jurnal",
+    "collections": "Koleksi"
+  },
+  "home": {
+    "eyebrow": "Busana & batik Indonesia",
+    "heroTitle": "Berakar dalam warisan,\nhadir dalam keseharian.",
+    "heroSubtitle": "Ekspresi tenang dari kekayaan Indonesia.\nTemukan karya LOKKA untuk cerita Anda.",
+    "exploreCollections": "Jelajahi koleksi",
+    "featuredTitle": "Pilihan karya",
+    "aboutTitle": "Tentang LOKKA",
+    "aboutText": "LOKKA menjembatani warisan tekstil Indonesia dengan desain kontemporer. Setiap karya membawa cerita pengrajin terampil dan kerajinan abadi, dibayangkan kembali untuk kehidupan modern."
+  },
+  "catalog": {
+    "title": "Koleksi",
+    "empty": "Koleksi sedang disiapkan. Kembali lagi untuk melihat karya terbaru LOKKA.",
+    "productsCount": "{{count}} produk",
+    "productCount": "{{count}} produk"
+  },
+  "product": {
+    "selectVariant": "Pilih ukuran / varian",
+    "size": "Ukuran",
+    "availability": "Ketersediaan",
+    "inStock": "Tersedia",
+    "outOfStock": "Stok habis",
+    "sku": "SKU",
+    "weight": "Berat",
+    "allVariants": "Semua varian",
+    "variantTable": {
+      "variant": "Varian / SKU",
+      "price": "Harga",
+      "availability": "Ketersediaan",
+      "weight": "Berat"
+    },
+    "aboutThisWork": "Tentang karya ini",
+    "descriptionPlaceholder": "Detail produk akan segera dilengkapi.",
+    "comingSoon": "Fitur pembelian akan segera tersedia.",
+    "imageComingSoon": "Foto segera hadir"
+  },
+  "pagination": {
+    "previous": "\u2190 Sebelumnya",
+    "next": "Berikutnya \u2192",
+    "page": "Halaman {{page}}"
+  },
+  "breadcrumb": {
+    "home": "Beranda",
+    "collections": "Koleksi"
+  },
+  "footer": {
+    "about": "Tentang LOKKA",
+    "collections": "Koleksi",
+    "madeInIndonesia": "Buatan Indonesia",
+    "comingSoon": "Segera hadir",
+    "copyright": "\u00a9 2026 LOKKA. Hak cipta dilindungi."
+  },
+  "error": {
+    "notFound": "Halaman tidak ditemukan",
+    "notFoundMessage": "Halaman yang Anda cari tidak dapat ditemukan.",
+    "serverError": "Terjadi kesalahan. Silakan coba lagi nanti.",
+    "tooManyRequests": "Terlalu banyak permintaan. Silakan coba lagi nanti.",
+    "requestError": "Permintaan tidak dapat diproses.",
+    "returnHome": "Kembali ke LOKKA"
+  },
+  "language": {
+    "switchLabel": "Bahasa",
+    "en": "EN",
+    "id": "ID"
+  }
+}

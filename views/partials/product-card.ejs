@@ -1,26 +1,36 @@
+<% const cardLocale = locale || 'en'; %>
+<% const cardT = typeof t === 'function' ? t : (k) => k; %>
 <article class="product-card">
-<a href="/produk/<%= item.slug %>">
-<% if (picture) { %>
-<img src="<%= storage.url(picture.storageKey, 'card') %>" alt="<%= picture.altText || item.name %>" width="<%= picture.width %>" height="<%= picture.height %>" <% if (position > 3) { %>loading="lazy"<% } %> />
-<% } else { %>
-<div class="product-placeholder">Foto segera hadir</div>
-<% } %>
-<h2>
-<%= item.name %>
-</h2>
-</a>
-<% if (priceVariant) { %>
-<p>
-<%= formatIdr(priceVariant.price) %> <% if (priceVariant.compareAtPrice && priceVariant.compareAtPrice > priceVariant.price) { %>
-<del>
-<%= formatIdr(priceVariant.compareAtPrice) %>
-</del>
-<% } %>
-</p>
-<% } else { %>
-<p>Detail harga segera hadir</p>
-<% } %>
-<% if (item.featured) { %>
-<small>Pilihan LOKKA</small>
-<% } %>
+  <a
+    href="<%= cardLocale === 'id' ? '/id/produk/' + item.slug : '/product/' + item.slug %>"
+    class="product-card__link"
+    aria-label="<%= item.name %>"
+  >
+    <div class="product-card__image">
+      <% if (picture && typeof storage !== 'undefined' && storage) { %>
+        <img
+          src="<%= storage.url(picture.storageKey, 'card') %>"
+          alt="<%= picture.altText || item.name %>"
+          width="<%= picture.width %>"
+          height="<%= picture.height %>"
+          loading="<%= position > 3 ? 'lazy' : 'eager' %>"
+        />
+      <% } else { %>
+        <div class="product-placeholder">
+          <span>LOKKA</span>
+        </div>
+      <% } %>
+    </div>
+    <div class="product-card__info">
+      <h3 class="product-card__title"><%= item.name %></h3>
+      <% if (priceVariant && typeof formatIdr === 'function') { %>
+        <p class="product-card__price">
+          <%= formatIdr(priceVariant.price) %>
+          <% if (priceVariant.compareAtPrice && priceVariant.compareAtPrice > priceVariant.price) { %>
+            <del class="product-card__compare"><%= formatIdr(priceVariant.compareAtPrice) %></del>
+          <% } %>
+        </p>
+      <% } %>
+    </div>
+  </a>
 </article>

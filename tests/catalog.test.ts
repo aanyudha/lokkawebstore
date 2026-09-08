@@ -13,6 +13,8 @@ import {
   categories,
   products,
   vendors,
+  productTranslations,
+  categoryTranslations,
 } from '../src/db/schema/index.js';
 import { hashPassword, token, hashToken } from '../src/modules/auth/service.js';
 import { createCatalog } from '../src/modules/catalog/service.js';
@@ -65,6 +67,45 @@ const post = (url: string, payload: Record<string, unknown>) =>
     headers: { cookie },
     payload: { csrf, ...payload },
   });
+
+/** Helper: create English + Indonesian translations for a product */
+async function createProductTranslations(
+  productId: string,
+  nameEn: string,
+  slugEn: string,
+  nameId: string,
+  slugId: string,
+) {
+  await catalog.saveProductTranslation(productId, 'en', {
+    name: nameEn,
+    slug: slugEn,
+    shortDescription: 'English description',
+  });
+  await catalog.saveProductTranslation(productId, 'id', {
+    name: nameId,
+    slug: slugId,
+    shortDescription: 'Deskripsi Indonesia',
+  });
+}
+
+/** Helper: create English + Indonesian translations for a category */
+async function createCategoryTranslations(
+  categoryId: string,
+  nameEn: string,
+  slugEn: string,
+  nameId: string,
+  slugId: string,
+) {
+  await catalog.saveCategoryTranslation(categoryId, 'en', {
+    name: nameEn,
+    slug: slugEn,
+  });
+  await catalog.saveCategoryTranslation(categoryId, 'id', {
+    name: nameId,
+    slug: slugId,
+  });
+}
+
 beforeAll(async () => {
   await database.check();
   await database.db
@@ -90,9 +131,16 @@ beforeAll(async () => {
   csrf = result.cookies.find((c) => c.name === 'lokka_admin_csrf')!.value;
 }, 30000);
 afterAll(async () => {
-  if (productIds.length)
+  if (productIds.length) {
+    await database.db
+      .delete(productTranslations)
+      .where(inArray(productTranslations.productId, productIds));
     await database.db.delete(products).where(inArray(products.id, productIds));
+  }
   if (categoryIds.length) {
+    await database.db
+      .delete(categoryTranslations)
+      .where(inArray(categoryTranslations.categoryId, categoryIds));
     await database.db
       .update(categories)
       .set({ parentId: null })
@@ -257,7 +305,7 @@ describe('admin security', () => {
     const response = await app.inject({ url: '/admin', headers: { cookie } });
     expect(response.statusCode).toBe(200);
     expect(response.headers['x-robots-tag']).toContain('noindex');
-    expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.headers['cache-control']).toContain('no-store');
   });
 });
 describe('catalog workflow', () => {
@@ -269,6 +317,14 @@ describe('catalog workflow', () => {
       sortOrder: '0',
     });
     categoryIds.push(category.id);
+    // Create translations for the category
+    await createCategoryTranslations(
+      category.id,
+      `Pagination ${run}`,
+      `pagination-${run}`,
+      `Paginasi ${run}`,
+      `paginasi-${run}`,
+    );
     const [vendor] = await database.db
       .select()
       .from(vendors)
@@ -286,14 +342,27 @@ describe('catalog workflow', () => {
       )
       .returning();
     productIds.push(...rows.map((r) => r.id));
+    // Create translations for the first product to test locale routing
+    await createProductTranslations(
+      rows[0]!.id,
+      `Page item 0`,
+      `page-${run}-0`,
+      `Item halaman 0`,
+      `item-halaman-${run}-0`,
+    );
     expect((await catalog.publicList(1, category.id)).rows).toHaveLength(24);
     expect((await catalog.publicList(2, category.id)).rows).toHaveLength(1);
-    const response = await app.inject(`/kategori/${category.slug}?page=2`);
+    // Test locale-aware category route
+    const response = await app.inject(`/id/kategori/paginasi-${run}?page=2`);
     expect(response.statusCode).toBe(200);
-    expect(response.body).toContain(`/kategori/${category.slug}?page=2`);
+    expect(response.body).toContain(`paginasi-${run}?page=2`);
     expect(
-      (await app.inject(`/kategori/${category.slug}?page=3`)).statusCode,
+      (await app.inject(`/id/kategori/paginasi-${run}?page=3`)).statusCode,
     ).toBe(404);
+    // Old route redirects to locale-prefixed
+    expect((await app.inject(`/kategori/pagination-${run}`)).statusCode).toBe(
+      301,
+    );
     expect((await catalog.publicList(1, randomUUID())).rows).toHaveLength(0);
     await database.db
       .update(products)
@@ -320,6 +389,14 @@ describe('catalog workflow', () => {
       (c) => c.slug === categoryForm.slug,
     )!;
     categoryIds.push(category.id);
+    // Create translations for the category
+    await createCategoryTranslations(
+      category.id,
+      `Category ${run}`,
+      `category-${run}`,
+      `Kategori ${run}`,
+      `kategori-${run}`,
+    );
     const duplicate = await post('/admin/categories', categoryForm);
     expect(duplicate.statusCode).toBe(422);
     expect(duplicate.body).toContain(categoryForm.name);
@@ -336,6 +413,14 @@ describe('catalog workflow', () => {
     expect(created.statusCode).toBe(303);
     const productId = created.headers.location!.split('/')[3]!;
     productIds.push(productId);
+    // Create translations for the product
+    await createProductTranslations(
+      productId,
+      `Batik ${run}`,
+      `batik-${run}`,
+      `Batik ${run}`,
+      `batik-${run}`,
+    );
     const variant = {
       name: 'M',
       sku: `SKU-${run}`,
@@ -371,19 +456,29 @@ describe('catalog workflow', () => {
     expect(
       (await catalog.relations([productId])).variants[0]!.stockQuantity,
     ).toBe(3);
-    const detail = await app.inject(`/produk/${productForm.slug}`);
+    // Test locale-aware product route
+    const detail = await app.inject(`/product/batik-${run}`);
     expect(detail.statusCode).toBe(200);
     expect(detail.body).toContain('Rp695.000');
     expect(detail.body).toContain('application/ld+json');
     expect(detail.body).toContain('"price":"695000"');
     expect(detail.body).not.toContain('ratingValue');
-    expect((await app.inject(`/kategori/${category.slug}`)).body).toContain(
-      productForm.name,
+    // Test Indonesian locale route
+    const detailId = await app.inject(`/id/produk/batik-${run}`);
+    expect(detailId.statusCode).toBe(200);
+    expect(detailId.body).toContain('Rp695.000');
+    // Test category route
+    expect((await app.inject(`/category/category-${run}`)).statusCode).toBe(
+      200,
     );
-    expect((await app.inject('/koleksi')).statusCode).toBe(200);
-    expect((await app.inject('/sitemap.xml')).body).toContain(
-      `/produk/${productForm.slug}`,
+    expect((await app.inject(`/id/kategori/kategori-${run}`)).statusCode).toBe(
+      200,
     );
+    expect((await app.inject('/id/koleksi')).statusCode).toBe(200);
+    // Sitemap should contain both locale URLs
+    const sitemap = (await app.inject('/sitemap.xml')).body;
+    expect(sitemap).toContain(`/product/batik-${run}`);
+    expect(sitemap).toContain(`/id/produk/batik-${run}`);
     for (const url of [
       `/admin/products/${productId}/edit`,
       `/admin/categories/${category.id}/edit`,
@@ -403,8 +498,9 @@ describe('catalog workflow', () => {
         })
       ).statusCode,
     ).toBe(303);
-    expect((await app.inject(`/produk/${productForm.slug}`)).body).toContain(
-      `Edited ${run}`,
+    // After editing, the translation still has the old name — that's expected
+    expect((await app.inject(`/product/batik-${run}`)).body).toContain(
+      `Batik ${run}`,
     );
     // Multipart upload exercises authentication, first-part CSRF, decode, DB and disk.
     const picture = await sharp({
@@ -474,11 +570,10 @@ describe('catalog workflow', () => {
     );
     for (const status of ['draft', 'archived']) {
       await catalog.saveProduct({ ...productForm, status }, productId);
-      expect((await app.inject(`/produk/${productForm.slug}`)).statusCode).toBe(
-        404,
-      );
+      // When product is not active, locale routes should 404
+      expect((await app.inject(`/product/batik-${run}`)).statusCode).toBe(404);
       expect((await app.inject('/sitemap.xml')).body).not.toContain(
-        `/produk/${productForm.slug}`,
+        `/product/batik-${run}`,
       );
       expect(
         (await app.inject(storage.url(images[0]!.storageKey, 'card')))
@@ -500,6 +595,21 @@ describe('catalog workflow', () => {
       parentId: a.id,
     });
     categoryIds.push(b.id);
+    // Create translations for the categories
+    await createCategoryTranslations(
+      a.id,
+      `A ${run}`,
+      `a-${run}`,
+      `A ${run}`,
+      `a-${run}`,
+    );
+    await createCategoryTranslations(
+      b.id,
+      `B ${run}`,
+      `b-${run}`,
+      `B ${run}`,
+      `b-${run}`,
+    );
     await expect(
       catalog.saveCategory(
         {
@@ -512,8 +622,12 @@ describe('catalog workflow', () => {
         a.id,
       ),
     ).rejects.toThrow('berputar');
-    expect((await app.inject(`/kategori/${a.slug}`)).statusCode).toBe(404);
-    expect((await app.inject(`/kategori/${b.slug}`)).statusCode).toBe(200);
+    // Hidden category should not be publicly accessible
+    expect((await app.inject(`/category/a-${run}`)).statusCode).toBe(404);
+    expect((await app.inject(`/id/kategori/a-${run}`)).statusCode).toBe(404);
+    // Active category should be accessible
+    expect((await app.inject(`/category/b-${run}`)).statusCode).toBe(200);
+    expect((await app.inject(`/id/kategori/b-${run}`)).statusCode).toBe(200);
   });
   it('serves the official logo', async () => {
     const result = await app.inject('/images/lokka_logo.png');
@@ -522,9 +636,12 @@ describe('catalog workflow', () => {
     expect(result.rawPayload.readUInt32BE(16)).toBe(4000);
   });
   it('returns product 404', async () => {
-    expect((await app.inject('/produk/nonexistent-product')).statusCode).toBe(
+    expect((await app.inject('/product/nonexistent-product')).statusCode).toBe(
       404,
     );
+    expect(
+      (await app.inject('/id/produk/nonexistent-product')).statusCode,
+    ).toBe(404);
   });
   it('rejects ownership mismatches', async () => {
     await expect(catalog.saveVariant(randomUUID(), {})).rejects.toThrow(

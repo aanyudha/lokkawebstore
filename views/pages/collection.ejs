@@ -1,32 +1,36 @@
+<% const colLocale = locale || 'en'; %>
+<% const colT = typeof t === 'function' ? t : (k) => k; %>
 <main id="main" class="catalog-page">
-<header class="page-intro">
-<p class="eyebrow">LOKKA / Koleksi</p>
-<h1>
-<%= category ? category.name : 'Koleksi LOKKA' %>
-</h1>
-<p>
-<%= category?.shortDescription || 'Busana dan batik, untuk setiap cerita.' %>
-</p>
-<small>
-<%= total %> produk</small>
-</header>
-<% if (!rows.length) { %>
-<p class="empty-state">Koleksi sedang disiapkan. Kembali lagi untuk melihat karya terbaru LOKKA.</p>
-<% } %>
-<div class="product-grid">
-<% rows.forEach((item, position) => { const picture = images.find(i => i.productId === item.id); const priceVariant = variants.filter(v => v.productId === item.id).sort((a,b) => a.price < b.price ? -1 : a.price > b.price ? 1 : 0)[0]; %>
-<%- include('../partials/product-card.ejs', { item, picture, priceVariant, position }) %>
-<% }); %>
-</div>
-<nav class="pagination" aria-label="Halaman koleksi">
-<% if (page > 1) { %>
-<a href="<%= path %>
-<%= page > 2 ? '?page=' + (page-1) : '' %>">← Sebelumnya</a>
-<% } %>
-<span>Halaman <%= page %>
-</span>
-<% if (page * 24 < total) { %>
-<a href="<%= path %>?page=<%= page+1 %>">Berikutnya →</a>
-<% } %>
-</nav>
+  <header class="page-intro">
+    <p class="eyebrow">LOKKA / <%= category ? category.name : colT('catalog.title') %></p>
+    <h1><%= category ? category.name : colT('catalog.title') %></h1>
+    <% if (category?.shortDescription) { %>
+      <p><%= category.shortDescription %></p>
+    <% } %>
+    <p class="catalog-count"><%= colT('catalog.productsCount', { count: total }) %></p>
+  </header>
+
+  <% if (!rows.length) { %>
+    <div class="empty-state">
+      <p><%= colT('catalog.empty') %></p>
+    </div>
+  <% } else { %>
+    <div class="product-grid">
+      <% rows.forEach((item, position) => { %>
+        <% const picture = images.find(i => i.productId === item.id); %>
+        <% const priceVariant = variants.filter(v => v.productId === item.id).sort((a,b) => a.price < b.price ? -1 : a.price > b.price ? 1 : 0)[0]; %>
+        <%- include('../partials/product-card.ejs', { item, picture, priceVariant, position, locale: colLocale, t: colT }) %>
+      <% }) %>
+    </div>
+
+    <nav class="pagination" aria-label="<%= colT('pagination.page', { page }) %>">
+      <% if (page > 1) { %>
+        <a href="<%= path %><%= page > 2 ? '?page=' + (page-1) : '' %>"><%= colT('pagination.previous') %></a>
+      <% } %>
+      <span><%= colT('pagination.page', { page }) %></span>
+      <% if (page * 24 < total) { %>
+        <a href="<%= path %>?page=<%= page+1 %>"><%= colT('pagination.next') %></a>
+      <% } %>
+    </nav>
+  <% } %>
 </main>

@@ -1,14 +1,60 @@
 :root {
-  --color-ink: #1c1a17;
-  --color-charcoal: #35312d;
-  --color-ivory: #faf8f3;
-  --color-warm-white: #fffdf9;
-  --color-sand: #ebe5db;
-  --color-stone: #c9c1b6;
-  --color-batik: #70483b;
-  --color-batik-dark: #4d3028;
-  --color-border: #ded9d1;
-  --color-muted: #77716a;
-  --font-body: Arial, Helvetica, sans-serif;
-  --font-editorial: Georgia, 'Times New Roman', serif;
+  /* ── Palette: contemporary neutral ── */
+  --color-ink: #1a1a1a;
+  --color-charcoal: #2d2d2d;
+  --color-graphite: #4a4a4a;
+  --color-muted: #8a8a8a;
+  --color-silver: #b5b5b5;
+  --color-border: #e5e5e5;
+  --color-border-light: #f0f0f0;
+  --color-off-white: #fafafa;
+  --color-warm-white: #f8f7f5;
+  --color-white: #ffffff;
+
+  /* ── LOKKA brand accent (restrained) ── */
+  --color-brand: #3d2b1f;
+  --color-brand-light: #6b5344;
+  --color-brand-muted: #a89282;
+  --color-brand-bg: #f5f0eb;
+
+  /* ── Semantic ── */
+  --color-text: var(--color-ink);
+  --color-text-secondary: var(--color-graphite);
+  --color-text-muted: var(--color-muted);
+  --color-bg: var(--color-white);
+  --color-bg-secondary: var(--color-off-white);
+
+  /* ── Typography: modern system stack ── */
+  --font-body:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  --font-display:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
+
+  /* ── Spacing scale ── */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+  --space-4xl: 6rem;
+
+  /* ── Layout ── */
+  --max-width: 1440px;
+  --content-width: 1200px;
+  --sidebar-width: 280px;
+
+  /* ── Transitions ── */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+
+  /* ── Shadows: minimal ── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
 }

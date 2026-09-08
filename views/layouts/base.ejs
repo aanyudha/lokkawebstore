@@ -1,22 +1,30 @@
+<% const resolvedAssets = typeof assets !== 'undefined' ? assets : { css: '/build/main.css', js: '/build/main.js' }; %>
 <!doctype html>
-<html lang="id">
+<html lang="<%= htmlLang || 'en' %>">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="<%= description %>" />
+    <meta name="description" content="<%= description || '' %>" />
     <% if (admin) { %><meta name="robots" content="noindex,nofollow" /><% } else { %>
     <link rel="canonical" href="<%= canonical %>" />
-    <meta property="og:title" content="<%= title %>" /><meta property="og:description" content="<%= description %>" /><meta property="og:url" content="<%= canonical %>" /><meta property="og:type" content="website" />
-    <% if (ogImage) { %><meta property="og:image" content="<%= ogImage %>" /><% } %><% } %>
+    <% if (typeof alternateLinks !== 'undefined' && alternateLinks) { %>
+    <%- alternateLinks %>
+    <% } %>
+    <meta property="og:title" content="<%= title %>" />
+    <meta property="og:description" content="<%= description || '' %>" />
+    <meta property="og:url" content="<%= canonical %>" />
+    <meta property="og:type" content="website" />
+    <% if (ogImage) { %><meta property="og:image" content="<%= ogImage %>" /><% } %>
+    <% } %>
     <title><%= title %></title>
-    <link rel="stylesheet" href="/build/main.css" />
-    <script type="module" src="/build/main.js"></script>
+    <link rel="stylesheet" href="<%= resolvedAssets.css %>" />
+    <script type="module" src="<%= resolvedAssets.js %>"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <% if (!admin) { %><%- include('../partials/header.ejs') %><% } %>
     <%- body %>
-    <% if (!admin) { %><footer class="site-footer"><p>LOKKA · Berakar di Indonesia. Hadir dalam keseharian.</p><a href="/koleksi">Jelajahi koleksi</a></footer><% } %>
-    <% if (jsonLd) { %><script type="application/ld+json"><%- jsonLd %></script><% } %>
+    <% if (!admin) { %><%- include('../partials/footer.ejs') %><% } %>
+    <% if (typeof jsonLd !== 'undefined' && jsonLd) { %><script type="application/ld+json"><%- jsonLd %></script><% } %>
   </body>
 </html>
