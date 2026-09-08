@@ -18,6 +18,25 @@ async function setup(check = vi.fn(async () => {})) {
   return { app, database };
 }
 describe('foundation routes', () => {
+  it('reports a stable, uncached revision identity without private metadata', async () => {
+    const { app } = await setup();
+    const response = await app.inject('/api/v1/version');
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['cache-control']).toBe('no-store');
+    const identity = response.json();
+    expect(Object.keys(identity).sort()).toEqual(
+      ['app', 'version', 'commit', 'dirty', 'environment'].sort(),
+    );
+    expect(identity).toMatchObject({
+      app: 'lokka-webstore',
+      version: '0.1.0',
+      environment: 'test',
+    });
+    expect(
+      identity.commit === null || /^[a-f0-9]{40,64}$/.test(identity.commit),
+    ).toBe(true);
+    expect((await app.inject('/api/v1/version')).json()).toEqual(identity);
+  });
   it.each(['/health', '/api/v1/status'])(
     '%s returns service status',
     async (url) => {

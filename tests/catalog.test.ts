@@ -221,22 +221,35 @@ describe('admin security', () => {
         .statusCode,
     ).toBe(303);
   });
-  it('revokes sessions on logout', async () => {
-    const result = await login();
-    const cookies = Object.fromEntries(
-      result.cookies.filter((c) => c.value).map((c) => [c.name, c.value]),
-    );
-    const response = await app.inject({
-      method: 'POST',
-      url: '/admin/logout',
-      cookies,
-      payload: { csrf: cookies.lokka_admin_csrf },
-    });
-    expect(response.statusCode).toBe(303);
-    expect(
-      (await app.inject({ url: '/admin', cookies })).headers.location,
-    ).toBe('/admin/login');
-  });
+  it.each(['http://localhost:3000', 'http://127.0.0.1:3000'])(
+    'revokes sessions on logout from the configured origin %s',
+    async (appUrl) => {
+      const configuredApp = await buildApp(
+        { ...env, appUrl },
+        { database: { ...database, close: async () => {} }, logger: false },
+      );
+      try {
+        const result = await login();
+        const cookies = Object.fromEntries(
+          result.cookies.filter((c) => c.value).map((c) => [c.name, c.value]),
+        );
+        const response = await configuredApp.inject({
+          method: 'POST',
+          url: '/admin/logout',
+          headers: { origin: appUrl },
+          cookies,
+          payload: { csrf: cookies.lokka_admin_csrf },
+        });
+        expect(response.statusCode).toBe(303);
+        expect(
+          (await configuredApp.inject({ url: '/admin', cookies })).headers
+            .location,
+        ).toBe('/admin/login');
+      } finally {
+        await configuredApp.close();
+      }
+    },
+  );
   it('rejects disabled admins and expired sessions', async () => {
     const result = await login();
     const cookies = Object.fromEntries(
@@ -274,18 +287,21 @@ describe('admin security', () => {
       ).statusCode,
     ).toBe(403);
   });
-  it('rejects foreign origins', async () => {
-    expect(
-      (
-        await app.inject({
-          method: 'POST',
-          url: '/admin/logout',
-          headers: { cookie, origin: 'https://foreign.test' },
-          payload: { csrf },
-        })
-      ).statusCode,
-    ).toBe(403);
-  });
+  it.each(['https://foreign.test', 'http://127.0.0.1:3000'])(
+    'rejects an origin that differs from configured localhost: %s',
+    async (origin) => {
+      expect(
+        (
+          await app.inject({
+            method: 'POST',
+            url: '/admin/logout',
+            headers: { cookie, origin },
+            payload: { csrf },
+          })
+        ).statusCode,
+      ).toBe(403);
+    },
+  );
   it('cannot bypass logout CSRF using multipart', async () => {
     expect(
       (

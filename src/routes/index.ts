@@ -3,6 +3,7 @@ import type { Catalog } from '../modules/catalog/service.js';
 import type { AppEnv } from '../config/env.js';
 import { locales, orderedLocales } from '../i18n/index.js';
 import { t } from '../i18n/translator.js';
+import { runtimeIdentity } from '../config/identity.js';
 
 export async function registerRoutes(
   app: FastifyInstance,
@@ -10,6 +11,11 @@ export async function registerRoutes(
   catalog?: Catalog,
   env?: AppEnv,
 ) {
+  const identity = runtimeIdentity(env?.nodeEnv ?? 'development');
+  app.get('/api/v1/version', async (_request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return identity;
+  });
   // ─── English homepage (default, no prefix) ─────────────────
   app.get('/', async (_request, reply) => {
     const categories = catalog

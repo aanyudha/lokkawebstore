@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "npm run build:assets && concurrently -k -n server,assets \"tsx watch src/server.ts\" \"vite build --watch\"",
     "build:assets": "vite build",
-    "build": "tsc -p tsconfig.build.json && npm run build:assets",
+    "clean": "node scripts/clean.mjs",
+    "build": "npm run clean && tsc -p tsconfig.build.json && node scripts/copy-runtime-assets.mjs && npm run build:assets",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
@@ -25,7 +26,8 @@
     "docker:up": "docker compose up -d --wait",
     "docker:down": "docker compose down",
     "admin:create": "tsx src/modules/auth/create-admin.ts",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "test:production": "node --test tests/production/*.test.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "11.1.2",

@@ -7,3 +7,4 @@ drizzle/meta
 .docker-local
 docs/basic_concept/
 storage/
+test-results/

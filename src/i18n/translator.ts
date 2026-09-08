@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { LocaleCode } from './locales.js';
-import { defaultLocale, locales, isValidLocale } from './locales.js';
+import {
+  defaultLocale,
+  locales,
+  isValidLocale,
+  supportedLocaleCodes,
+} from './locales.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -12,10 +17,12 @@ function loadJson(relativePath: string): Record<string, unknown> {
   ) as Record<string, unknown>;
 }
 
-const resources: Record<string, Record<string, unknown>> = {
-  en: loadJson('./resources/en.json'),
-  id: loadJson('./resources/id.json'),
-};
+const resources: Record<string, Record<string, unknown>> = Object.fromEntries(
+  supportedLocaleCodes.map((locale) => [
+    locale,
+    loadJson(`./resources/${locale}.json`),
+  ]),
+);
 
 /** Fallback policy: requested locale → English → raw key */
 function resolveValue(locale: LocaleCode, key: string): string | undefined {
