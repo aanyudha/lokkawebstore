@@ -46,11 +46,12 @@
     "aboutThisWork": "Tentang karya ini",
     "descriptionPlaceholder": "Detail produk akan segera dilengkapi.",
     "comingSoon": "Fitur pembelian akan segera tersedia.",
-    "imageComingSoon": "Foto segera hadir"
+    "imageComingSoon": "Foto segera hadir",
+    "fromPrice": "Mulai"
   },
   "pagination": {
-    "previous": "\u2190 Sebelumnya",
-    "next": "Berikutnya \u2192",
+    "previous": "← Sebelumnya",
+    "next": "Berikutnya →",
     "page": "Halaman {{page}}"
   },
   "breadcrumb": {
@@ -62,7 +63,7 @@
     "collections": "Koleksi",
     "madeInIndonesia": "Buatan Indonesia",
     "comingSoon": "Segera hadir",
-    "copyright": "\u00a9 2026 LOKKA. Hak cipta dilindungi."
+    "copyright": "© 2026 LOKKA. Hak cipta dilindungi."
   },
   "error": {
     "notFound": "Halaman tidak ditemukan",

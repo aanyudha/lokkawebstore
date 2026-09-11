@@ -10,6 +10,7 @@ import {
   index,
   check,
   boolean,
+  date,
   uniqueIndex,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
@@ -107,10 +108,220 @@ export const productVariants = pgTable(
     check('variants_price_nonnegative', sql`${t.price} >= 0`),
     check(
       'variants_compare_price_valid',
-      sql`${t.compareAtPrice} >= ${t.price}`,
+      sql`${t.compareAtPrice} > ${t.price}`,
     ),
     check('variants_weight_nonnegative', sql`${t.weightGrams} >= 0`),
     check('variants_stock_nonnegative', sql`${t.stockQuantity} >= 0`),
+  ],
+);
+export const directCosts = pgTable(
+  'product_direct_cost_components',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    category: text('category', {
+      enum: ['DIRECT_MATERIAL', 'DIRECT_LABOR', 'PACKAGING', 'OTHER'],
+    }).notNull(),
+    amountRupiah: bigint('amount_rupiah', { mode: 'bigint' }).notNull(),
+    notes: text('notes'),
+    sortOrder: integer('sort_order').default(0).notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    index('direct_cost_product_idx').on(t.productId),
+    check(
+      'direct_cost_valid',
+      sql`${t.amountRupiah} >= 0 AND ${t.sortOrder} >= 0 AND ${t.category} IN ('DIRECT_MATERIAL','DIRECT_LABOR','PACKAGING','OTHER')`,
+    ),
+  ],
+);
+export const pricingProfiles = pgTable(
+  'product_pricing_profiles',
+  {
+    productId: uuid('product_id')
+      .primaryKey()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    method: text('method', { enum: ['TARGET_MARGIN', 'MARKUP'] })
+      .default('TARGET_MARGIN')
+      .notNull(),
+    profitBps: integer('profit_bps').default(0).notNull(),
+    taxBps: integer('tax_bps').default(0).notNull(),
+    roundingRupiah: bigint('rounding_rupiah', { mode: 'bigint' })
+      .default(sql`1000`)
+      .notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    check(
+      'pricing_profile_valid',
+      sql`${t.profitBps} >= 0 AND ${t.taxBps} >= 0 AND ${t.taxBps} < 10000 AND ${t.roundingRupiah} IN (1,1000,5000,10000) AND (${t.method} = 'MARKUP' OR (${t.method} = 'TARGET_MARGIN' AND ${t.profitBps} + ${t.taxBps} < 10000))`,
+    ),
+  ],
+);
+export const overheadCosts = pgTable(
+  'global_overhead_costs',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    vendorId: uuid('vendor_id')
+      .notNull()
+      .references(() => vendors.id),
+    name: text('name').notNull(),
+    category: text('category').notNull(),
+    amountRupiah: bigint('amount_rupiah', { mode: 'bigint' }).notNull(),
+    billingFrequency: text('billing_frequency', {
+      enum: ['MONTHLY', 'ANNUAL', 'ONE_TIME'],
+    }).notNull(),
+    recognitionMethod: text('recognition_method', {
+      enum: ['SPREAD_MONTHLY', 'CHARGE_IN_BILLING_PERIOD'],
+    }).notNull(),
+    startDate: date('start_date').notNull(),
+    endDate: date('end_date'),
+    active: boolean('active').default(true).notNull(),
+    notes: text('notes'),
+    ...timestamps(),
+  },
+  (t) => [
+    index('overhead_vendor_idx').on(t.vendorId),
+    check(
+      'overhead_cost_valid',
+      sql`${t.amountRupiah} >= 0 AND (${t.endDate} IS NULL OR ${t.endDate} >= ${t.startDate}) AND ${t.category} IN ('INFRASTRUCTURE','SOFTWARE','FACILITY','ADMINISTRATION','MARKETING','OTHER') AND ${t.billingFrequency} IN ('MONTHLY','ANNUAL','ONE_TIME') AND ${t.recognitionMethod} IN ('SPREAD_MONTHLY','CHARGE_IN_BILLING_PERIOD')`,
+    ),
+  ],
+);
+export const overheadPeriods = pgTable(
+  'global_overhead_periods',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    vendorId: uuid('vendor_id')
+      .notNull()
+      .references(() => vendors.id),
+    periodMonth: date('period_month').notNull(),
+    status: text('status', { enum: ['OPEN', 'CLOSED'] })
+      .default('OPEN')
+      .notNull(),
+    openingCarryForwardRupiah: bigint('opening_carry_forward_rupiah', {
+      mode: 'bigint',
+    })
+      .default(sql`0`)
+      .notNull(),
+    previousPeriodId: uuid('previous_period_id').references(
+      (): AnyPgColumn => overheadPeriods.id,
+    ),
+    closingUnrecoveredRupiah: bigint('closing_unrecovered_rupiah', {
+      mode: 'bigint',
+    }),
+    forecastUnitsRemaining: integer('forecast_units_remaining').notNull(),
+    openedAt: timestamp('opened_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex('overhead_vendor_month_unique').on(t.vendorId, t.periodMonth),
+    uniqueIndex('overhead_one_open')
+      .on(t.vendorId)
+      .where(sql`${t.status} = 'OPEN'`),
+    uniqueIndex('overhead_carry_once').on(t.previousPeriodId),
+    check(
+      'overhead_period_valid',
+      sql`extract(day from ${t.periodMonth}) = 1 AND ${t.forecastUnitsRemaining} > 0 AND ${t.openingCarryForwardRupiah} >= 0 AND ((${t.status} = 'OPEN' AND ${t.closedAt} IS NULL AND ${t.closingUnrecoveredRupiah} IS NULL) OR (${t.status} = 'CLOSED' AND ${t.closedAt} IS NOT NULL AND ${t.closingUnrecoveredRupiah} IS NOT NULL AND ${t.closingUnrecoveredRupiah} >= 0))`,
+    ),
+  ],
+);
+export const overheadItems = pgTable(
+  'global_overhead_period_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    periodId: uuid('period_id')
+      .notNull()
+      .references(() => overheadPeriods.id),
+    overheadCostId: uuid('overhead_cost_id').references(() => overheadCosts.id),
+    nameSnapshot: text('name_snapshot').notNull(),
+    categorySnapshot: text('category_snapshot').notNull(),
+    recognizedAmountRupiah: bigint('recognized_amount_rupiah', {
+      mode: 'bigint',
+    }).notNull(),
+    sourceType: text('source_type', {
+      enum: ['RECURRING_COST', 'MANUAL_ADJUSTMENT'],
+    }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index('overhead_items_period_idx').on(t.periodId),
+    uniqueIndex('overhead_snapshot_once').on(t.periodId, t.overheadCostId),
+    check(
+      'overhead_item_valid',
+      sql`(${t.sourceType} = 'RECURRING_COST' AND ${t.recognizedAmountRupiah} >= 0) OR (${t.sourceType} = 'MANUAL_ADJUSTMENT' AND length(trim(${t.nameSnapshot})) > 0)`,
+    ),
+  ],
+);
+export const recoveryEntries = pgTable(
+  'global_overhead_recovery_entries',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    periodId: uuid('period_id')
+      .notNull()
+      .references(() => overheadPeriods.id),
+    sourceType: text('source_type', { enum: ['MANUAL'] })
+      .default('MANUAL')
+      .notNull(),
+    amountRupiah: bigint('amount_rupiah', { mode: 'bigint' }).notNull(),
+    reference: text('reference'),
+    notes: text('notes').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index('recovery_period_idx').on(t.periodId),
+    check(
+      'recovery_entry_valid',
+      sql`${t.amountRupiah} <> 0 AND length(trim(${t.notes})) > 0 AND ${t.sourceType} = 'MANUAL'`,
+    ),
+  ],
+);
+export const fulfillmentOrigins = pgTable(
+  'fulfillment_origins',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    vendorId: uuid('vendor_id')
+      .notNull()
+      .references(() => vendors.id),
+    name: text('name').notNull(),
+    contactName: text('contact_name').notNull(),
+    phone: text('phone').notNull(),
+    addressLine1: text('address_line_1').notNull(),
+    addressLine2: text('address_line_2'),
+    district: text('district').notNull(),
+    city: text('city').notNull(),
+    province: text('province').notNull(),
+    postalCode: text('postal_code').notNull(),
+    countryCode: text('country_code').default('ID').notNull(),
+    latitude: text('latitude'),
+    longitude: text('longitude'),
+    isDefault: boolean('is_default').default(false).notNull(),
+    status: text('status', { enum: ['active', 'inactive'] })
+      .default('active')
+      .notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    index('origin_vendor_idx').on(t.vendorId),
+    uniqueIndex('origin_default_unique')
+      .on(t.vendorId)
+      .where(sql`${t.isDefault} = true AND ${t.status} = 'active'`),
+    check(
+      'origin_valid',
+      sql`${t.status} IN ('active','inactive') AND (NOT ${t.isDefault} OR ${t.status} = 'active') AND ${t.countryCode} = 'ID' AND (${t.latitude} IS NULL OR ${t.latitude}::numeric BETWEEN -90 AND 90) AND (${t.longitude} IS NULL OR ${t.longitude}::numeric BETWEEN -180 AND 180)`,
+    ),
   ],
 );
 export const adminUsers = pgTable('admin_users', {

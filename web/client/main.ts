@@ -36,6 +36,13 @@ document
       const price = document.querySelector('[data-variant-price]');
       const info = document.querySelector('[data-variant-info]');
       if (price) price.textContent = input.dataset.price ?? '';
+      const compare = document.querySelector<HTMLElement>(
+        '[data-variant-compare]',
+      );
+      if (compare) {
+        compare.textContent = input.dataset.compare ?? '';
+        compare.hidden = !input.dataset.compare;
+      }
       if (info) {
         info.setAttribute('aria-live', 'polite');
         info.textContent = `SKU: ${input.dataset.sku} · ${input.dataset.stock}`;

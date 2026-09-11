@@ -35,7 +35,8 @@
       <h1 class="product-title"><%= product.name %></h1>
 
       <% if (variants.length) { %>
-        <p class="detail-price" data-variant-price><%= formatIdr(variants[0].price) %></p>
+        <p class="detail-price" data-variant-price aria-live="polite"><%= formatIdr(variants[0].price) %></p>
+        <del class="product-card__compare" data-variant-compare <%= variants[0].compareAtPrice > variants[0].price ? '' : 'hidden' %>><%= variants[0].compareAtPrice > variants[0].price ? formatIdr(variants[0].compareAtPrice) : '' %></del>
       <% } %>
 
       <% if (product.shortDescription) { %>
@@ -52,6 +53,7 @@
                 name="variant"
                 value="<%= variant.id %>"
                 data-price="<%= formatIdr(variant.price) %>"
+                data-compare="<%= variant.compareAtPrice > variant.price ? formatIdr(variant.compareAtPrice) : '' %>"
                 data-sku="<%= variant.sku %>"
                 data-stock="<%= variant.stockQuantity > 0 ? pdpT('product.inStock') : pdpT('product.outOfStock') %>"
                 <%= i === 0 ? 'checked' : '' %>

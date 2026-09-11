@@ -4,11 +4,13 @@ LOKKA is a single-vendor Indonesian fashion/batik store, built as a modular mono
 
 ## Boundaries
 
-Catalog owns products, variants, categories and image metadata/storage contracts. Auth owns administrator passwords and sessions; admin renders management forms and calls catalog services. A minimal vendors table records ownership for later evolution; only LOKKA is seeded. Customers, cart, checkout, orders, payments and shipping remain deferred boundaries. Shared services must be infrastructure, not a catch-all for business logic. See ADR 002 for sessions, CSRF, lifecycle, transactions and media compensation.
+Catalog owns products, variants, categories and image metadata/storage contracts. Auth owns administrator passwords and sessions; admin renders management forms and calls catalog services. A minimal vendors table records ownership for later evolution; only LOKKA is seeded. Customers, cart, checkout, orders, payments and shipping-provider integration remain deferred boundaries. Shared services must be infrastructure, not a catch-all for business logic. See ADR 002 for sessions, CSRF, lifecycle, transactions and media compensation.
 
 Future PaymentService will depend on a provider contract implemented by DokuProvider in payments. Order domain code will not contain DOKU-specific request shapes. ShippingService will depend on a contract implemented by BiteshipProvider in shipping; checkout will consume domain quotes rather than Biteship payloads. Authentication, signature checks, idempotent webhooks, retries and reconciliation belong to later integration milestones. No fake transactions are implemented.
 
 ## Persistence
+
+Milestone 2.5: Finance owns direct product costing, pricing profiles, global overhead masters, period snapshots and an append-only manual recovery workflow. Shipping owns fulfillment-origin settings and an internal shipping-readiness resolver. Admin routes call these modules inside the existing session/CSRF boundary. No shipping provider or commerce integration is implemented. See [ADR 003](decisions/003-commercial-pricing-overhead.md) for formulas, ownership, history and concurrency rules.
 
 PostgreSQL 18 with node-postgres pooling and Drizzle. UUID keys, foreign keys, unique slugs/SKUs and checks protect core data. Money is bigint whole IDR, carried as JavaScript bigint and serialized as decimal strings in structured data. Never convert to Number for arithmetic. Catalog writes validate positive prices/weights and nonnegative stock. Category services prevent cycles under a transaction advisory lock. updated_at is assigned explicitly on writes. Seed uses conflict-ignore on vendor slug and is repeatable without overwriting existing data. Public collections batch variant/image lookups for the 24-product page; there are no per-product DB queries.
 

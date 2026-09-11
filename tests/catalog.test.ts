@@ -425,7 +425,10 @@ describe('catalog workflow', () => {
       description: 'Detail kain',
       seoTitle: 'Batik pilihan',
     };
-    const created = await post('/admin/products', productForm);
+    const created = await post('/admin/products', {
+      ...productForm,
+      status: 'draft',
+    });
     expect(created.statusCode).toBe(303);
     const productId = created.headers.location!.split('/')[3]!;
     productIds.push(productId);
@@ -454,6 +457,7 @@ describe('catalog workflow', () => {
       (await post(`/admin/products/${productId}/variants`, variant)).statusCode,
     ).toBe(422);
     const related = await catalog.relations([productId]);
+    await catalog.saveProduct(productForm, productId);
     const variantId = related.variants[0]!.id;
     expect(
       (
@@ -475,7 +479,7 @@ describe('catalog workflow', () => {
     // Test locale-aware product route
     const detail = await app.inject(`/product/batik-${run}`);
     expect(detail.statusCode).toBe(200);
-    expect(detail.body).toContain('Rp695.000');
+    expect(detail.body).toContain('Rp695,000');
     expect(detail.body).toContain('application/ld+json');
     expect(detail.body).toContain('"price":"695000"');
     expect(detail.body).not.toContain('ratingValue');

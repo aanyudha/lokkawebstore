@@ -4,17 +4,17 @@
 </label>
 <label>SKU<input name="sku" required maxlength="80" value="<%= variant.sku || '' %>" />
 </label>
-<label>Harga (Rupiah)<input name="price" inputmode="numeric" pattern="[0-9]+" required value="<%= variant.price ?? '' %>" />
+<label>Harga (Rupiah)<input name="price" inputmode="numeric" pattern="[0-9]*" value="<%= variant.price ?? '' %>" />
 </label>
 <label>Harga pembanding<input name="compareAtPrice" inputmode="numeric" pattern="[0-9]*" value="<%= variant.compareAtPrice ?? '' %>" />
 </label>
-<label>Berat (gram)<input name="weightGrams" type="number" min="1" required value="<%= variant.weightGrams ?? '' %>" />
+<label>Berat (gram)<input name="weightGrams" type="number" min="0" value="<%= variant.weightGrams ?? '' %>" />
 </label>
 <label>Stok<input name="stockQuantity" type="number" min="0" required value="<%= variant.stockQuantity ?? 0 %>" />
 </label>
 <label>Status<select name="status">
 <% for (const status of ['active', 'inactive']) { %>
-<option <%= variant.status === status ? 'selected' : '' %>>
+<option <%= (variant.status || 'inactive') === status ? 'selected' : '' %>>
 <%= status %>
 </option>
 <% } %>

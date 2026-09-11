@@ -1,6 +1,6 @@
 # LOKKA Webstore
 
-LOKKA is an Indonesian fashion and batik brand. This modular monolith uses Fastify 5, strict TypeScript, PostgreSQL 18, Drizzle/pg, EJS server rendering, Vite and plain CSS. Milestone 2 provides secure catalog administration and public browsing. Purchasing is not enabled.
+LOKKA is an Indonesian fashion and batik brand. This modular monolith uses Fastify 5, strict TypeScript, PostgreSQL 18, Drizzle/pg, EJS server rendering, Vite and plain CSS. Milestone 2.5 adds catalog costing, global overhead carry-forward and fulfillment readiness. Purchasing is not enabled.
 
 ## Requirements and Windows setup
 
@@ -59,6 +59,16 @@ If logout or another admin form reports `Invalid origin.`, compare the browser a
 CatalogImageStorage currently persists WebP derivatives under CATALOG_STORAGE_ROOT (default storage/uploads/catalog). The directory must remain private and application-writable; uploads are Git-ignored. Derivatives fit 400/800/1600 pixel bounds, preserve aspect ratio, never upscale, and strip metadata. Originals are discarded. Back up media with PostgreSQL. Active images are served through /media/catalog; draft previews require admin authentication. A future S3 adapter is possible.
 
 The official /images/lokka_logo.png is unchanged and separate from product media. Owner specifications under docs/basic_concept are preserved and excluded from formatting. See [design review](docs/design-input.md) for interpretation, deferred scope and the large original logo's transfer-size limitation.
+
+## Commercial administration (Milestone 2.5)
+
+Apply migrations with `npm run db:migrate`. The existing variant price, compare-at and gram-weight columns are reused. Create a draft, add a usable active variant with positive price/weight, then publish. Inactive variants may leave price and weight blank. Compare-at must be greater than selling price.
+
+- `/admin/finance/overhead`: manage global monthly/annual/one-time cost definitions, open monthly snapshots, plan forecast units remaining, append target additions/credits or explicitly labeled manual recovery, and deliberately close periods. Recovery is capped at target; reversals append entries. The next opened period receives the last closed deficit exactly once; skipped months do not accrue implicit costs.
+- `/admin/products/:id/pricing`: manage direct costs per unit and analyze actual variant prices using the current open period's planned overhead allocation. Choose margin or markup, optional internal reserve (default 0%) and upward rounding. Recommendations never change selling prices or record recovery.
+- `/admin/settings/fulfillment`: configure the actual LOKKA dispatch address and one active default origin. No address is seeded and no provider is called.
+
+See [commercial accounting ADR](docs/decisions/003-commercial-pricing-overhead.md) for integer formulas, annual recognition/remainders, worked carry-forward examples, migration handling of legacy compare-at values, and the distinction between planned allocation and actual recovery. Commercial integration and browser verification use disposable migrated databases; the test PostgreSQL role needs CREATEDB.
 
 ## Production build and runtime ownership
 

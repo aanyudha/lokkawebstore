@@ -78,16 +78,20 @@ export function money(
     throw new FormError(field, 'Masukkan Rupiah bulat lebih dari nol.');
   return BigInt(value);
 }
-export function formatIdr(value: bigint) {
-  return `Rp${value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+export function formatIdr(value: bigint, locale = 'id') {
+  return `Rp${new Intl.NumberFormat(locale === 'id' ? 'id-ID' : 'en-US', { maximumFractionDigits: 0 }).format(value)}`;
 }
 export function variantInput(form: Form) {
-  const price = money(form, 'price')!;
+  const status = choice(form, 'status', ['active', 'inactive']);
+  const price =
+    status === 'inactive' && (!form.price || form.price === '0')
+      ? 0n
+      : money(form, 'price')!;
   const compareAtPrice = money(form, 'compareAtPrice', true);
-  if (compareAtPrice !== null && compareAtPrice < price)
+  if (compareAtPrice !== null && compareAtPrice <= price)
     throw new FormError(
       'compareAtPrice',
-      'Harga pembanding tidak boleh lebih rendah.',
+      'Compare-at price must be greater than selling price.',
     );
   const sku = textField(form, 'sku', 80, true);
   if (!/^[A-Za-z0-9._-]+$/.test(sku))
@@ -100,10 +104,14 @@ export function variantInput(form: Form) {
     sku,
     price,
     compareAtPrice,
-    weightGrams: integer(form, 'weightGrams', 1),
+    weightGrams: integer(
+      { ...form, weightGrams: form.weightGrams || '0' },
+      'weightGrams',
+      status === 'active' ? 1 : 0,
+    ),
     stockQuantity: integer(form, 'stockQuantity'),
     sortOrder: integer({ sortOrder: '0', ...form }, 'sortOrder'),
-    status: choice(form, 'status', ['active', 'inactive']),
+    status,
   };
 }
 export function databaseError(error: unknown): never {

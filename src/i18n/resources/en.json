@@ -46,11 +46,12 @@
     "aboutThisWork": "About this piece",
     "descriptionPlaceholder": "Product details will be added soon.",
     "comingSoon": "Shopping functionality will be available soon.",
-    "imageComingSoon": "Photo coming soon"
+    "imageComingSoon": "Photo coming soon",
+    "fromPrice": "From"
   },
   "pagination": {
-    "previous": "\u2190 Previous",
-    "next": "Next \u2192",
+    "previous": "← Previous",
+    "next": "Next →",
     "page": "Page {{page}}"
   },
   "breadcrumb": {
@@ -62,7 +63,7 @@
     "collections": "Collections",
     "madeInIndonesia": "Made in Indonesia",
     "comingSoon": "Coming soon",
-    "copyright": "\u00a9 2026 LOKKA. All rights reserved."
+    "copyright": "© 2026 LOKKA. All rights reserved."
   },
   "error": {
     "notFound": "Page not found",

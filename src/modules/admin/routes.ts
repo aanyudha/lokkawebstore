@@ -5,6 +5,9 @@ import { createAuth, hashToken, token, tokenMatches } from '../auth/service.js';
 import type { Catalog } from '../catalog/service.js';
 import { FormError, type Form, textField, id } from '../catalog/validation.js';
 import type { CatalogImageStorage, ImageSize } from '../catalog/storage.js';
+import { createFinance } from '../finance/service.js';
+import { createFulfillment } from '../shipping/service.js';
+import { registerCommercialAdmin } from './commercial-routes.js';
 const body = (request: FastifyRequest) => (request.body ?? {}) as Form;
 export async function registerAdmin(
   app: FastifyInstance,
@@ -144,6 +147,12 @@ export async function registerAdmin(
             csrf: request.cookies.lokka_admin_csrf,
             ...data,
           });
+        registerCommercialAdmin(
+          protectedRoutes,
+          createFinance(db, catalog),
+          createFulfillment(db, catalog),
+          page,
+        );
         protectedRoutes.get<{ Params: { id: string; imageId: string } }>(
           '/products/:id/images/:imageId/preview',
           async (request, reply) => {

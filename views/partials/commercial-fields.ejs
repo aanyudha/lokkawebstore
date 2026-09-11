@@ -1,0 +1,13 @@
+<% for (const field of fields) { const [key, label, type = 'text', options] = field; %>
+<% if (type === 'checkbox') { %>
+<label class="check-label"><input type="checkbox" name="<%= key %>" <%= form[key] === true || form[key] === 'on' ? 'checked' : '' %> /> <%= label %></label>
+<% } else { %>
+<label><%= label %>
+<% if (options) { %>
+<select name="<%= key %>" required><% for (const option of options) { %><option value="<%= option[0] %>" <%= String(form[key] ?? '') === String(option[0]) ? 'selected' : '' %>><%= option[1] %></option><% } %></select>
+<% } else { %>
+<input name="<%= key %>" type="<%= type %>" value="<%= form[key] ?? '' %>" <%= ['notes','endDate','addressLine2','latitude','longitude','reference'].includes(key) ? '' : 'required' %> <%= ['amountRupiah','forecastUnitsRemaining','sortOrder','profitPercent','taxPercent'].includes(key) ? 'inputmode=decimal' : '' %> />
+<% } %>
+</label>
+<% } %>
+<% } %>

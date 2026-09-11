@@ -44,7 +44,7 @@ test('desktop and mobile catalog, logo, login and admin forms', async ({
     name: 'Kemeja Batik — Verifikasi',
     slug: `batik-${run}`,
     categoryId: category.id,
-    status: 'active',
+    status: 'draft',
     shortDescription: 'Motif Indonesia dalam siluet yang tenang.',
     description:
       'Produk sementara untuk verifikasi antarmuka. Data ini dihapus setelah pengujian.',
@@ -81,6 +81,17 @@ test('desktop and mobile catalog, logo, login and admin forms', async ({
     status: 'active',
     sortOrder: '1',
   });
+  await catalog.saveProduct(
+    {
+      name: product.name,
+      slug: product.slug,
+      status: 'active',
+      categoryId: category.id,
+      shortDescription: product.shortDescription,
+      description: product.description,
+    },
+    product.id,
+  );
   const picture = await sharp({
     create: { width: 800, height: 1000, channels: 3, background: '#c9c1b6' },
   })
@@ -97,7 +108,7 @@ test('desktop and mobile catalog, logo, login and admin forms', async ({
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   try {
-    for (const width of [1440, 390, 320]) {
+    for (const width of [1440, 1024, 768, 430, 375]) {
       await page.setViewportSize({ width, height: 1000 });
       for (const [name, path] of [
         ['home', '/'],
@@ -151,12 +162,15 @@ test('desktop and mobile catalog, logo, login and admin forms', async ({
     await page.getByLabel('Kata sandi', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Masuk', exact: true }).click();
     await expect(page).toHaveURL(`${env.appUrl}/admin`);
-    for (const width of [1440, 390, 320]) {
+    for (const width of [1440, 1024, 768, 430, 375]) {
       await page.setViewportSize({ width, height: 1000 });
       for (const [name, path] of [
         ['admin-product', `/admin/products/${product.id}/edit`],
         ['admin-category', `/admin/categories/${category.id}/edit`],
         ['inventory', '/admin/inventory'],
+        ['overhead', '/admin/finance/overhead'],
+        ['pricing', `/admin/products/${product.id}/pricing`],
+        ['fulfillment', '/admin/settings/fulfillment'],
       ]) {
         await page.goto(`${env.appUrl}${path}`);
         await expect(page.locator('main h1')).toBeVisible();

@@ -1,0 +1,42 @@
+<%- include('../partials/admin-header.ejs') %>
+<main id="main" class="admin-main commercial-page">
+<h1>Global overhead</h1>
+<%- include('../partials/form-error.ejs') %>
+<p>Business-wide costs are recognized once per period. Planned allocation informs pricing; only manual recovery entries record actual recovery until Orders exist.</p>
+<nav class="commercial-periods" aria-label="Overhead periods"><% for (const p of periods) { %><a href="?period=<%= p.id %>"><%= p.periodMonth.slice(0,7) %> · <%= p.status %></a><% } %></nav>
+<% if (current) { const c = current; const p = c.period; const base = '/admin/finance/overhead/periods/' + p.id; %>
+<section class="admin-section"><h2><%= new Intl.DateTimeFormat('en',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(p.periodMonth)) %> · <%= p.status %></h2>
+<dl class="commercial-totals">
+<dt>Opening carry-forward</dt><dd><%= formatIdr(c.opening) %></dd>
+<dt>Current period global costs</dt><dd><%= formatIdr(c.current) %></dd>
+<dt>Manual additions / credits</dt><dd><%= formatIdr(c.adjustments) %></dd>
+<dt>Total to recover</dt><dd><strong><%= formatIdr(c.target) %></strong></dd>
+<dt>Actual recovered</dt><dd><%= formatIdr(c.recovered) %></dd>
+<dt>Remaining / next-period carry-forward</dt><dd><strong><%= formatIdr(c.remaining) %></strong></dd>
+<dt>Forecast units remaining</dt><dd><%= p.forecastUnitsRemaining %></dd>
+<dt>Planned overhead / unit</dt><dd><strong><%= formatIdr(c.perUnit) %></strong></dd>
+</dl>
+<h3>Recognized costs and adjustments</h3>
+<ul><% for (const item of c.items) { %><li><%= item.nameSnapshot %> · <%= formatIdr(item.recognizedAmountRupiah) %> · <%= item.sourceType === 'RECURRING_COST' ? 'Cost snapshot' : 'Target adjustment' %></li><% } %></ul>
+<% if (p.status === 'OPEN') { %>
+<div class="commercial-grid">
+<form method="post" action="<%= base %>/forecast" class="form-stack"><h3>Expected remaining sales</h3><p>Planning input only. This is neither stock nor units already sold.</p><input type="hidden" name="csrf" value="<%= csrf %>" /><label>Forecast units remaining<input name="forecastUnitsRemaining" type="number" min="1" max="2147483647" required value="<%= action === base + '/forecast' ? values.forecastUnitsRemaining : p.forecastUnitsRemaining %>" /></label><button>Update forecast</button></form>
+<% for (const operation of ['adjustment','recovery']) { const dest = base + '/' + operation; const form = action === dest ? values : {}; %>
+<form method="post" action="<%= dest %>" class="form-stack"><h3><%= operation === 'recovery' ? 'Admin manual recovery adjustment' : 'Target addition / credit' %></h3><p><%= operation === 'recovery' ? 'Record real commercial recovery. Use a negative amount to reverse a previous recovery. Never record a price recommendation as recovery.' : 'Adjust the amount to recover. Positive adds cost; negative credits cost. A reason is required.' %></p><input type="hidden" name="csrf" value="<%= csrf %>" /><label>Amount (whole Rupiah; signed)<input name="amountRupiah" inputmode="numeric" pattern="-?[0-9]+" required value="<%= form.amountRupiah || '' %>" /></label><label>Required note / reason<input name="notes" maxlength="2000" required value="<%= form.notes || '' %>" /></label><% if (operation === 'recovery') { %><label>Reference (optional)<input name="reference" maxlength="200" value="<%= form.reference || '' %>" /></label><% } %><button>Append <%= operation %></button></form>
+<% } %>
+</div>
+<form method="post" action="<%= base %>/close" class="form-stack admin-section"><h3>Close period</h3><p>Target <%= formatIdr(c.target) %> · Recovered <%= formatIdr(c.recovered) %> · Unrecovered balance <%= formatIdr(c.remaining) %>.</p><p>The next opened period receives <strong><%= formatIdr(c.remaining) %></strong> exactly once. Closing freezes this period.</p><input type="hidden" name="csrf" value="<%= csrf %>" /><input type="hidden" name="expectedTarget" value="<%= c.target %>" /><input type="hidden" name="expectedRecovered" value="<%= c.recovered %>" /><label class="check-label"><input type="checkbox" name="confirm" value="close" required /> I reviewed these totals and confirm closing this period.</label><button>Close period</button></form>
+<% } else { %><p>This period is closed. Historical snapshots and recovery entries cannot be edited. Record a documented correction in an open period.</p><% } %>
+<details><summary>Manual recovery history (<%= c.entries.length %>)</summary><ul><% for (const entry of c.entries) { %><li><time datetime="<%= entry.createdAt.toISOString() %>"><%= entry.createdAt.toISOString() %></time> · <%= formatIdr(entry.amountRupiah) %> · <%= entry.notes %><%= entry.reference ? ' · ' + entry.reference : '' %></li><% } %></ul></details>
+</section>
+<% } else { %><p>No overhead period has been opened.</p><% } %>
+<% if (!periods.some(p => p.status === 'OPEN')) { %>
+<form method="post" action="/admin/finance/overhead/periods" class="form-stack admin-section"><h2>Open a period</h2><p>The last closed balance carries forward once. Skipped months are not automatically charged.</p><input type="hidden" name="csrf" value="<%= csrf %>" /><label>Period month<input type="month" name="periodMonth" required value="<%= action === '/admin/finance/overhead/periods' ? values.periodMonth : '' %>" /></label><label>Forecast units remaining<input name="forecastUnitsRemaining" type="number" min="1" required value="<%= action === '/admin/finance/overhead/periods' ? values.forecastUnitsRemaining : '' %>" /></label><button>Open period and snapshot costs</button></form>
+<% } %>
+<section class="admin-section"><h2>Global cost definitions</h2><p>Master edits affect future periods only. Annual spread distributes extra Rupiah to the earliest months of each 12-month cycle beginning at the start date. Recognition uses whole months without daily proration.</p>
+<% for (const saved of [...costs, {active:true,billingFrequency:'MONTHLY',recognitionMethod:'SPREAD_MONTHLY',category:'OTHER'}]) { const dest = '/admin/finance/overhead/costs' + (saved.id ? '/' + saved.id : ''); const form = action === dest ? values : saved; %>
+<details <%= !saved.id || action === dest ? 'open' : '' %>><summary><%= saved.id ? saved.name + (saved.active ? '' : ' (inactive)') : 'Add global cost' %></summary><form method="post" action="<%= dest %>" class="form-stack"><input type="hidden" name="csrf" value="<%= csrf %>" />
+<%- include('../partials/commercial-fields.ejs',{form,fields:[['name','Cost name'],['category','Category','text',['INFRASTRUCTURE','SOFTWARE','FACILITY','ADMINISTRATION','MARKETING','OTHER'].map(s=>[s,s])],['amountRupiah','Amount (whole Rupiah)'],['billingFrequency','Billing frequency','text',[['MONTHLY','Monthly'],['ANNUAL','Annual'],['ONE_TIME','One time']]],['recognitionMethod','Recognition policy','text',[['SPREAD_MONTHLY','Spread annually billed cost across 12 months'],['CHARGE_IN_BILLING_PERIOD','Charge in billing month']]],['startDate','Start date / billing anniversary','date'],['endDate','End date (optional)','date'],['active','Active','checkbox'],['notes','Notes (optional)']]}) %>
+<button><%= saved.id ? 'Save for future periods' : 'Add global cost' %></button></form></details>
+<% } %></section>
+</main>

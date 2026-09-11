@@ -25,7 +25,7 @@
       <h3 class="product-card__title"><%= item.name %></h3>
       <% if (priceVariant && typeof formatIdr === 'function') { %>
         <p class="product-card__price">
-          <%= formatIdr(priceVariant.price) %>
+          <% if (typeof variants !== 'undefined' && variants.some(v => v.productId === item.id && v.price !== priceVariant.price)) { %><%= cardT('product.fromPrice') %> <% } %><%= formatIdr(priceVariant.price) %>
           <% if (priceVariant.compareAtPrice && priceVariant.compareAtPrice > priceVariant.price) { %>
             <del class="product-card__compare"><%= formatIdr(priceVariant.compareAtPrice) %></del>
           <% } %>

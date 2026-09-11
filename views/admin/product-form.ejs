@@ -46,6 +46,7 @@
 <button>Simpan produk</button>
 </form>
 <% if (values.id) { %>
+<p><a href="/admin/products/<%= values.id %>/pricing">Product direct costs &amp; pricing analysis</a></p>
 <% if (values.status === 'active') { %>
 <p>
 <a href="/produk/<%= values.slug %>">Lihat halaman publik ↗</a>

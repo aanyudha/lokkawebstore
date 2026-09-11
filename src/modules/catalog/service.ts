@@ -535,14 +535,44 @@ export function createCatalog(
         updatedAt: new Date(),
       };
       try {
-        const [row] = productId
-          ? await db
-              .update(products)
-              .set(values)
+        return await db.transaction(async (tx) => {
+          if (productId)
+            await tx
+              .select()
+              .from(products)
               .where(eq(products.id, productId))
-              .returning()
-          : await db.insert(products).values(values).returning();
-        return row!;
+              .for('update');
+          if (status === 'active') {
+            const variants = productId
+              ? await tx
+                  .select()
+                  .from(productVariants)
+                  .where(eq(productVariants.productId, productId))
+              : [];
+            const active = variants.filter((v) => v.status === 'active');
+            if (
+              !active.length ||
+              active.some(
+                (v) =>
+                  v.price <= 0n ||
+                  v.weightGrams <= 0 ||
+                  !/^[A-Za-z0-9._-]+$/.test(v.sku),
+              )
+            )
+              throw new FormError(
+                'status',
+                'Save a draft and add a usable active variant with SKU, positive price and gram weight before publishing.',
+              );
+          }
+          const [row] = productId
+            ? await tx
+                .update(products)
+                .set(values)
+                .where(eq(products.id, productId))
+                .returning()
+            : await tx.insert(products).values(values).returning();
+          return row!;
+        });
       } catch (error) {
         return databaseError(error);
       }
@@ -558,25 +588,52 @@ export function createCatalog(
       await product(productId);
       const values = variantInput(form);
       try {
-        if (variantId) {
-          const [row] = await db
-            .update(productVariants)
-            .set({ ...values, updatedAt: new Date() })
-            .where(
-              and(
-                eq(productVariants.id, id(variantId)),
-                eq(productVariants.productId, productId),
-              ),
+        return await db.transaction(async (tx) => {
+          const [parent] = await tx
+            .select()
+            .from(products)
+            .where(eq(products.id, productId))
+            .for('update');
+          if (parent?.status === 'active' && values.status !== 'active') {
+            const active = await tx
+              .select()
+              .from(productVariants)
+              .where(
+                and(
+                  eq(productVariants.productId, productId),
+                  eq(productVariants.status, 'active'),
+                ),
+              );
+            if (
+              !active.some(
+                (v) => v.id !== variantId && v.price > 0n && v.weightGrams > 0,
+              )
             )
+              throw new FormError(
+                'status',
+                'A published product must retain a usable active variant.',
+              );
+          }
+          if (variantId) {
+            const [row] = await tx
+              .update(productVariants)
+              .set({ ...values, updatedAt: new Date() })
+              .where(
+                and(
+                  eq(productVariants.id, id(variantId)),
+                  eq(productVariants.productId, productId),
+                ),
+              )
+              .returning();
+            if (!row) throw new FormError('id', 'Varian tidak ditemukan.');
+            return row;
+          }
+          const [row] = await tx
+            .insert(productVariants)
+            .values({ ...values, productId })
             .returning();
-          if (!row) throw new FormError('id', 'Varian tidak ditemukan.');
-          return row;
-        }
-        const [row] = await db
-          .insert(productVariants)
-          .values({ ...values, productId })
-          .returning();
-        return row!;
+          return row!;
+        });
       } catch (error) {
         return databaseError(error);
       }

@@ -130,7 +130,7 @@ export async function registerCatalog(
       page,
       path: categoryPath,
       ...data,
-      formatIdr,
+      formatIdr: (value: bigint) => formatIdr(value, locale),
       storage,
       locale,
       locales: orderedLocales,
@@ -155,9 +155,8 @@ export async function registerCatalog(
     const categories = await getLocalizedCategories(locale);
     const category = categories.find((c) => c.id === data.product.categoryId);
 
-    const prefix = locales[locale].pathPrefix;
     const canonical = new URL(
-      `${prefix}/product/${data.translation.slug}`,
+      `${locale === 'id' ? '/id/produk' : '/product'}/${data.translation.slug}`,
       env.appUrl,
     ).href;
 
@@ -188,10 +187,12 @@ export async function registerCatalog(
       .replace(/>/g, '\\u003e')
       .replace(/&/g, '\\u0026');
 
+    const translations = await catalog.productTranslationsList(data.product.id);
     const alternateLinks = orderedLocales
       .map((loc) => {
-        const locPrefix = loc.pathPrefix;
-        const locPath = `${locPrefix}/product/${data.translation.slug}`;
+        const translation = translations.find(row => row.locale === loc.code);
+        if (!translation) return '';
+        const locPath = `${loc.code === 'id' ? '/id/produk' : '/product'}/${translation.slug}`;
         return `<link rel="alternate" hreflang="${loc.htmlLang}" href="${new URL(locPath, env.appUrl).href}" />`;
       })
       .join('\n    ');
@@ -222,7 +223,7 @@ export async function registerCatalog(
         : undefined,
       jsonLd,
       storage,
-      formatIdr,
+      formatIdr: (value: bigint) => formatIdr(value, locale),
       locale,
       locales: orderedLocales,
       t: (key: string, interp?: Record<string, string | number>) =>
