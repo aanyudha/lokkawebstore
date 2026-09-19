@@ -72,15 +72,22 @@ See [commercial accounting ADR](docs/decisions/003-commercial-pricing-overhead.m
 
 ## Production build and runtime ownership
 
-Configure NODE_ENV=production, DATABASE_URL and APP_URL in the deployment environment. From the project root:
+LOKKA supports exactly two server runtime modes, selected through `APP_RUNTIME` in `.env` (validated at startup):
+
+| `APP_RUNTIME`       | `npm start` behavior                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `fastify` (default) | Launches the compiled Fastify app directly with Node                                 |
+| `docker`            | Ensures the LOKKA application container runs (existing PostgreSQL data is untouched) |
+
+Both modes use the identical workflow from the project root. Set `NODE_ENV`, `DATABASE_URL`/`DATABASE_URL_DOCKER` and `APP_URL` first.
 
 ```text
-npm ci
+npm install
 npm run build
 npm start
 ```
 
-The cross-platform Node build pipeline runs clean → TypeScript compilation → runtime asset validation/copy → Vite browser build. `npm run clean` removes only `dist/` and `public/build/`. It never removes `storage/uploads/`, `public/images/lokka_logo.png`, or `docs/basic_concept/`.
+`npm run build` runs clean → TypeScript compilation → runtime asset validation/copy → Vite browser build, and in Docker mode also builds the application image. `npm start` acts only as the deployment-runtime launcher: `fastify` spawns the direct app command (`npm run start:app` → `scripts/start-app.mjs` → `node dist/server.js`), while `docker` runs a non-destructive `docker compose up -d app` against `docker-compose.yml` plus `deploy/docker-compose.runtime.yml`. `npm run clean` removes only `dist/` and `public/build/`. It never removes `storage/uploads/`, `public/images/lokka_logo.png`, or `docs/basic_concept/`.
 
 - `src/` is server source.
 - `dist/` is generated server runtime. All JSON translations from `src/i18n/resources/` are validated and copied to `dist/i18n/resources/`. Required locales come from `src/i18n/locales.ts`, shared with the translator; English remains the default. Missing required resources, malformed JSON, and failed/different destination copies fail the build.
@@ -88,15 +95,75 @@ The cross-platform Node build pipeline runs clean → TypeScript compilation →
 
 Never manually edit generated outputs. Both output directories are Git-ignored and untracked. Always deploy a fresh build; TypeScript compilation alone is insufficient.
 
-Deploy `dist/`, `views/`, `public/build/`, `public/images/` (including the optimized brand WebP), `package.json` and `package-lock.json` with production dependencies. Keep uploaded catalog media in persistent storage. The runtime needs neither `src/` nor Git. Include `drizzle/` for migrations and run `node dist/db/migrate.js` before serving the release. The TypeScript migration CLI instead requires development dependencies. Example Nginx configuration is in `deploy/nginx`; HTTPS is left for deployment setup.
+Deploy `dist/`, `views/`, `public/build/`, `public/images/` (including the optimized brand WebP), `package.json` and `package-lock.json` with production dependencies. The runtime needs neither `src/` nor Git. On every start, `scripts/start-app.mjs` applies **pending additive Drizzle migrations as a controlled, transactional startup step** (each pending migration runs in its own transaction; nothing is dropped or reset). Committed migrations are additive only. If migrations cannot be applied, `npm start` fails with an actionable message instead of resetting anything. `npm run db:migrate` remains available for explicit manual migration. Example Nginx configuration is in `deploy/nginx`; HTTPS is left for deployment setup.
 
 After building, run `npm run test:production` against a migrated PostgreSQL database (`TEST_DATABASE_URL` overrides `DATABASE_URL`). This tests compiled translations, build validation/cleaning, and a packaged application without `src/` or `.git`. It checks English/Indonesian rendering, readiness, revision identity, port conflicts and restart. It defaults to port 3000; `PRODUCTION_TEST_PORT` can select another fixed test port. An existing listener causes the test to fail without stopping it. On Windows, the fixture delivers SIGINT/SIGTERM events through test-only IPC because Node's child-process signal API forcibly terminates Windows processes; Ubuntu CI uses real OS signals. The fixture is never deployed.
 
 A passing build is not the startup acceptance gate. Run `npm start`, confirm that it stays running, and check `/health`, `/ready`, `/`, `/id`, and `/api/v1/version`. `/ready` must return 200 with PostgreSQL available (503 means unavailable). Stop with Ctrl+C afterward. `SIGINT` and `SIGTERM` handlers close Fastify and the database pool; shutdown has a ten-second failure timeout.
 
+### Deployment examples
+
+`HOST` is the Fastify bind address; `APP_URL` is the canonical external origin users actually access. `HOST` defaults to `0.0.0.0` so LAN/container access works; actual reachability still depends on the OS firewall, router, reverse proxy, DNS and TLS. LOKKA never modifies Firewall, router, DNS or TLS automatically. All four modes use only `npm install`, `npm run build`, `npm start`.
+
+**1. Local loopback**
+
+```env
+APP_RUNTIME=fastify
+HOST=0.0.0.0
+PORT=3000
+APP_URL=http://127.0.0.1:3000
+DATABASE_URL=postgresql://lokka:development_only@127.0.0.1:5432/lokka
+```
+
+Open `http://127.0.0.1:3000`.
+
+**2. LAN IP**
+
+```env
+APP_RUNTIME=fastify
+HOST=0.0.0.0
+PORT=3000
+APP_URL=http://192.168.1.200:3000
+DATABASE_URL=postgresql://lokka:development_only@127.0.0.1:5432/lokka
+```
+
+Other LAN devices reach `http://192.168.1.200:3000` if the OS firewall permits it. Use `APP_URL` only if `127.0.0.1` in the admin flows is not what you type in the browser; never weaken origin/CSRF validation to support extra addresses.
+
+**3. Production domain**
+
+```env
+APP_RUNTIME=fastify
+NODE_ENV=production
+HOST=0.0.0.0
+PORT=3000
+APP_URL=https://lokka.id
+DATABASE_URL=postgresql://lokka:development_only@127.0.0.1:5432/lokka
+TRUST_PROXY=true
+```
+
+Fastify binds `0.0.0.0:3000`. A reverse proxy such as Nginx handles `lokka.id:443 → 127.0.0.1:3000`; `TRUST_PROXY=true` trusts only loopback forwarding headers, keeping secure cookies, protocol detection and client IPs correct behind HTTPS. DNS, TLS and the live Nginx instance are separate infrastructure concerns, not managed by `npm start`.
+
+**4. Docker runtime**
+
+```env
+APP_RUNTIME=docker
+NODE_ENV=development
+PORT=3000
+APP_URL=http://192.168.1.200:3000
+DATABASE_URL_DOCKER=postgresql://lokka:development_only@postgres:5432/lokka
+```
+
+`npm run build` builds the application image; `npm start` ensures the `app` container runs. The existing PostgreSQL service, its network and its `postgres_data` volume are preserved and never reset or recreated destructively. The app container binds `0.0.0.0` internally and publishes the configured `PORT`. Uploaded catalog media persists in the `catalog_uploads` Docker volume mounted at `/app/storage/uploads/catalog`. For production, set `NODE_ENV=production` and `APP_URL=https://lokka.id`.
+
+**Docker database credentials.** Inside the container, PostgreSQL is reached through `DATABASE_URL_DOCKER` (host `postgres`, the Compose service name). If it is unset, the Compose development default `postgresql://lokka:development_only@postgres:5432/lokka` is used. That fallback is **development-only**: a Docker start with `NODE_ENV=production` and no `DATABASE_URL_DOCKER` fails immediately with an actionable error instead of silently using development credentials — production must set `DATABASE_URL_DOCKER` explicitly. LOKKA never prints credential values in errors, never rotates existing credentials, and never modifies the PostgreSQL container, volume, network or data.
+
+**Docker build provenance.** Image builds bake the host Git revision: the host resolves `HEAD` and working-tree cleanliness and passes them as `LOKKA_GIT_COMMIT`/`LOKKA_GIT_DIRTY` build args (plus a `LOKKA_BUILD_TIMESTAMP` label), so `/api/v1/version` in the container reports the actual source commit instead of null. `.git` is never copied into the image; injected values are validated identifiers only, so no remote URLs, usernames, filesystem paths or secrets can leak.
+
+Outside the two supported runtime modes, `docker compose up -d` on the base `docker-compose.yml` (via `npm run docker:up`) remains available to start the development PostgreSQL container only.
+
 ## Server identity and occupied ports
 
-Successful startup logs `LOKKA Webstore`, environment, package version, build commit, PID and configured port. `/api/v1/version` returns uncached public identity, for example:
+Successful startup logs `LOKKA Webstore`, runtime mode (`fastify`/`docker`), environment, bind address, public URL, package version, build commit, PID and configured port. `/api/v1/version` returns uncached public identity, for example:
 
 ```json
 {
@@ -104,11 +171,12 @@ Successful startup logs `LOKKA Webstore`, environment, package version, build co
   "version": "0.1.0",
   "commit": "6b346b68dca5a888be352b7b500d9c4338b7562c",
   "dirty": false,
-  "environment": "production"
+  "environment": "production",
+  "runtime": "fastify"
 }
 ```
 
-Identity is resolved once. Builds record it in `dist/build-info.json`; compiled servers use that snapshot even if the checkout later changes. `dirty: true` means the build included local changes, so the commit alone does not describe every file. A source archive without Git reports `commit`/`dirty` as null. No paths, credentials or Git remote URLs are exposed. Development snapshots the current checkout at process startup.
+Identity is resolved once. Builds record it in `dist/build-info.json`; compiled servers use that snapshot even if the checkout later changes. `dirty: true` means the build included local changes, so the commit alone does not describe every file. A source archive without Git reports `commit`/`dirty` as null. `runtime` reflects the configured `APP_RUNTIME`. No paths, credentials or Git remote URLs are exposed. Development snapshots the current checkout at process startup.
 
 If a new server crashes before binding, the browser may still reach an older process. Check `/api/v1/version` and compare its commit with the startup log. `EADDRINUSE` now clearly reports the occupied configured port and asks you to stop the confirmed old process or configure another port. LOKKA never chooses a random fallback port or terminates another process.
 

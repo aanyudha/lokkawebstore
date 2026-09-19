@@ -1,5 +1,8 @@
 # Example only. Configure TLS separately before production use.
-# Fastify: HOST=127.0.0.1, PORT=3000, TRUST_PROXY=true.
+# Fastify: HOST=0.0.0.0, PORT=3000, APP_URL=https://lokka.id, TRUST_PROXY=true.
+# The reverse proxy terminates https://lokka.id and forwards to 127.0.0.1:3000;
+# Fastify binds 0.0.0.0 internally. DNS (lokka.id -> server IP) and certificates
+# are infrastructure concerns outside LOKKA's control.
 server {
     listen 80;
     server_name lokka.id;

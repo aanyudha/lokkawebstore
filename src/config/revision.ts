@@ -8,13 +8,31 @@ export interface BuildIdentity {
   dirty: boolean | null;
 }
 
-/** Used once in development, or at build time. No Git dependency at runtime. */
-export function readSourceIdentity(root: URL): BuildIdentity {
+/**
+ * Used once in development, or at build time. No Git dependency at runtime.
+ *
+ * When a CI or image build injects LOKKA_GIT_COMMIT/LOKKA_GIT_DIRTY, those
+ * validated values win even though the build machine (or Docker build stage)
+ * has no Git repository. Otherwise it resolves from the working copy.
+ */
+export function readSourceIdentity(
+  root: URL,
+  source: NodeJS.ProcessEnv = process.env,
+): BuildIdentity {
   const pkg = JSON.parse(
     readFileSync(new URL('package.json', root), 'utf8'),
   ) as { version: string };
   let commit: string | null = null;
   let dirty: boolean | null = null;
+  const injectedCommit = source.LOKKA_GIT_COMMIT;
+  const injectedDirty = source.LOKKA_GIT_DIRTY;
+  if (injectedCommit || injectedDirty) {
+    if (injectedCommit && /^[a-f0-9]{40,64}$/.test(injectedCommit))
+      commit = injectedCommit;
+    if (injectedDirty === 'true') dirty = true;
+    else if (injectedDirty === 'false') dirty = false;
+    return { app: 'lokka-webstore', version: pkg.version, commit, dirty };
+  }
   try {
     const git = (args: string[]) =>
       execFileSync('git', args, {

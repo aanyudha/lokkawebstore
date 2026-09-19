@@ -8,3 +8,7 @@ storage
 test-results
 .env.*
 !.env.example
+.github
+docs
+deploy
+playwright-report

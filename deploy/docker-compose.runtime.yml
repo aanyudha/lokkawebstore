@@ -1,0 +1,54 @@
+# LOKKA Webstore application runtime overlay for APP_RUNTIME=docker.
+#
+# This file is MERGED with docker-compose.yml by the npm scripts when Docker
+# runtime is selected (npm run build builds the app image; npm start ensures the
+# app container runs). The existing PostgreSQL service, its network and its
+# postgres_data volume in docker-compose.yml are left untouched.
+#
+# The app container always binds Fastify to 0.0.0.0 (Docker port publishing
+# requires a non-loopback bind). HOST in .env only affects direct Fastify mode.
+#
+# Database connectivity differs between the two network contexts:
+#   APP_RUNTIME=fastify -> DATABASE_URL (e.g. postgresql://...@127.0.0.1:5432/lokka)
+#   APP_RUNTIME=docker  -> DATABASE_URL_DOCKER (PostgreSQL service name, e.g.
+#                          postgresql://...@postgres:5432/lokka).
+# If DATABASE_URL_DOCKER is unset, the local Compose development default below
+# is used (same credential as the development PostgreSQL service). Production
+# deployments must set DATABASE_URL_DOCKER explicitly.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Host build provenance baked into the image (never copies .git).
+        # The Docker build stage's runtime-assets step prefers these validated
+        # values when the stage has no Git repository. `unavailable`/`unknown`
+        # are safe sentinels that the identity layer resolves to null.
+        LOKKA_GIT_COMMIT: ${LOKKA_GIT_COMMIT:-unavailable}
+        LOKKA_GIT_DIRTY: ${LOKKA_GIT_DIRTY:-unknown}
+        LOKKA_BUILD_TIMESTAMP: ${LOKKA_BUILD_TIMESTAMP:-unknown}
+    image: lokka-webstore:latest
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      APP_RUNTIME: docker
+      HOST: 0.0.0.0
+      PORT: ${PORT:-3000}
+      APP_URL: ${APP_URL:?APP_URL (canonical external origin) must be set, e.g. http://127.0.0.1:3000 or https://lokka.id}
+      DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://lokka:development_only@postgres:5432/lokka}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOW_STOCK_THRESHOLD: ${LOW_STOCK_THRESHOLD:-5}
+      CATALOG_STORAGE_ROOT: ${CATALOG_STORAGE_ROOT:-storage/uploads/catalog}
+    ports:
+      - '${PORT:-3000}:${PORT:-3000}'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - catalog_uploads:/app/storage/uploads/catalog
+    restart: unless-stopped
+
+volumes:
+  catalog_uploads:

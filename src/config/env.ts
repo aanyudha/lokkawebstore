@@ -2,6 +2,11 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
   const nodeEnv = source.NODE_ENV ?? 'development';
   if (!['development', 'test', 'production'].includes(nodeEnv))
     throw new Error('Invalid NODE_ENV');
+  const appRuntime = source.APP_RUNTIME ?? 'fastify';
+  if (!['fastify', 'docker'].includes(appRuntime))
+    throw new Error(
+      `Invalid APP_RUNTIME "${appRuntime}". Supported values: fastify, docker.`,
+    );
   const port = Number(source.PORT ?? '3000');
   if (!Number.isInteger(port) || port < 1 || port > 65535)
     throw new Error('Invalid PORT');
@@ -27,7 +32,7 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
     )
   )
     throw new Error('Invalid LOG_LEVEL');
-  const host = source.HOST ?? '127.0.0.1';
+  const host = source.HOST ?? '0.0.0.0';
   if (!host.trim()) throw new Error('Invalid HOST');
   const lowStockThreshold = Number(source.LOW_STOCK_THRESHOLD ?? '5');
   if (
@@ -38,6 +43,7 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
     throw new Error('Invalid LOW_STOCK_THRESHOLD');
   return {
     nodeEnv,
+    appRuntime,
     port,
     host,
     lowStockThreshold,

@@ -190,7 +190,7 @@ export async function registerCatalog(
     const translations = await catalog.productTranslationsList(data.product.id);
     const alternateLinks = orderedLocales
       .map((loc) => {
-        const translation = translations.find(row => row.locale === loc.code);
+        const translation = translations.find((row) => row.locale === loc.code);
         if (!translation) return '';
         const locPath = `${loc.code === 'id' ? '/id/produk' : '/product'}/${translation.slug}`;
         return `<link rel="alternate" hreflang="${loc.htmlLang}" href="${new URL(locPath, env.appUrl).href}" />`;

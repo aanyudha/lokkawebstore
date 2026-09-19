@@ -130,7 +130,11 @@ test(
     const response = await get('/api/v1/version');
     assert.equal(response.headers.get('cache-control'), 'no-store');
     const identity = await response.json();
-    assert.deepEqual(identity, { ...metadata, environment: 'production' });
+    assert.deepEqual(identity, {
+      ...metadata,
+      environment: 'production',
+      runtime: 'fastify',
+    });
     const second = spawn(process.execPath, ['dist/server.js'], {
       cwd: release,
       env,

@@ -25,12 +25,13 @@ describe('foundation routes', () => {
     expect(response.headers['cache-control']).toBe('no-store');
     const identity = response.json();
     expect(Object.keys(identity).sort()).toEqual(
-      ['app', 'version', 'commit', 'dirty', 'environment'].sort(),
+      ['app', 'version', 'commit', 'dirty', 'environment', 'runtime'].sort(),
     );
     expect(identity).toMatchObject({
       app: 'lokka-webstore',
       version: '0.1.0',
       environment: 'test',
+      runtime: 'fastify',
     });
     expect(
       identity.commit === null || /^[a-f0-9]{40,64}$/.test(identity.commit),
@@ -107,6 +108,18 @@ describe('foundation routes', () => {
     await app.close();
     expect(database.close).toHaveBeenCalledOnce();
   });
+  it('binds the application to the wildcard host and answers on the loopback address', async () => {
+    const { app } = await setup();
+    await app.listen({ host: '0.0.0.0', port: 0 });
+    const address = app.server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
+    expect(port).toBeGreaterThan(0);
+    const response = await globalThis.fetch(`http://127.0.0.1:${port}/health`, {
+      signal: globalThis.AbortSignal.timeout(5000),
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: 'ok' });
+  });
   it('returns 503 without database details when unavailable', async () => {
     const { app } = await setup(
       vi.fn(async () => {
@@ -143,5 +156,36 @@ describe('environment', () => {
     expect(() => readEnv({ DATABASE_URL: 'secret' })).toThrow(
       'Invalid or missing DATABASE_URL',
     );
+  });
+  it('rejects an unknown APP_RUNTIME with an actionable message', () => {
+    expect(() =>
+      readEnv({
+        NODE_ENV: 'test',
+        DATABASE_URL: 'postgresql://t:t@localhost/t',
+        APP_URL: 'http://127.0.0.1:3000',
+        APP_RUNTIME: 'kubernetes',
+      }),
+    ).toThrow(
+      'Invalid APP_RUNTIME "kubernetes". Supported values: fastify, docker.',
+    );
+  });
+  it('defaults HOST to 0.0.0.0 and PORT to 3000 for LAN/container access', () => {
+    const loaded = readEnv({
+      NODE_ENV: 'test',
+      DATABASE_URL: 'postgresql://t:t@localhost/t',
+      APP_URL: 'http://127.0.0.1:3000',
+    });
+    expect(loaded.host).toBe('0.0.0.0');
+    expect(loaded.port).toBe(3000);
+    expect(loaded.appRuntime).toBe('fastify');
+  });
+  it('accepts the docker runtime without business-logic branching', () => {
+    const loaded = readEnv({
+      NODE_ENV: 'test',
+      DATABASE_URL: 'postgresql://t:t@localhost/t',
+      APP_URL: 'http://127.0.0.1:3000',
+      APP_RUNTIME: 'docker',
+    });
+    expect(loaded.appRuntime).toBe('docker');
   });
 });

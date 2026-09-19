@@ -93,8 +93,12 @@ export function createFinance(db: Database['db'], catalog: Catalog) {
       await tx.execute(
         sql`SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY`,
       );
-      const [owner] = await tx.select().from(vendors).where(eq(vendors.slug, 'lokka'));
-      if (!owner) throw new FormError('vendor', 'LOKKA vendor is not configured.');
+      const [owner] = await tx
+        .select()
+        .from(vendors)
+        .where(eq(vendors.slug, 'lokka'));
+      if (!owner)
+        throw new FormError('vendor', 'LOKKA vendor is not configured.');
       const vendor = owner.id;
       const costs = await tx
         .select()
@@ -413,7 +417,11 @@ export function createFinance(db: Database['db'], catalog: Catalog) {
         const overhead = p ? await details(tx, p) : null;
         const direct = costs.reduce((sum, c) => sum + c.amountRupiah, 0n);
         const full = direct + (overhead?.perUnit ?? 0n);
-        const variants = await tx.select().from(productVariants).where(eq(productVariants.productId,productId)).orderBy(asc(productVariants.sortOrder),asc(productVariants.sku));
+        const variants = await tx
+          .select()
+          .from(productVariants)
+          .where(eq(productVariants.productId, productId))
+          .orderBy(asc(productVariants.sortOrder), asc(productVariants.sku));
         return {
           product,
           costs,

@@ -31,10 +31,16 @@ try {
   });
   try {
     await app.listen({ host: env.host, port: env.port });
-    const identity = runtimeIdentity(env.nodeEnv);
+    const identity = runtimeIdentity(env.nodeEnv, env.appRuntime);
     app.log.info(
-      { ...identity, pid: process.pid, port: env.port },
-      `LOKKA Webstore | Environment: ${identity.environment} | Version: ${identity.version} | Commit: ${identity.commit ?? 'unavailable'}${identity.dirty ? ' (dirty)' : ''} | PID: ${process.pid} | Port: ${env.port}`,
+      {
+        ...identity,
+        pid: process.pid,
+        host: env.host,
+        port: env.port,
+        publicUrl: env.appUrl,
+      },
+      `LOKKA Webstore | Runtime: ${identity.runtime} | Environment: ${identity.environment} | Bind: ${env.host}:${env.port} | Public URL: ${env.appUrl} | Version: ${identity.version} | Commit: ${identity.commit ?? 'unavailable'}${identity.dirty ? ' (dirty)' : ''} | PID: ${process.pid} | Port: ${env.port}`,
     );
   } catch (error) {
     const code =

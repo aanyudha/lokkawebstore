@@ -9,7 +9,7 @@ const identity: BuildIdentity =
         readFileSync(new URL('../build-info.json', import.meta.url), 'utf8'),
       ) as BuildIdentity);
 
-export function runtimeIdentity(environment: string) {
+export function runtimeIdentity(environment: string, appRuntime: string) {
   // Explicit allowlist: never return arbitrary metadata or environment variables.
   return {
     app: identity.app,
@@ -17,5 +17,6 @@ export function runtimeIdentity(environment: string) {
     commit: identity.commit,
     dirty: identity.dirty,
     environment,
+    runtime: appRuntime,
   };
 }

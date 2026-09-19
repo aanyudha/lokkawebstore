@@ -11,7 +11,10 @@ export async function registerRoutes(
   catalog?: Catalog,
   env?: AppEnv,
 ) {
-  const identity = runtimeIdentity(env?.nodeEnv ?? 'development');
+  const identity = runtimeIdentity(
+    env?.nodeEnv ?? 'development',
+    env?.appRuntime ?? 'fastify',
+  );
   app.get('/api/v1/version', async (_request, reply) => {
     reply.header('Cache-Control', 'no-store');
     return identity;
