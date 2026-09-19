@@ -45,7 +45,7 @@ function main() {
   let runtime;
   try {
     runtime = readRuntime();
-    requireDockerDatabaseConfig();
+    if (runtime === 'docker') requireDockerDatabaseConfig();
   } catch (error) {
     process.stderr.write(`${error.message}\n`);
     process.exitCode = 1;

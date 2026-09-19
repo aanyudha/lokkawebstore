@@ -1,12 +1,33 @@
+export function resolveDatabaseUrl(
+  appRuntime: 'fastify' | 'docker',
+  source: NodeJS.ProcessEnv,
+): string {
+  const key = appRuntime === 'docker' ? 'DATABASE_URL_DOCKER' : 'DATABASE_URL';
+  const value = source[key];
+  if (!value) throw new Error(`APP_RUNTIME=${appRuntime} requires ${key}.`);
+  try {
+    const parsed = new URL(value);
+    if (
+      !['postgres:', 'postgresql:'].includes(parsed.protocol) ||
+      !parsed.hostname
+    )
+      throw new Error();
+    return value;
+  } catch {
+    throw new Error(`Invalid or missing ${key}`);
+  }
+}
+
 export function readEnv(source: NodeJS.ProcessEnv = process.env) {
   const nodeEnv = source.NODE_ENV ?? 'development';
   if (!['development', 'test', 'production'].includes(nodeEnv))
     throw new Error('Invalid NODE_ENV');
-  const appRuntime = source.APP_RUNTIME ?? 'fastify';
-  if (!['fastify', 'docker'].includes(appRuntime))
+  const appRuntimeValue = source.APP_RUNTIME ?? 'fastify';
+  if (!['fastify', 'docker'].includes(appRuntimeValue))
     throw new Error(
-      `Invalid APP_RUNTIME "${appRuntime}". Supported values: fastify, docker.`,
+      `Invalid APP_RUNTIME "${appRuntimeValue}". Supported values: fastify, docker.`,
     );
+  const appRuntime = appRuntimeValue as 'fastify' | 'docker';
   const port = Number(source.PORT ?? '3000');
   if (!Number.isInteger(port) || port < 1 || port > 65535)
     throw new Error('Invalid PORT');
@@ -51,7 +72,7 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
       source.CATALOG_STORAGE_ROOT ?? 'storage/uploads/catalog',
     logLevel,
     trustProxy: trustProxy === 'true',
-    databaseUrl: url('DATABASE_URL', ['postgres:', 'postgresql:']),
+    databaseUrl: resolveDatabaseUrl(appRuntime, source),
     appUrl: url('APP_URL', ['http:', 'https:']),
   };
 }

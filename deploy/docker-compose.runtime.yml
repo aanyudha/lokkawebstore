@@ -12,9 +12,10 @@
 #   APP_RUNTIME=fastify -> DATABASE_URL (e.g. postgresql://...@127.0.0.1:5432/lokka)
 #   APP_RUNTIME=docker  -> DATABASE_URL_DOCKER (PostgreSQL service name, e.g.
 #                          postgresql://...@postgres:5432/lokka).
-# If DATABASE_URL_DOCKER is unset, the local Compose development default below
-# is used (same credential as the development PostgreSQL service). Production
-# deployments must set DATABASE_URL_DOCKER explicitly.
+# Each runtime requires its own variable explicitly - there is NO cross-runtime
+# fallback and NO default database credential, even in development. If
+# DATABASE_URL_DOCKER is missing, Compose fails immediately instead of
+# substituting a default.
 
 services:
   app:
@@ -36,7 +37,7 @@ services:
       HOST: 0.0.0.0
       PORT: ${PORT:-3000}
       APP_URL: ${APP_URL:?APP_URL (canonical external origin) must be set, e.g. http://127.0.0.1:3000 or https://lokka.id}
-      DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://lokka:development_only@postgres:5432/lokka}
+      DATABASE_URL_DOCKER: ${DATABASE_URL_DOCKER:?APP_RUNTIME=docker requires DATABASE_URL_DOCKER.}
       TRUST_PROXY: ${TRUST_PROXY:-false}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOW_STOCK_THRESHOLD: ${LOW_STOCK_THRESHOLD:-5}

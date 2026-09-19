@@ -32,18 +32,15 @@ export function composeArgs(action, ...rest) {
 }
 
 /**
- * Docker runtime database safety. The Compute overlay's development fallback
- * (postgresql://lokka:development_only@...) is explicit and safe, so it is
- * allowed for development/test only. A production start without
- * DATABASE_URL_DOCKER must fail clearly instead of silently using
- * development credentials. Error messages never include credential values.
+ * Docker runtime database safety. Docker mode requires DATABASE_URL_DOCKER in
+ * EVERY environment - there is no default database credential and no
+ * cross-runtime fallback. A Docker start without DATABASE_URL_DOCKER fails
+ * immediately with a clear message. Error messages never include credential
+ * values.
  */
 export function requireDockerDatabaseConfig(source = process.env) {
-  const nodeEnv = source.NODE_ENV ?? 'development';
-  if (nodeEnv === 'production' && !source.DATABASE_URL_DOCKER) {
-    throw new Error(
-      'APP_RUNTIME=docker with NODE_ENV=production requires DATABASE_URL_DOCKER with production database credentials. Refusing to fall back to development database credentials.',
-    );
+  if (!source.DATABASE_URL_DOCKER) {
+    throw new Error('APP_RUNTIME=docker requires DATABASE_URL_DOCKER.');
   }
 }
 

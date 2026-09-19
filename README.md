@@ -79,7 +79,7 @@ LOKKA supports exactly two server runtime modes, selected through `APP_RUNTIME` 
 | `fastify` (default) | Launches the compiled Fastify app directly with Node                                 |
 | `docker`            | Ensures the LOKKA application container runs (existing PostgreSQL data is untouched) |
 
-Both modes use the identical workflow from the project root. Set `NODE_ENV`, `DATABASE_URL`/`DATABASE_URL_DOCKER` and `APP_URL` first.
+Both modes use the identical workflow from the project root. Set `NODE_ENV`, the database variable for your mode and `APP_URL` first: `APP_RUNTIME=fastify` requires `DATABASE_URL`; `APP_RUNTIME=docker` requires `DATABASE_URL_DOCKER`. There is no cross-runtime fallback and no default database credential — a missing required variable fails startup with `APP_RUNTIME=fastify requires DATABASE_URL.` or `APP_RUNTIME=docker requires DATABASE_URL_DOCKER.`
 
 ```text
 npm install
@@ -87,7 +87,7 @@ npm run build
 npm start
 ```
 
-`npm run build` runs clean → TypeScript compilation → runtime asset validation/copy → Vite browser build, and in Docker mode also builds the application image. `npm start` acts only as the deployment-runtime launcher: `fastify` spawns the direct app command (`npm run start:app` → `scripts/start-app.mjs` → `node dist/server.js`), while `docker` runs a non-destructive `docker compose up -d app` against `docker-compose.yml` plus `deploy/docker-compose.runtime.yml`. `npm run clean` removes only `dist/` and `public/build/`. It never removes `storage/uploads/`, `public/images/lokka_logo.png`, or `docs/basic_concept/`.
+`npm run build` runs clean → TypeScript compilation → runtime asset validation/copy → Vite browser build, and in Docker mode also builds the application image. `npm start` acts only as the deployment-runtime launcher: `fastify` spawns the direct app command (`npm run start:app` → `scripts/start-app.mjs` → `node dist/server.js`) and never executes Docker tooling, while `docker` runs a non-destructive `docker compose up -d app` against `docker-compose.yml` plus `deploy/docker-compose.runtime.yml`. `npm run clean` removes only `dist/` and `public/build/`. It never removes `storage/uploads/`, `public/images/lokka_logo.png`, or `docs/basic_concept/`.
 
 - `src/` is server source.
 - `dist/` is generated server runtime. All JSON translations from `src/i18n/resources/` are validated and copied to `dist/i18n/resources/`. Required locales come from `src/i18n/locales.ts`, shared with the translator; English remains the default. Missing required resources, malformed JSON, and failed/different destination copies fail the build.
@@ -107,12 +107,15 @@ A passing build is not the startup acceptance gate. Run `npm start`, confirm tha
 
 **1. Local loopback**
 
+Fastify mode runs the compiled application directly with Node and reads `DATABASE_URL` only. Point it at a native/private/managed PostgreSQL instance; Docker is not required and is never invoked.
+
 ```env
 APP_RUNTIME=fastify
 HOST=0.0.0.0
 PORT=3000
 APP_URL=http://127.0.0.1:3000
-DATABASE_URL=postgresql://lokka:development_only@127.0.0.1:5432/lokka
+DATABASE_URL=postgresql://lokka:CHANGE_ME@127.0.0.1:5432/lokka
+DATABASE_URL_DOCKER=
 ```
 
 Open `http://127.0.0.1:3000`.
@@ -124,7 +127,8 @@ APP_RUNTIME=fastify
 HOST=0.0.0.0
 PORT=3000
 APP_URL=http://192.168.1.200:3000
-DATABASE_URL=postgresql://lokka:development_only@127.0.0.1:5432/lokka
+DATABASE_URL=postgresql://lokka:CHANGE_ME@127.0.0.1:5432/lokka
+DATABASE_URL_DOCKER=
 ```
 
 Other LAN devices reach `http://192.168.1.200:3000` if the OS firewall permits it. Use `APP_URL` only if `127.0.0.1` in the admin flows is not what you type in the browser; never weaken origin/CSRF validation to support extra addresses.
@@ -137,7 +141,8 @@ NODE_ENV=production
 HOST=0.0.0.0
 PORT=3000
 APP_URL=https://lokka.id
-DATABASE_URL=postgresql://lokka:development_only@127.0.0.1:5432/lokka
+DATABASE_URL=postgresql://lokka:CHANGE_ME@127.0.0.1:5432/lokka
+DATABASE_URL_DOCKER=
 TRUST_PROXY=true
 ```
 
@@ -150,12 +155,13 @@ APP_RUNTIME=docker
 NODE_ENV=development
 PORT=3000
 APP_URL=http://192.168.1.200:3000
-DATABASE_URL_DOCKER=postgresql://lokka:development_only@postgres:5432/lokka
+DATABASE_URL=
+DATABASE_URL_DOCKER=postgresql://lokka:CHANGE_ME@postgres:5432/lokka
 ```
 
 `npm run build` builds the application image; `npm start` ensures the `app` container runs. The existing PostgreSQL service, its network and its `postgres_data` volume are preserved and never reset or recreated destructively. The app container binds `0.0.0.0` internally and publishes the configured `PORT`. Uploaded catalog media persists in the `catalog_uploads` Docker volume mounted at `/app/storage/uploads/catalog`. For production, set `NODE_ENV=production` and `APP_URL=https://lokka.id`.
 
-**Docker database credentials.** Inside the container, PostgreSQL is reached through `DATABASE_URL_DOCKER` (host `postgres`, the Compose service name). If it is unset, the Compose development default `postgresql://lokka:development_only@postgres:5432/lokka` is used. That fallback is **development-only**: a Docker start with `NODE_ENV=production` and no `DATABASE_URL_DOCKER` fails immediately with an actionable error instead of silently using development credentials — production must set `DATABASE_URL_DOCKER` explicitly. LOKKA never prints credential values in errors, never rotates existing credentials, and never modifies the PostgreSQL container, volume, network or data.
+**Database variables.** The application resolves exactly one connection per runtime and never guesses whether the server it connects to is itself containerized. Fastify mode uses `DATABASE_URL` only (a native/private/managed PostgreSQL reachable from the host) and ignores `DATABASE_URL_DOCKER`. Docker mode uses `DATABASE_URL_DOCKER` only (host `postgres`, the Compose service name) and ignores `DATABASE_URL`; the container receives `APP_RUNTIME=docker` explicitly so it resolves `DATABASE_URL_DOCKER` deterministically. Each variable must be set explicitly in every environment — there is no default database credential and no fallback. Missing `DATABASE_URL` fails with `APP_RUNTIME=fastify requires DATABASE_URL.`; missing `DATABASE_URL_DOCKER` fails with `APP_RUNTIME=docker requires DATABASE_URL_DOCKER.` LOKKA never prints credential values in errors, never rotates existing credentials, and never modifies the PostgreSQL container, volume, network or data.
 
 **Docker build provenance.** Image builds bake the host Git revision: the host resolves `HEAD` and working-tree cleanliness and passes them as `LOKKA_GIT_COMMIT`/`LOKKA_GIT_DIRTY` build args (plus a `LOKKA_BUILD_TIMESTAMP` label), so `/api/v1/version` in the container reports the actual source commit instead of null. `.git` is never copied into the image; injected values are validated identifiers only, so no remote URLs, usernames, filesystem paths or secrets can leak.
 

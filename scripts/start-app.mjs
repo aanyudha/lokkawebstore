@@ -40,7 +40,8 @@ if (migration.error) {
 if (migration.status !== 0) {
   process.stderr.write(
     '[lokka] Pending additive database migrations could not be applied. ' +
-      'Is PostgreSQL reachable through DATABASE_URL? ' +
+      'Is PostgreSQL reachable through the configured connection ' +
+      '(DATABASE_URL for fastify, DATABASE_URL_DOCKER for docker)? ' +
       'Start the database, then run `npm start` again (or apply migrations with `npm run db:migrate`).\n',
   );
   process.exitCode = migration.status ?? 1;

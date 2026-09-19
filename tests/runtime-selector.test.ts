@@ -28,7 +28,10 @@ describe('deployment runtime selector', () => {
     expect(plan.args[0]!.split(/[\\/]/).pop()).toBe('start-app.mjs');
   });
   it('selects non-destructive Docker orchestration for docker', () => {
-    const plan = planStart({ APP_RUNTIME: 'docker' });
+    const plan = planStart({
+      APP_RUNTIME: 'docker',
+      DATABASE_URL_DOCKER: 'postgresql://docker:docker@postgres:5432/lokka',
+    });
     expect(plan.kind).toBe('docker');
     expect(plan.command).toBe('docker');
     const args = plan.args.join(' ');
@@ -43,56 +46,59 @@ describe('deployment runtime selector', () => {
     const plan = planStart({ APP_RUNTIME: 'fastify' });
     expect(plan.args.join(' ')).not.toContain('start.mjs');
   });
+  it('executes zero Docker commands in the fastify start plan', () => {
+    const plan = planStart({ APP_RUNTIME: 'fastify' });
+    const surface = `${plan.command} ${plan.args.join(' ')}`;
+    expect(surface).not.toMatch(/\bdocker\b/i);
+    expect(surface).not.toMatch(/\bcompose\b/i);
+    expect(surface).not.toMatch(/ -f\b/);
+    expect(plan.args[0]!.split(/[\\/]/).pop()).toBe('start-app.mjs');
+  });
   it('does not select business-logic branches by runtime', () => {
     const fastify = planStart({ APP_RUNTIME: 'fastify' });
-    const docker = planStart({ APP_RUNTIME: 'docker' });
+    const docker = planStart({
+      APP_RUNTIME: 'docker',
+      DATABASE_URL_DOCKER: 'postgresql://docker:docker@postgres:5432/lokka',
+    });
     expect(fastify.runtime).toBe('fastify');
     expect(docker.runtime).toBe('docker');
     expect(fastify.kind).not.toBe(docker.kind);
   });
-  it('refuses production Docker starts without DATABASE_URL_DOCKER', () => {
-    expect(() =>
-      planStart({ APP_RUNTIME: 'docker', NODE_ENV: 'production' }),
-    ).toThrow(
-      'APP_RUNTIME=docker with NODE_ENV=production requires DATABASE_URL_DOCKER',
-    );
-    expect(() =>
-      requireDockerDatabaseConfig({ NODE_ENV: 'production' }),
-    ).toThrow(/DATABASE_URL_DOCKER/);
+  it('requires DATABASE_URL_DOCKER for every Docker start, including development', () => {
+    for (const nodeEnv of ['development', 'production', 'test']) {
+      expect(() =>
+        planStart({ APP_RUNTIME: 'docker', NODE_ENV: nodeEnv }),
+      ).toThrow('APP_RUNTIME=docker requires DATABASE_URL_DOCKER.');
+      expect(() => requireDockerDatabaseConfig({ NODE_ENV: nodeEnv })).toThrow(
+        'APP_RUNTIME=docker requires DATABASE_URL_DOCKER.',
+      );
+    }
   });
-  it('allows the development-only Docker database fallback outside production', () => {
-    expect(
-      planStart({ APP_RUNTIME: 'docker', NODE_ENV: 'development' }).kind,
-    ).toBe('docker');
-    expect(
-      planStart({ APP_RUNTIME: 'docker', NODE_ENV: 'development' }).args.join(
-        ' ',
-      ),
-    ).not.toContain('DATABASE_URL_DOCKER');
-    expect(() => requireDockerDatabaseConfig({})).not.toThrow();
-  });
-  it('accepts an explicit production DATABASE_URL_DOCKER', () => {
-    const plan = planStart({
-      APP_RUNTIME: 'docker',
-      NODE_ENV: 'production',
-      DATABASE_URL_DOCKER: 'postgresql://lokka:production@postgres:5432/lokka',
-    });
-    expect(plan.kind).toBe('docker');
-    expect(() =>
-      requireDockerDatabaseConfig({
-        NODE_ENV: 'production',
+  it('accepts an explicit DATABASE_URL_DOCKER in every environment', () => {
+    for (const nodeEnv of ['development', 'production']) {
+      const plan = planStart({
+        APP_RUNTIME: 'docker',
+        NODE_ENV: nodeEnv,
         DATABASE_URL_DOCKER:
           'postgresql://lokka:production@postgres:5432/lokka',
-      }),
-    ).not.toThrow();
+      });
+      expect(plan.kind).toBe('docker');
+      expect(() =>
+        requireDockerDatabaseConfig({
+          NODE_ENV: nodeEnv,
+          DATABASE_URL_DOCKER:
+            'postgresql://lokka:production@postgres:5432/lokka',
+        }),
+      ).not.toThrow();
+    }
   });
   it('never includes database credentials in guard errors', () => {
     let message = '';
     try {
-      requireDockerDatabaseConfig({ NODE_ENV: 'production' });
+      requireDockerDatabaseConfig({});
     } catch (error) {
       message = error instanceof Error ? error.message : String(error);
     }
-    expect(message).not.toMatch(/postgres|password|secret/i);
+    expect(message).not.toMatch(/postgres|password|secret|@|:/i);
   });
 });

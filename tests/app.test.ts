@@ -182,10 +182,73 @@ describe('environment', () => {
   it('accepts the docker runtime without business-logic branching', () => {
     const loaded = readEnv({
       NODE_ENV: 'test',
-      DATABASE_URL: 'postgresql://t:t@localhost/t',
+      DATABASE_URL_DOCKER: 'postgresql://t:t@postgres/t',
       APP_URL: 'http://127.0.0.1:3000',
       APP_RUNTIME: 'docker',
     });
     expect(loaded.appRuntime).toBe('docker');
+  });
+  it('resolves fastify mode from DATABASE_URL only', () => {
+    const loaded = readEnv({
+      NODE_ENV: 'test',
+      APP_URL: 'http://127.0.0.1:3000',
+      DATABASE_URL: 'postgresql://native:native@127.0.0.1:5432/lokka',
+      DATABASE_URL_DOCKER: 'postgresql://ignored:ignored@postgres:5432/lokka',
+    });
+    expect(loaded.appRuntime).toBe('fastify');
+    expect(loaded.databaseUrl).toBe(
+      'postgresql://native:native@127.0.0.1:5432/lokka',
+    );
+  });
+  it('fails fastify mode when only DATABASE_URL_DOCKER is provided', () => {
+    expect(() =>
+      readEnv({
+        NODE_ENV: 'test',
+        APP_URL: 'http://127.0.0.1:3000',
+        DATABASE_URL_DOCKER: 'postgresql://t:t@postgres/t',
+      }),
+    ).toThrow('APP_RUNTIME=fastify requires DATABASE_URL.');
+  });
+  it('resolves docker mode from DATABASE_URL_DOCKER only', () => {
+    const loaded = readEnv({
+      NODE_ENV: 'production',
+      APP_URL: 'http://127.0.0.1:3000',
+      APP_RUNTIME: 'docker',
+      DATABASE_URL: 'postgresql://ignored:ignored@127.0.0.1:5432/lokka',
+      DATABASE_URL_DOCKER: 'postgresql://docker:docker@postgres:5432/lokka',
+    });
+    expect(loaded.appRuntime).toBe('docker');
+    expect(loaded.databaseUrl).toBe(
+      'postgresql://docker:docker@postgres:5432/lokka',
+    );
+  });
+  it('fails docker mode when only DATABASE_URL is provided, in every environment', () => {
+    for (const nodeEnv of ['development', 'production']) {
+      expect(() =>
+        readEnv({
+          NODE_ENV: nodeEnv,
+          APP_URL: 'http://127.0.0.1:3000',
+          APP_RUNTIME: 'docker',
+          DATABASE_URL: 'postgresql://host:host@127.0.0.1:5432/lokka',
+        }),
+      ).toThrow('APP_RUNTIME=docker requires DATABASE_URL_DOCKER.');
+    }
+  });
+  it('rejects a malformed database URL for the selected runtime', () => {
+    expect(() =>
+      readEnv({
+        NODE_ENV: 'test',
+        APP_URL: 'http://127.0.0.1:3000',
+        DATABASE_URL: 'secret',
+      }),
+    ).toThrow('Invalid or missing DATABASE_URL');
+    expect(() =>
+      readEnv({
+        NODE_ENV: 'test',
+        APP_URL: 'http://127.0.0.1:3000',
+        APP_RUNTIME: 'docker',
+        DATABASE_URL_DOCKER: 'secret',
+      }),
+    ).toThrow('Invalid or missing DATABASE_URL_DOCKER');
   });
 });
