@@ -23,6 +23,61 @@ Open http://127.0.0.1:3000, matching the default APP_URL. Development first buil
 
 If port 5432 is occupied, set POSTGRES_PORT=5433 and change the port in DATABASE_URL to 5433 in .env before starting Compose. Leave other databases untouched.
 
+## Fresh Database Setup
+
+Fastify/native PostgreSQL and Docker PostgreSQL are separate databases. The runtime mode in `.env` selects which variable your server actually reads:
+
+- `APP_RUNTIME=fastify` (default): reads `DATABASE_URL` only — point it at native, private or managed PostgreSQL, or at the Compose database published on localhost:5432 (`postgresql://lokka:CHANGE_ME@127.0.0.1:5432/lokka`).
+- `APP_RUNTIME=docker`: the application container reads `DATABASE_URL_DOCKER` only (`postgresql://lokka:CHANGE_ME@postgres:5432/lokka`). There is no cross-runtime fallback and no default credential.
+
+A fresh database must be migrated before first use:
+
+```powershell
+npm.cmd run db:migrate
+```
+
+`db:seed` is the required base seed and inserts exactly one active LOKKA vendor. It is idempotent and never deletes anything:
+
+```powershell
+npm.cmd run db:seed
+```
+
+`db:seed:dev` adds an opt-in development/demo catalog on top: an active bilingual category and product with English and Indonesian translations, one variant with a whole-Rupiah price and stock, and no product images (the storefront shows the existing placeholder). It is development-only, refuses `NODE_ENV=production`, is idempotent and never deletes or resets data. The demo products stay clearly separate from your base LOKKA vendor:
+
+```powershell
+npm.cmd run db:seed:dev
+```
+
+Create the first administrator interactively (there is no default administrator or password):
+
+```powershell
+npm.cmd run admin:create -- --email admin@example.com --name "LOKKA Admin"
+```
+
+Open http://127.0.0.1:3000/admin/login. Customer authentication and account logins are **not implemented yet** — the admin login is the only sign-in. Enter and confirm a password of 12–128 characters; the input is not echoed. See the Admin workflow section below for password and origin details.
+
+### First-time setup (native Fastify, no Docker)
+
+Run from C:\lokkawebstore with Docker Desktop stopped:
+
+```powershell
+npm.cmd install
+npm.cmd run build
+npm.cmd run db:migrate
+npm.cmd run db:seed
+npm.cmd run admin:create -- --email admin@example.com --name "LOKKA Admin"
+npm.cmd run db:seed:dev
+npm.cmd start
+```
+
+Open:
+
+- Storefront http://127.0.0.1:3000/ (EN) and http://127.0.0.1:3000/id (ID)
+- Collections `/collections` (EN) and `/id/koleksi` (ID); the demo product is at `/product/lokka-demo-shirt` (EN) and `/id/produk/kemeja-demo-lokka` (ID)
+- Admin http://127.0.0.1:3000/admin/login
+
+After the first-time setup, normal startup remains `npm.cmd install && npm.cmd run build && npm.cmd start`. The database commands above run only for new or changed databases.
+
 ## Commands
 
 ```powershell
@@ -34,7 +89,7 @@ npm.cmd run build
 npm.cmd start
 ```
 
-`format`, `lint:fix` and `test:watch` support daily development. `db:generate` creates committed migrations after schema edits; `db:migrate` applies them; `db:studio` opens local schema tooling. Seed is idempotent and inserts only the LOKKA vendor. Foundation tests use a database seam; catalog integration tests require migrated PostgreSQL via TEST_DATABASE_URL or DATABASE_URL from .env. Tests create uniquely named temporary records and remove them afterward; no DOKU/Biteship access is needed. Prefer a separate test database. CI provisions PostgreSQL 18 and runs migrations, seed, formatting, lint, typecheck, tests and build on Node 24.
+`format`, `lint:fix` and `test:watch` support daily development. `db:generate` creates committed migrations after schema edits; `db:migrate` applies them; `db:studio` opens local schema tooling. The base seed (`db:seed`) is idempotent and inserts only the LOKKA vendor; the optional development seed (`db:seed:dev`) adds a demo bilingual catalog and is described in Fresh Database Setup. Foundation tests use a database seam; catalog integration tests require migrated PostgreSQL via TEST_DATABASE_URL or DATABASE_URL from .env. Tests create uniquely named temporary records and remove them afterward; no DOKU/Biteship access is needed. Prefer a separate test database. CI provisions PostgreSQL 18 and runs migrations, seed, formatting, lint, typecheck, tests and build on Node 24.
 
 Run `npm.cmd run test:browser` for Chrome desktop/mobile verification on Windows. It starts an isolated app on localhost:3011 and uses temporary catalog/admin fixtures, which are cleaned afterward. Chrome must already be installed. On Linux install the Playwright Chromium browser in your development environment. Screenshots are written to ignored test-results/. Browser tests expect built assets; run build first.
 
