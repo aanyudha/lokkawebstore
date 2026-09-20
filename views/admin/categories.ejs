@@ -1,15 +1,16 @@
-<%- include('../partials/admin-header.ejs') %>
-<main id="main" class="admin-main">
-<h1>Categories</h1>
-<a class="button" href="/admin/categories/new">Tambah kategori</a>
-<div class="table-scroll">
+
+<div class="admin-content">
+<% if (!categories.length) { %><%- include('../partials/admin/empty-state.ejs', {heading:'No categories yet',message:'Create a category to organize your products.'}) %><% } %>
+
+
+<div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable data table">
 <table>
 <thead>
 <tr>
-<th>Nama</th>
+<th>Name</th>
 <th>Slug</th>
 <th>Status</th>
-<th>Urutan</th>
+<th>Sort order</th>
 </tr>
 </thead>
 <tbody>
@@ -24,7 +25,7 @@
 <%= category.slug %>
 </td>
 <td>
-<%= category.status %>
+<%- include('../partials/admin/status-badge.ejs', {status:category.status}) %>
 </td>
 <td>
 <%= category.sortOrder %>
@@ -34,4 +35,4 @@
 </tbody>
 </table>
 </div>
-</main>
+</div>

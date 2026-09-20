@@ -1,16 +1,16 @@
 <form method="post" action="/admin/products/<%= productId %>/variants<%= variant.id ? '/' + variant.id : '' %>" class="variant-form" aria-describedby="<%= error ? 'form-error' : '' %>">
 <input type="hidden" name="csrf" value="<%= csrf %>" />
-<label>Nama varian<input name="name" required maxlength="150" value="<%= variant.name || '' %>" placeholder="Ivory / M" />
+<label>Variant name<input name="name" required maxlength="150" value="<%= variant.name || '' %>" placeholder="Ivory / M" />
 </label>
 <label>SKU<input name="sku" required maxlength="80" value="<%= variant.sku || '' %>" />
 </label>
-<label>Harga (Rupiah)<input name="price" inputmode="numeric" pattern="[0-9]*" value="<%= variant.price ?? '' %>" />
+<label>Price (Rupiah)<input name="price" inputmode="numeric" pattern="[0-9]*" value="<%= variant.price ?? '' %>" />
 </label>
-<label>Harga pembanding<input name="compareAtPrice" inputmode="numeric" pattern="[0-9]*" value="<%= variant.compareAtPrice ?? '' %>" />
+<label>Compare-at price<input name="compareAtPrice" inputmode="numeric" pattern="[0-9]*" value="<%= variant.compareAtPrice ?? '' %>" />
 </label>
-<label>Berat (gram)<input name="weightGrams" type="number" min="0" value="<%= variant.weightGrams ?? '' %>" />
+<label>Weight (grams)<input name="weightGrams" type="number" min="0" value="<%= variant.weightGrams ?? '' %>" />
 </label>
-<label>Stok<input name="stockQuantity" type="number" min="0" required value="<%= variant.stockQuantity ?? 0 %>" />
+<label>Stock<input name="stockQuantity" type="number" min="0" required value="<%= variant.stockQuantity ?? 0 %>" />
 </label>
 <label>Status<select name="status">
 <% for (const status of ['active', 'inactive']) { %>
@@ -20,9 +20,9 @@
 <% } %>
 </select>
 </label>
-<label>Urutan<input name="sortOrder" type="number" min="0" required value="<%= variant.sortOrder ?? 0 %>" />
+<label>Sort order<input name="sortOrder" type="number" min="0" required value="<%= variant.sortOrder ?? 0 %>" />
 </label>
 <button>
-<%= variant.id ? 'Simpan varian' : 'Tambah varian' %>
+<%= variant.id ? 'Save variant' : 'Add variant' %>
 </button>
 </form>

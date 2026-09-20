@@ -16,6 +16,7 @@ import { createCatalog } from './modules/catalog/service.js';
 import { LocalCatalogImageStorage } from './modules/catalog/storage.js';
 import { registerCatalog } from './modules/catalog/routes.js';
 import { registerAdmin } from './modules/admin/routes.js';
+import { renderAdminError } from './modules/admin/presentation.js';
 import { registerCustomer } from './modules/customer/routes.js';
 import { getAssets, resetAssets } from './config/assets.js';
 import { orderedLocales } from './i18n/index.js';
@@ -131,6 +132,12 @@ export async function buildApp(
         assets: getAssets(),
       },
     });
+    // A separate renderer leaves the public global layout/context untouched.
+    await app.register(view, {
+      engine: { ejs },
+      root: resolve('views'),
+      propertyName: 'adminView',
+    });
     // ─── Official logo route (original PNG, not for web delivery) ───
     app.get('/images/lokka_logo.png', async (_request, reply) =>
       reply
@@ -159,6 +166,17 @@ export async function buildApp(
     });
     app.setNotFoundHandler(async (request, reply) => {
       reply.code(404);
+      if (
+        request.url.split('?')[0] === '/admin' ||
+        request.url.startsWith('/admin/')
+      )
+        return renderAdminError(
+          reply,
+          404,
+          'The requested admin page could not be found.',
+          request.internalAdmin,
+          request.cookies.lokka_admin_csrf,
+        );
       if (request.url.startsWith('/api/')) return { error: 'Not found' };
       const locale = request.url.startsWith('/id') ? 'id' : 'en';
       return reply.viewAsync('errors/error.ejs', {
@@ -187,6 +205,17 @@ export async function buildApp(
             ? t(locale, 'error.tooManyRequests')
             : t(locale, 'error.requestError');
       reply.code(status);
+      if (
+        request.url.split('?')[0] === '/admin' ||
+        request.url.startsWith('/admin/')
+      )
+        return renderAdminError(
+          reply,
+          status,
+          message,
+          request.internalAdmin,
+          request.cookies.lokka_admin_csrf,
+        );
       if (
         request.url.startsWith('/api/') ||
         request.url === '/ready' ||

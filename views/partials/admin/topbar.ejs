@@ -1,0 +1,6 @@
+<header class="admin-topbar">
+  <button type="button" class="drawer-trigger secondary" data-drawer-trigger aria-controls="admin-sidebar" aria-expanded="false" hidden>Menu</button>
+  <span class="topbar-context">LOKKA <span>/</span> Back office</span>
+  <div class="admin-user"><span class="user-monogram" aria-hidden="true"><%= principal.name.slice(0,1).toUpperCase() %></span><span class="user-name"><%= principal.name %><small>Administrator</small></span></div>
+  <form method="post" action="/admin/logout"><input type="hidden" name="csrf" value="<%= csrf %>" /><button class="secondary" type="submit">Sign out</button></form>
+</header>

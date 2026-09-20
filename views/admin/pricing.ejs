@@ -1,5 +1,5 @@
-<%- include('../partials/admin-header.ejs') %>
-<main id="main" class="admin-main commercial-page"><h1>Product costs &amp; pricing · <%= product.name %></h1><p><a href="/admin/products/<%= product.id %>/edit">Back to product editor</a> · <a href="/admin/finance/overhead">Manage global overhead</a></p>
+
+<div class="admin-content commercial-page"><p><a href="/admin/products/<%= product.id %>/edit">Back to product editor</a> · <a href="/admin/finance/overhead">Manage global overhead</a></p>
 <%- include('../partials/form-error.ejs') %>
 <section class="admin-section"><h2>Direct product costs per unit</h2><p>Materials, labor and packaging for this product only. Business-wide costs belong in Global overhead.</p>
 <% for (const saved of [...costs,{category:'DIRECT_MATERIAL',sortOrder:0}]) { const dest = '/admin/products/' + product.id + '/costs' + (saved.id ? '/' + saved.id : ''); const form = action === dest ? values : saved; %>
@@ -14,5 +14,5 @@
 <%- include('../partials/commercial-fields.ejs',{form:error && action === '/admin/products/' + product.id + '/pricing' ? values : {...profile,profitPercent:percentText(profile.profitBps),taxPercent:percentText(profile.taxBps)},fields:[['method','Profit method','text',[['TARGET_MARGIN','Target margin on revenue'],['MARKUP','Markup on cost']]],['profitPercent','Target margin / markup (%)'],['taxPercent','Estimated tax reserve (%) — internal simulation only'],['roundingRupiah','Round recommendation up to','text',[['1','Rp1'],['1000','Rp1,000'],['5000','Rp5,000'],['10000','Rp10,000']]]]}) %>
 <p>The reserve is a planning estimate, defaults to 0%, and is never shown to customers or collected as tax.</p><button>Save pricing profile</button></form>
 <h3>Actual selling-price economics</h3><p>Reserve rounds up to whole Rupiah; margin displays two decimals truncated toward zero.</p>
-<div class="table-scroll"><table><thead><tr><th>Variant</th><th>Selling price</th><th>Full cost</th><th>Estimated reserve</th><th>Estimated profit</th><th>Actual margin</th></tr></thead><tbody><% for (const v of variants) { %><tr><th><%= v.name %> · <%= v.sku %> (<%= v.status %>)</th><td><%= formatIdr(v.price) %></td><td><%= formatIdr(full) %></td><td><%= formatIdr(v.reserve) %></td><td><%= formatIdr(v.profit) %></td><td><%= v.margin === null ? '—' : v.margin + '%' %></td></tr><% } %></tbody></table></div>
-</section></main>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable data table"><table><thead><tr><th>Variant</th><th>Selling price</th><th>Full cost</th><th>Estimated reserve</th><th>Estimated profit</th><th>Actual margin</th></tr></thead><tbody><% for (const v of variants) { %><tr><th><%= v.name %> · <%= v.sku %> (<%= v.status %>)</th><td><%= formatIdr(v.price) %></td><td><%= formatIdr(full) %></td><td><%= formatIdr(v.reserve) %></td><td><%= formatIdr(v.profit) %></td><td><%= v.margin === null ? '—' : v.margin + '%' %></td></tr><% } %></tbody></table></div>
+</section></div>

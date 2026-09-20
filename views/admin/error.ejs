@@ -1,0 +1,1 @@
+<section class="error-state" role="alert"><p class="eyebrow">REQUEST <%= status %></p><% if (!principal) { %><h1><%= pageTitle %></h1><% } %><p><%= message %></p><a class="button secondary" href="<%= principal ? '/admin' : '/admin/login' %>"><%= principal ? 'Back to dashboard' : 'Return to sign in' %></a></section>

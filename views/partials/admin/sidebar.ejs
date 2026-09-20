@@ -1,0 +1,13 @@
+<aside class="admin-sidebar" id="admin-sidebar" aria-label="Back office navigation" tabindex="-1">
+  <div class="sidebar-brand"><a class="brand" href="/admin"><img src="/images/brand/lokka-logo.webp" width="160" height="80" alt="LOKKA" /></a><button type="button" class="drawer-close secondary" data-drawer-close aria-label="Close navigation" hidden>Close</button></div>
+  <p class="sidebar-caption">BACK OFFICE</p>
+  <nav aria-label="Admin">
+  <% for (const group of navigation) { %>
+    <div class="sidebar-section">
+      <% if (group.label) { %><p class="sidebar-section-title"><%= group.label %></p><% } %>
+      <% for (const item of group.items) { %><a href="<%= item.href %>" class="sidebar-link<%= activeArea === item.area ? ' is-active' : '' %>" <%- activeArea === item.area ? 'aria-current="page"' : '' %>><span class="nav-mark" aria-hidden="true"></span><%= item.label %></a><% } %>
+    </div>
+  <% } %>
+  </nav>
+  <div class="sidebar-bottom"><span class="sidebar-dot" aria-hidden="true"></span> LOKKA workspace</div>
+</aside>

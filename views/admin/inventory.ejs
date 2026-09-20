@@ -1,16 +1,17 @@
-<%- include('../partials/admin-header.ejs') %>
-<main id="main" class="admin-main">
-<h1>Inventory</h1>
-<p>Stok rendah: <%= threshold %> atau kurang.</p>
+
+<div class="admin-content">
+<% if (!inventory.length) { %><%- include('../partials/admin/empty-state.ejs', {heading:'No variants yet',message:'Add variants in the product editor to manage their stock.'}) %><% } %>
+
+<p>Low stock: <%= threshold %> or less.</p>
 <%- include('../partials/form-error.ejs') %>
-<div class="table-scroll">
+<div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable data table">
 <table>
 <thead>
 <tr>
-<th>Produk / Varian</th>
+<th>Product / Variant</th>
 <th>SKU</th>
 <th>Status</th>
-<th>Stok</th>
+<th>Stock</th>
 </tr>
 </thead>
 <tbody>
@@ -27,17 +28,17 @@
 <%= row.variant.sku %>
 </td>
 <td>
-<%= row.variant.status %>
+<%- include('../partials/admin/status-badge.ejs', {status:row.variant.status}) %>
 <% if (row.variant.stockQuantity <= threshold) { %>
-<br />Stok rendah<% } %>
+<br />Low stock<% } %>
 </td>
 <td>
 <form method="post" action="/admin/products/<%= row.product.id %>/variants/<%= row.variant.id %>/stock" class="stock-form">
 <input type="hidden" name="csrf" value="<%= csrf %>" />
-<label>Stok <%= row.variant.sku %>
+<label>Stock <%= row.variant.sku %>
 <input name="stockQuantity" type="number" min="0" required value="<%= values.id === row.variant.id ? values.stockQuantity : row.variant.stockQuantity %>" />
 </label>
-<button>Simpan</button>
+<button>Save</button>
 </form>
 </td>
 </tr>
@@ -45,4 +46,4 @@
 </tbody>
 </table>
 </div>
-</main>
+</div>

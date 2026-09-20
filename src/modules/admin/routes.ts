@@ -8,6 +8,7 @@ import type { CatalogImageStorage, ImageSize } from '../catalog/storage.js';
 import { createFinance } from '../finance/service.js';
 import { createFulfillment } from '../shipping/service.js';
 import { registerCommercialAdmin } from './commercial-routes.js';
+import { renderAdmin, renderAdminError } from './presentation.js';
 const body = (request: FastifyRequest) => (request.body ?? {}) as Form;
 export async function registerAdmin(
   app: FastifyInstance,
@@ -23,19 +24,7 @@ export async function registerAdmin(
     secure: env.nodeEnv === 'production',
     path: '/admin',
   };
-  const render = (
-    reply: FastifyReply,
-    page: string,
-    data: Record<string, unknown> = {},
-  ) =>
-    reply.viewAsync(`admin/${page}.ejs`, {
-      title: 'LOKKA Admin',
-      admin: true,
-      csrf: '',
-      error: null,
-      values: {},
-      ...data,
-    });
+  const render = renderAdmin;
   await app.register(
     async (admin) => {
       admin.addHook('onRequest', async (_request, reply) => {
@@ -57,14 +46,20 @@ export async function registerAdmin(
           const form = body(request);
           const loginCsrf = request.cookies.lokka_login_csrf ?? '';
           if (!loginCsrf || !tokenMatches(form.csrf, hashToken(loginCsrf)))
-            return reply.code(403).send('Form expired. Reload the login page.');
+            return renderAdminError(
+              reply,
+              403,
+              'Form expired. Reload the login page.',
+              request.internalAdmin,
+              request.cookies.lokka_admin_csrf,
+            );
           try {
             if (
               typeof form.password !== 'string' ||
               !form.password ||
               form.password.length > 128
             )
-              throw new FormError('password', 'Kata sandi tidak valid.');
+              throw new FormError('password', 'Invalid password.');
             const result = await auth.login(
               textField(form, 'email', 254, true),
               form.password,
@@ -77,7 +72,7 @@ export async function registerAdmin(
                 loginCsrf,
                 error: {
                   field: 'email',
-                  message: 'Email atau kata sandi tidak valid.',
+                  message: 'Invalid email or password.',
                 },
                 values: { email: form.email },
               });
@@ -107,23 +102,38 @@ export async function registerAdmin(
           if (!session) return reply.redirect('/admin/login', 303);
           const csrf = request.cookies.lokka_admin_csrf;
           if (!tokenMatches(csrf, session.session.csrfTokenHash))
-            return reply.code(403).send('Session invalid. Sign in again.');
+            return renderAdminError(
+              reply,
+              403,
+              'Session invalid. Sign in again.',
+            );
+          request.internalAdmin = session.user;
           // Multipart CSRF is validated from the first part before processing any file.
           if (
             !['GET', 'HEAD'].includes(request.method) &&
             request.headers.origin &&
             request.headers.origin !== new URL(env.appUrl).origin
           )
-            return reply.code(403).send('Invalid origin.');
+            return renderAdminError(
+              reply,
+              403,
+              'Invalid origin.',
+              request.internalAdmin,
+              request.cookies.lokka_admin_csrf,
+            );
         });
         protectedRoutes.addHook('preHandler', async (request, reply) => {
           if (
             request.isMultipart() &&
             request.routeOptions.url !== '/admin/products/:id/images'
           )
-            return reply
-              .code(403)
-              .send('Multipart is only accepted for image uploads.');
+            return renderAdminError(
+              reply,
+              403,
+              'Multipart is only accepted for image uploads.',
+              request.internalAdmin,
+              request.cookies.lokka_admin_csrf,
+            );
           if (
             !['GET', 'HEAD'].includes(request.method) &&
             !request.isMultipart()
@@ -134,7 +144,13 @@ export async function registerAdmin(
                 hashToken(request.cookies.lokka_admin_csrf ?? ''),
               )
             )
-              return reply.code(403).send('CSRF token invalid.');
+              return renderAdminError(
+                reply,
+                403,
+                'CSRF token invalid.',
+                request.internalAdmin,
+                request.cookies.lokka_admin_csrf,
+              );
           }
         });
         const page = (
@@ -145,6 +161,7 @@ export async function registerAdmin(
         ) =>
           render(reply, name, {
             csrf: request.cookies.lokka_admin_csrf,
+            principal: request.internalAdmin,
             ...data,
           });
         registerCommercialAdmin(
@@ -385,7 +402,7 @@ export async function registerAdmin(
           async (request, reply) => {
             try {
               if (!request.isMultipart())
-                throw new FormError('images', 'Gunakan formulir unggah.');
+                throw new FormError('images', 'Use the upload form.');
               const inputs: Buffer[] = [];
               let verified = false;
               let altText = '';
@@ -399,7 +416,13 @@ export async function registerAdmin(
                       hashToken(request.cookies.lokka_admin_csrf!),
                     )
                   )
-                    return reply.code(403).send('CSRF token invalid.');
+                    return renderAdminError(
+                      reply,
+                      403,
+                      'CSRF token invalid.',
+                      request.internalAdmin,
+                      request.cookies.lokka_admin_csrf,
+                    );
                   verified = true;
                   continue;
                 }
@@ -410,7 +433,7 @@ export async function registerAdmin(
                   altText = textField({ altText: part.value }, 'altText', 300);
               }
               if (!verified || !inputs.length)
-                throw new FormError('images', 'Pilih setidaknya satu gambar.');
+                throw new FormError('images', 'Select at least one image.');
               await catalog.addImages(request.params.id, inputs, altText);
               return reply.redirect(
                 `/admin/products/${request.params.id}/edit#images`,
@@ -422,7 +445,7 @@ export async function registerAdmin(
                   ? error
                   : new FormError(
                       'images',
-                      'Unggah gagal. Maksimum 5 gambar, 10 MB per gambar.',
+                      'Upload failed. Maximum 5 images, 10 MB per image.',
                     );
               return productPage(
                 request,

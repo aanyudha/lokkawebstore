@@ -1,20 +1,16 @@
-<main id="main" class="login-page">
-<a class="brand" href="/">
-<img src="/images/brand/lokka-logo.webp" width="160" height="80" alt="LOKKA" class="brand-logo"
-  onerror="this.onerror=null;this.src='/images/lokka_logo.png';this.width=160;this.height=80;" />
-</a>
-<p class="eyebrow">Catalog administration</p>
-<h1>Selamat datang kembali.</h1>
+<div class="auth-form-content">
+<p class="eyebrow">INTERNAL WORKSPACE</p>
+<h1>Welcome back</h1>
+<p class="auth-intro">Sign in to manage your LOKKA workspace.</p>
 <%- include('../partials/form-error.ejs') %>
-<form method="post" action="/admin/login" class="form-stack" aria-describedby="<%= error ? 'form-error' : '' %>">
+<form method="post" action="/admin/login" class="form-stack" data-admin-login aria-describedby="<%= error ? 'form-error' : 'login-help' %>">
 <input type="hidden" name="csrf" value="<%= loginCsrf %>" />
-<label>Email<input type="email" name="email" required maxlength="254" autocomplete="username" value="<%= values.email || '' %>" />
-</label>
-<label>Kata sandi<input type="password" name="password" required maxlength="128" autocomplete="current-password" />
-</label>
-<button>Masuk</button>
+<label>Email<input type="email" name="email" required maxlength="254" autocomplete="username" value="<%= values.email || '' %>" /></label>
+<label for="admin-password">Password</label>
+<div class="admin-password-field"><input id="admin-password" type="password" name="password" required maxlength="128" autocomplete="current-password" /><button type="button" class="password-toggle secondary" data-admin-password aria-controls="admin-password" aria-pressed="false" hidden>Show</button></div>
+<button type="submit" data-login-submit>Sign in</button>
+<p class="login-progress" role="status" data-login-progress hidden>Signing in…</p>
 </form>
-<p>
-<a href="/">Kembali ke LOKKA</a>
-</p>
-</main>
+<p id="login-help" class="auth-note">For authorized LOKKA team members.</p>
+<a class="auth-return" href="/">← Return to LOKKA</a>
+</div>

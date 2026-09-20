@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head><%- include('../partials/admin/head.ejs') %></head>
+<body class="admin-ui admin-auth" data-admin-layout="auth">
+<a class="skip-link" href="#main">Skip to content</a>
+<main id="main" class="auth-workspace">
+  <section class="auth-brand" aria-label="LOKKA back office">
+    <a href="/" class="brand"><img src="/images/brand/lokka-logo.webp" width="160" height="80" alt="LOKKA" /></a>
+    <div class="auth-brand-copy"><p class="eyebrow">LOKKA / BACK OFFICE</p><h2>A considered space<br />for everyday work.</h2><p>Your products. Your business.<br />Everything in its place.</p></div>
+    <p class="auth-brand-footer">Made for the people behind LOKKA.</p>
+  </section>
+  <section class="auth-panel"><%- body %></section>
+</main>
+</body>
+</html>

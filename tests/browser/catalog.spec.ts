@@ -159,8 +159,8 @@ test('desktop and mobile catalog, logo, login and admin forms', async ({
       }
     }
     await page.getByLabel('Email', { exact: true }).fill(`${run}@example.test`);
-    await page.getByLabel('Kata sandi', { exact: true }).fill(password);
-    await page.getByRole('button', { name: 'Masuk', exact: true }).click();
+    await page.getByLabel('Password', { exact: true }).fill(password);
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL(`${env.appUrl}/admin`);
     for (const width of [1440, 1024, 768, 430, 375]) {
       await page.setViewportSize({ width, height: 1000 });
@@ -190,7 +190,7 @@ test('desktop and mobile catalog, logo, login and admin forms', async ({
       }
     }
     expect(errors).toEqual([]);
-    await page.getByRole('button', { name: 'Keluar', exact: true }).click();
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
     await expect(page).toHaveURL(`${env.appUrl}/admin/login`);
   } finally {
     await database.db.delete(products).where(eq(products.id, product.id));

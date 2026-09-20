@@ -1,7 +1,8 @@
-<%- include('../partials/admin-header.ejs') %>
-<main id="main" class="admin-main">
-<h1>Media</h1>
-<p>Kelola gambar melalui halaman edit produk.</p>
+
+<div class="admin-content">
+<% if (!images.length) { %><%- include('../partials/admin/empty-state.ejs', {heading:'No product images yet',message:'Upload images from a product editor to see them here.'}) %><% } %>
+
+<p>Manage images through the product edit page.</p>
 <div class="media-grid">
 <% for (const image of images) { const product = products.find(p => p.id === image.productId); %>
 <article>
@@ -12,9 +13,9 @@
 </h2>
 </a>
 <p>
-<%= image.isPrimary ? 'Gambar utama' : 'Galeri' %>
+<%= image.isPrimary ? 'Primary image' : 'Gallery' %>
 </p>
 </article>
 <% } %>
 </div>
-</main>
+</div>

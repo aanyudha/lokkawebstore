@@ -7,8 +7,19 @@ import { access, cp, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
 import process from 'node:process';
-import { URL, fileURLToPath } from 'node:url';
+import { URL, URLSearchParams, fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
+import { randomUUID } from 'node:crypto';
+import { eq } from 'drizzle-orm';
+import { createDatabase } from '../../dist/db/client.js';
+import {
+  adminUsers,
+  categories,
+  products,
+} from '../../dist/db/schema/index.js';
+import { hashPassword } from '../../dist/modules/auth/service.js';
+import { createCatalog } from '../../dist/modules/catalog/service.js';
+import { LocalCatalogImageStorage } from '../../dist/modules/catalog/storage.js';
 import { supportedLocaleCodes } from '../../dist/i18n/locales.js';
 import { t as translate } from '../../dist/i18n/translator.js';
 
@@ -135,6 +146,103 @@ test(
       environment: 'production',
       runtime: 'fastify',
     });
+    const adminLogin = await get('/admin/login');
+    assert.equal(adminLogin.status, 200);
+    const adminHtml = await adminLogin.text();
+    assert.match(adminHtml, /data-admin-layout="auth"/);
+    assert.doesNotMatch(adminHtml, /site-header|site-footer|\/build\/main\./);
+    for (const asset of adminHtml.matchAll(
+      /(?:href|src)="(\/build\/admin\.[^"]+)"/g,
+    )) {
+      assert.equal((await get(asset[1])).status, 200, asset[1]);
+    }
+    assert.match(adminHtml, /\/build\/admin\.[^"]+\.css/);
+    assert.match(adminHtml, /\/build\/admin\.[^"]+\.js/);
+    // Real HTTP QA of the compiled back office, using only temporary records.
+    const database = createDatabase(env.DATABASE_URL);
+    const run = randomUUID();
+    const email = `production-${run}@example.test`;
+    const password = `temporary-${run}`;
+    const [admin] = await database.db
+      .insert(adminUsers)
+      .values({
+        email,
+        name: 'Production verification',
+        passwordHash: await hashPassword(password),
+      })
+      .returning();
+    let productId;
+    let categoryId;
+    try {
+      const catalog = createCatalog(
+        database.db,
+        new LocalCatalogImageStorage('storage/tests/production'),
+      );
+      const product = await catalog.saveProduct({
+        name: `Production ${run}`,
+        status: 'draft',
+      });
+      productId = product.id;
+      const category = await catalog.saveCategory({
+        name: `Production ${run}`,
+        status: 'hidden',
+      });
+      categoryId = category.id;
+      const csrf = adminHtml.match(/name="csrf" value="([a-f0-9]+)"/)[1];
+      const login = await globalThis.fetch(`${env.APP_URL}/admin/login`, {
+        method: 'POST',
+        redirect: 'manual',
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+          cookie: `lokka_login_csrf=${csrf}`,
+        },
+        body: new URLSearchParams({ csrf, email, password }),
+      });
+      assert.equal(login.status, 303);
+      const cookie = login.headers
+        .getSetCookie()
+        .filter((value) => /^lokka_admin(?:_csrf)?=/.test(value))
+        .map((value) => value.split(';')[0])
+        .join('; ');
+      for (const path of [
+        '/admin',
+        '/admin/products',
+        '/admin/categories',
+        '/admin/inventory',
+        '/admin/media',
+        `/admin/products/${productId}/edit`,
+        `/admin/categories/${categoryId}/edit`,
+        `/admin/products/${productId}/pricing`,
+        '/admin/finance/overhead',
+        '/admin/settings/fulfillment',
+      ]) {
+        const page = await globalThis.fetch(`${env.APP_URL}${path}`, {
+          headers: { cookie },
+          redirect: 'manual',
+        });
+        assert.equal(page.status, 200, path);
+        assert.match(await page.text(), /data-admin-layout="backoffice"/, path);
+        assert.match(page.headers.get('cache-control'), /no-store/);
+      }
+      for (const path of [
+        '/collections',
+        '/id/koleksi',
+        '/account/login',
+        '/account/register',
+        '/id/akun/masuk',
+        '/id/akun/daftar',
+      ])
+        assert.equal((await get(path)).status, 200, path);
+    } finally {
+      if (productId)
+        await database.db.delete(products).where(eq(products.id, productId));
+      if (categoryId)
+        await database.db
+          .delete(categories)
+          .where(eq(categories.id, categoryId));
+      await database.db.delete(adminUsers).where(eq(adminUsers.id, admin.id));
+      await database.close();
+    }
     const second = spawn(process.execPath, ['dist/server.js'], {
       cwd: release,
       env,

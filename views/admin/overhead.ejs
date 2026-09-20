@@ -1,6 +1,6 @@
-<%- include('../partials/admin-header.ejs') %>
-<main id="main" class="admin-main commercial-page">
-<h1>Global overhead</h1>
+
+<div class="admin-content commercial-page">
+
 <%- include('../partials/form-error.ejs') %>
 <p>Business-wide costs are recognized once per period. Planned allocation informs pricing; only manual recovery entries record actual recovery until Orders exist.</p>
 <nav class="commercial-periods" aria-label="Overhead periods"><% for (const p of periods) { %><a href="?period=<%= p.id %>"><%= p.periodMonth.slice(0,7) %> · <%= p.status %></a><% } %></nav>
@@ -39,4 +39,4 @@
 <%- include('../partials/commercial-fields.ejs',{form,fields:[['name','Cost name'],['category','Category','text',['INFRASTRUCTURE','SOFTWARE','FACILITY','ADMINISTRATION','MARKETING','OTHER'].map(s=>[s,s])],['amountRupiah','Amount (whole Rupiah)'],['billingFrequency','Billing frequency','text',[['MONTHLY','Monthly'],['ANNUAL','Annual'],['ONE_TIME','One time']]],['recognitionMethod','Recognition policy','text',[['SPREAD_MONTHLY','Spread annually billed cost across 12 months'],['CHARGE_IN_BILLING_PERIOD','Charge in billing month']]],['startDate','Start date / billing anniversary','date'],['endDate','End date (optional)','date'],['active','Active','checkbox'],['notes','Notes (optional)']]}) %>
 <button><%= saved.id ? 'Save for future periods' : 'Add global cost' %></button></form></details>
 <% } %></section>
-</main>
+</div>

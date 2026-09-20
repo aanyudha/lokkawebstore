@@ -3,38 +3,44 @@ import { resolve } from 'node:path';
 
 const buildDir = resolve('public/build');
 
-let cachedAssets: { css: string; js: string } | null = null;
+const cachedAssets = new Map<string, { css: string; js: string }>();
 
 /**
  * Resolve the content-hashed asset filenames from Vite build output.
  * Falls back to unhashed names if build directory is missing.
  */
-export function getAssets(): { css: string; js: string } {
-  if (cachedAssets) return cachedAssets;
+export function getAssets(entry: 'main' | 'admin' = 'main'): {
+  css: string;
+  js: string;
+} {
+  const cached = cachedAssets.get(entry);
+  if (cached) return cached;
+  let assets = { css: `/build/${entry}.css`, js: `/build/${entry}.js` };
 
   try {
     const files = readdirSync(buildDir);
     const cssFile = files.find(
-      (f) => f.startsWith('main.') && f.endsWith('.css'),
+      (f) => f.startsWith(`${entry}.`) && f.endsWith('.css'),
     );
     const jsFile = files.find(
-      (f) => f.startsWith('main.') && f.endsWith('.js'),
+      (f) => f.startsWith(`${entry}.`) && f.endsWith('.js'),
     );
 
-    cachedAssets = {
-      css: cssFile ? `/build/${cssFile}` : '/build/main.css',
-      js: jsFile ? `/build/${jsFile}` : '/build/main.js',
+    assets = {
+      css: cssFile ? `/build/${cssFile}` : assets.css,
+      js: jsFile ? `/build/${jsFile}` : assets.js,
     };
   } catch {
-    cachedAssets = { css: '/build/main.css', js: '/build/main.js' };
+    // Keep the development fallback when assets have not been built yet.
   }
 
-  return cachedAssets;
+  cachedAssets.set(entry, assets);
+  return assets;
 }
 
 /**
  * Reset cached assets (useful after rebuilds in dev).
  */
 export function resetAssets() {
-  cachedAssets = null;
+  cachedAssets.clear();
 }

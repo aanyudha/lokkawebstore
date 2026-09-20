@@ -4,16 +4,17 @@ export default defineConfig({
   build: {
     outDir: 'public/build',
     emptyOutDir: true,
+    cssCodeSplit: true,
     lib: {
-      entry: 'web/client/main.ts',
+      entry: { main: 'web/client/main.ts', admin: 'web/client/admin.ts' },
       formats: ['es'],
-      fileName: () => 'main.[hash].js',
+      fileName: (_format, entryName) => `${entryName}.[hash].js`,
     },
     rollupOptions: {
       output: {
         assetFileNames: (assetInfo) => {
           if (assetInfo.name && assetInfo.name.endsWith('.css')) {
-            return 'main.[hash].css';
+            return '[name].[hash].css';
           }
           return '[name].[hash][extname]';
         },

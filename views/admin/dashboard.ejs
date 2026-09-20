@@ -1,7 +1,7 @@
-<%- include('../partials/admin-header.ejs') %>
-<main id="main" class="admin-main">
-<p class="eyebrow">LOKKA / Catalog</p>
-<h1>Dashboard</h1>
+
+<div class="admin-content dashboard-content">
+
+
 <dl class="metrics">
 <% for (const [name, value] of Object.entries(metrics)) { %>
 <div>
@@ -14,5 +14,5 @@
 </div>
 <% } %>
 </dl>
-<a class="button" href="/admin/products/new">Tambah produk</a>
-</main>
+<section class="content-card"><h2>Keep your catalog moving</h2><p>Manage product details, check stock and keep dispatch information current.</p><div class="quick-actions"><a class="button" href="/admin/products/new">Add product</a><a class="button secondary" href="/admin/inventory">Review inventory</a><a class="button secondary" href="/admin/settings/fulfillment">Fulfillment settings</a></div></section>
+</div>
