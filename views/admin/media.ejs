@@ -1,21 +1,75 @@
-
 <div class="admin-content">
-<% if (!images.length) { %><%- include('../partials/admin/empty-state.ejs', {heading:'No product images yet',message:'Upload images from a product editor to see them here.'}) %><% } %>
-
-<p>Manage images through the product edit page.</p>
-<div class="media-grid">
-<% for (const image of images) { const product = products.find(p => p.id === image.productId); %>
-<article>
-<a href="/admin/products/<%= image.productId %>/edit#images">
-<img src="/admin/products/<%= image.productId %>/images/<%= image.id %>/preview" alt="<%= image.altText || product.name %>" width="<%= image.width %>" height="<%= image.height %>" loading="lazy" />
-<h2>
-<%= product.name %>
-</h2>
-</a>
-<p>
-<%= image.isPrimary ? 'Primary image' : 'Gallery' %>
-</p>
-</article>
-<% } %>
+<% if (!images.length) { %>
+<div class="empty-state">
+<h2>No product images yet</h2>
+<p>Upload JPEG or PNG images from a product editor. Validated originals are retained privately and optimized WebP derivatives are generated for storefront delivery.</p>
+<p><a href="/admin/products" class="button">Go to Products</a></p>
 </div>
+<% } else { %>
+<p class="media-summary"><%= images.length %> product image<%= images.length === 1 ? '' : 's' %> across <%= products.length %> product<%= products.length === 1 ? '' : 's' %>.</p>
+<div style="overflow-x:auto">
+<table class="media-table" aria-label="Product images">
+<thead>
+<tr>
+<th scope="col">Image</th>
+<th scope="col">Product</th>
+<th scope="col">Primary</th>
+<th scope="col">Source</th>
+<th scope="col">Dimensions</th>
+<th scope="col">Size</th>
+<th scope="col">Derivatives</th>
+<th scope="col">Action</th>
+</tr>
+</thead>
+<tbody>
+<% for (const image of images) { const product = products.find(p => p.id === image.productId); %>
+<tr>
+<td class="media-thumb">
+<a href="/admin/products/<%= image.productId %>/edit#images">
+<img src="/admin/products/<%= image.productId %>/images/<%= image.id %>/preview" alt="<%= image.altText || product?.name || 'Product image' %>" width="<%= image.width %>" height="<%= image.height %>" loading="lazy" />
+</a>
+</td>
+<td class="media-product">
+<a href="/admin/products/<%= image.productId %>/edit"><%= product?.name || 'Unknown product' %></a>
+<% if (product?.status) { %><span class="media-status"><%= product.status %></span><% } %>
+</td>
+<td class="media-primary"><%= image.isPrimary ? 'Yes' : 'No' %></td>
+<td class="media-source">
+<% if (image.sourceFormat && image.sourceFormat !== 'webp') { %>
+<span class="media-source-retained">Retained</span>
+<span class="media-source-detail"><%= image.sourceFormat.toUpperCase() %></span>
+<% if (image.sourceMimeType) { %><span class="media-source-detail"><%= image.sourceMimeType %></span><% } %>
+<% } else { %>
+<span class="media-source-unavailable">Not retained</span>
+<% } %>
+</td>
+<td class="media-dimensions">
+<% if (image.sourceWidth && image.sourceHeight) { %>
+<%= image.sourceWidth %> &times; <%= image.sourceHeight %>
+<% } else { %>
+<%= image.width %> &times; <%= image.height %> (derivative)
+<% } %>
+</td>
+<td class="media-size">
+<% if (image.sourceSizeBytes) { %>
+<% if (image.sourceSizeBytes >= 1048576) { %><%= (image.sourceSizeBytes / 1048576).toFixed(1) %> MB<% } else { %><%= Math.round(image.sourceSizeBytes / 1024) %> KB<% } %>
+<% } else { %>
+&mdash;
+<% } %>
+</td>
+<td class="media-derivatives">
+400 / 800 / 1600 WebP
+</td>
+<td class="media-actions">
+<a href="/admin/products/<%= image.productId %>/edit#images" class="button button-small">Manage images</a>
+<% if (image.sourceStorageKey) { %>
+<a href="/admin/media/<%= image.id %>/source" class="button button-small button-secondary" download>Download original</a>
+<% } %>
+</td>
+</tr>
+<% } %>
+</tbody>
+</table>
+</div>
+<% } %>
 </div>

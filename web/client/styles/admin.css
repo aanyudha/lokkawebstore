@@ -536,6 +536,115 @@
 .admin-ui .media-grid h2 {
   font-size: 15px;
 }
+/* ─── Media table ─────────────────────────────────────────── */
+.media-summary {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+.media-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.media-table th,
+.media-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.media-table th {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.media-table tbody tr:hover {
+  background: #f9fafb;
+}
+.media-thumb img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+.media-product a {
+  font-weight: 600;
+}
+.media-status {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 11px;
+  border-radius: 4px;
+  background: #eef1f4;
+  color: var(--muted);
+  vertical-align: middle;
+}
+.media-source-retained {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 11px;
+  border-radius: 4px;
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.media-source-unavailable {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 11px;
+  border-radius: 4px;
+  background: #fff3e0;
+  color: #e65100;
+}
+.media-source-detail {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.media-dimensions,
+.media-size,
+.media-derivatives {
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+.media-actions {
+  white-space: nowrap;
+}
+.button-secondary {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+.button-secondary:hover {
+  background: #f4f5f7;
+}
+.button-small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+@media (max-width: 768px) {
+  .media-table th:nth-child(n + 5),
+  .media-table td:nth-child(n + 5) {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .media-table th:nth-child(n + 4),
+  .media-table td:nth-child(n + 4) {
+    display: none;
+  }
+  .media-thumb img {
+    width: 40px;
+    height: 40px;
+  }
+}
 .admin-ui details {
   padding: 20px;
   margin-block: 16px;

@@ -1,5 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { eq } from 'drizzle-orm';
 import type { Database } from '../../db/client.js';
+import { products, productImages } from '../../db/schema/index.js';
 import type { AppEnv } from '../../config/env.js';
 import { createAuth, hashToken, token, tokenMatches } from '../auth/service.js';
 import type { Catalog } from '../catalog/service.js';
@@ -412,6 +414,45 @@ export async function registerAdmin(
             ...(await catalog.relations(products.map((p) => p.id))),
           });
         });
+        protectedRoutes.get<{ Params: { imageId: string } }>(
+          '/media/:imageId/source',
+          async (request, reply) => {
+            const imageIdVal = id(request.params.imageId);
+            const [row] = await db
+              .select({
+                image: productImages,
+                product: products,
+              })
+              .from(productImages)
+              .innerJoin(products, eq(products.id, productImages.productId))
+              .where(eq(productImages.id, imageIdVal))
+              .limit(1);
+            if (!row || !row.image.sourceStorageKey || !row.image.sourceFormat)
+              return reply.callNotFound();
+            const ext =
+              row.image.sourceFormat === 'jpeg'
+                ? 'jpg'
+                : row.image.sourceFormat === 'png'
+                  ? 'png'
+                  : row.image.sourceFormat === 'webp'
+                    ? 'webp'
+                    : null;
+            if (!ext) return reply.callNotFound();
+            const source = await storage.readSource(row.image.sourceStorageKey);
+            if (!source) return reply.callNotFound();
+            const mime =
+              row.image.sourceMimeType ??
+              `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+            const safeName = `${row.product.slug || 'product'}-${row.image.sourceFormat}.${ext}`;
+            return reply
+              .header('Content-Type', mime)
+              .header(
+                'Content-Disposition',
+                `attachment; filename="${safeName}"`,
+              )
+              .send(source);
+          },
+        );
         protectedRoutes.post<{ Params: { id: string } }>(
           '/products/:id/images',
           {
