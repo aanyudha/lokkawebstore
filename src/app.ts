@@ -13,6 +13,7 @@ import { createDatabase } from './db/client.js';
 import { registerRoutes } from './routes/index.js';
 import multipart from '@fastify/multipart';
 import { createCatalog } from './modules/catalog/service.js';
+import { createShowcase } from './modules/catalog/showcase.js';
 import { LocalCatalogImageStorage } from './modules/catalog/storage.js';
 import { registerCatalog } from './modules/catalog/routes.js';
 import { registerAdmin } from './modules/admin/routes.js';
@@ -236,13 +237,23 @@ export async function buildApp(
     const catalog = database.db
       ? createCatalog(database.db, storage)
       : undefined;
+    const showcaseService = database.db
+      ? createShowcase(database.db)
+      : undefined;
     // Reset asset cache after build
     resetAssets();
     if (database.db) await registerCustomer(app, database.db, env);
     await registerRoutes(app, database, catalog, env);
     if (catalog && database.db) {
       await registerCatalog(app, catalog, storage, env);
-      await registerAdmin(app, database.db, catalog, env, storage);
+      await registerAdmin(
+        app,
+        database.db,
+        catalog,
+        env,
+        storage,
+        showcaseService,
+      );
     }
     return app;
   } catch (error) {

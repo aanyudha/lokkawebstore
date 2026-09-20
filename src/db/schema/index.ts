@@ -466,6 +466,12 @@ export const productImages = pgTable(
     isPrimary: boolean('is_primary').default(false).notNull(),
     width: integer('width').notNull(),
     height: integer('height').notNull(),
+    sourceStorageKey: text('source_storage_key'),
+    sourceFormat: text('source_format'),
+    sourceMimeType: text('source_mime_type'),
+    sourceWidth: integer('source_width'),
+    sourceHeight: integer('source_height'),
+    sourceSizeBytes: bigint('source_size_bytes', { mode: 'number' }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -475,5 +481,42 @@ export const productImages = pgTable(
     uniqueIndex('images_one_primary_idx')
       .on(t.productId)
       .where(sql`${t.isPrimary} = true`),
+  ],
+);
+export const productShowcases = pgTable('product_showcases', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  productId: uuid('product_id')
+    .notNull()
+    .references(() => products.id, { onDelete: 'cascade' })
+    .unique(),
+  status: text('status', { enum: ['draft', 'active', 'archived'] })
+    .default('draft')
+    .notNull(),
+  notes: text('notes'),
+  ...timestamps(),
+});
+export const productShowcaseImages = pgTable(
+  'product_showcase_images',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    showcaseId: uuid('showcase_id')
+      .notNull()
+      .references(() => productShowcases.id, { onDelete: 'cascade' }),
+    productImageId: uuid('product_image_id')
+      .notNull()
+      .references(() => productImages.id, { onDelete: 'cascade' }),
+    sortOrder: integer('sort_order').default(0).notNull(),
+    isCover: boolean('is_cover').default(false).notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    index('showcase_images_showcase_idx').on(t.showcaseId),
+    uniqueIndex('showcase_images_unique_image').on(
+      t.showcaseId,
+      t.productImageId,
+    ),
+    uniqueIndex('showcase_one_cover')
+      .on(t.showcaseId)
+      .where(sql`${t.isCover} = true`),
   ],
 );

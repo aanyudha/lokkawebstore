@@ -1,0 +1,30 @@
+
+<div class="admin-content">
+<% if (!items.length) { %><%- include('../partials/admin/empty-state.ejs', {heading:'No products yet',message:'Add a product to begin managing showcase readiness.'}) %><% } %>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+<table>
+<thead>
+<tr>
+<th>Product</th>
+<th>Status</th>
+<th>Selected</th>
+<th>Cover</th>
+<th>Readiness</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<% for (const item of items) { %>
+<tr>
+<td><a href="<%= item.showcase ? '/admin/products/' + item.product.id + '/showcase' : '#' %>"><%= item.product.name %></a></td>
+<td><%- include('../partials/admin/status-badge.ejs', {status:item.product.status}) %></td>
+<td><%= item.selectedCount %></td>
+<td><%= item.hasCover ? 'Yes' : 'No' %></td>
+<td><span class="status-badge" data-status="<%= item.readiness ? item.readiness.overallState.toLowerCase() : 'not-ready' %>"><%= item.readiness ? item.readiness.overallState : 'NOT READY' %></span></td>
+<td><a class="button secondary" href="/admin/products/<%= item.product.id %>/showcase">Manage</a></td>
+</tr>
+<% } %>
+</tbody>
+</table>
+</div>
+</div>

@@ -1,5 +1,19 @@
 MASTER REQUIREMENT — LOKKA ADMIN, BACK OFFICE, POS & UMK BUSINESS TOOLS
 
+Consolidated: 20 September 2026
+
+Dokumen ini adalah requirement arsitektur jangka panjang LOKKA. Requirement UMK Academy 2026 diperlakukan sebagai use-case/evidence target atas business tools LOKKA, bukan sebagai alasan membuat aplikasi challenge terpisah.
+
+UMK Academy challenges TIDAK otomatis menjadi modul LOKKA. Keputusan apakah sebuah UMK requirement menjadi fitur LOKKA harus melewati decision rule di Section 9.
+
+CURRENT IMPLEMENTATION CHECKPOINT (informational, bukan pengganti Git history):
+
+- Phase 0 Audit: complete.
+- Phase A Admin Foundation: implemented.
+- Phase B1 Product Media/Showcase: implemented as internal/admin workflow, termasuk source metadata/retention untuk upload baru, readiness, dan storefront isolation.
+- Phase B2 Product Story: next planned module.
+- Modul lain tetap mengikuti dependency/phase gates di dokumen ini.
+
 Gunakan source code LOKKA yang sekarang sebagai dasar.
 
 Jangan membuat aplikasi terpisah/repository baru hanya untuk Admin atau POS. Public Webstore, Admin Back Office, dan POS adalah tiga application surfaces berbeda dalam satu sistem/codebase, menggunakan authentication, domain/service layer, database, product, inventory, order, transaction, media, dan business logic yang sama jika memang domain-nya sama.
@@ -265,9 +279,10 @@ Accounting SaaS
 Payment Back Office
 Business Management
 Modern Office Workspace
+
 6. SIDEBAR INFORMATION ARCHITECTURE
 
-Target grouping:
+Target grouping jangka panjang:
 
 Dashboard
 
@@ -278,29 +293,33 @@ Commerce
 Products
   Products
   Categories
-  Product Story
-  Product Showcase
-  Lookbook
+  Inventory
+  Media
 
 Sales
-  POS
+  POS                → shortcut internal ke /pos, bukan implementasi POS kedua
   Transactions
 
 Finance
   Overview
+  Global Overhead    → pertahankan jika existing
   Cash Flow
   Income & Expense
   Accounting Lite
 
 Business Readiness
   Overview
-  Legalitas
+  Legal & Compliance
   Tax Readiness
-  Marketplace / SMEXPO
+  Sales Channels / SMEXPO
 
 Reports
 
 Settings
+  Fulfillment        → pertahankan jika existing
+  Users & Permissions (hanya setelah authorization module benar-benar tersedia)
+
+Aturan penting: target grouping di atas BUKAN perintah untuk menampilkan semua menu sekarang. Sidebar production hanya boleh menampilkan module/route yang benar-benar tersedia dan usable. Jangan membuat placeholder/fake page hanya agar struktur menu terlihat lengkap.
 
 Menu existing jangan dihapus sembarangan.
 
@@ -361,17 +380,123 @@ Jangan langsung memasukkan AdminLTE, CoreUI, template Bootstrap dashboard besar,
 
 Yang dibutuhkan adalah arsitektur dan visual language office, bukan ketergantungan pada template tertentu.
 
-8. PRODUCT STORY MODULE
+8. UMK ACADEMY DECISION RULE
 
-Implementasikan sebagai business feature reusable, bukan “form tugas UMK Academy”.
+UMK Academy challenges adalah evidence/use-case, bukan arsitektur inti LOKKA. Setiap UMK requirement harus melewati decision rule berikut:
 
-UMK Academy membutuhkan informasi Product Story berupa product, foto produk, nama produk, target pasar, positioning, status penggunaan cerita produk, status ciri khas produk, unique value, dan product story. Requirement tersebut memang berasal dari challenge yang sudah dirumuskan sebelumnya.
+UMK requirement
+  → identify required evidence
+  → reuse existing LOKKA business capability where possible
+  → if capability is missing, ask whether it remains useful to LOKKA after UMK Academy
+  → if YES, build a reusable business capability
+  → if NO, handle the UMK challenge manually outside the application
 
-Model konseptual harus mereferensikan Product existing.
+LOKKA TIDAK boleh menjadi clone UMK Academy.
+
+Prinsip:
+
+- Business tools dibuat sebagai fitur LOKKA reusable.
+- Jangan membuat satu halaman bernama "UMK Academy Challenge Submission" sebagai source utama data.
+- Challenge UMK Academy menjadi validation/use-case dari business data LOKKA, bukan arsitektur inti aplikasi.
+
+Contoh penerapan:
+
+LOKKA Product
+      ↓
+Product Media Management
+      ↓
+UMK requirement dapat dipenuhi via manual owner submission
+
+LOKKA Finance
+      ↓
+Cash Flow
+      ↓
+UMK requirement dapat dipenuhi
+
+LOKKA Business Legal Readiness
+      ↓
+NIB / KBLI status
+      ↓
+UMK requirement dapat dipenuhi
+
+9. PRODUCT MEDIA MANAGEMENT
+
+Product Media Management adalah durable LOKKA business capability. Product Showcase challenge dari UMK Academy HANYA membutuhkan owner untuk secara manual mengirimkan foto produk yang sesuai ke UMK Academy.
+
+Oleh karena itu, Product Showcase TIDAK otomatis menjadi modul LOKKA permanen. Yang permanen adalah kemampuan mengelola media produk.
+
+Capability durable:
+
+- JPEG/PNG upload dengan validasi tipe file
+- Validated source/original retention
+- Source MIME/format metadata
+- Width/height metadata
+- File size metadata
+- Secure private original storage
+- Optimized WebP storefront derivatives
+- Primary image selection
+- Image order untuk storefront
+- Preview
+- Deletion safety
+
+Server harus memvalidasi file sebenarnya.
+
+Jangan hanya mempercayai:
+
+extension
+browser-provided MIME
+client-side validation
+
+Persist true source metadata: format, MIME, width, height, bytes, private storage key.
+
+Historical image yang hanya mempunyai WebP derivative tidak boleh diklaim mempunyai JPG/PNG original.
+
+High-resolution suitability tetap REVIEW REQUIRED/manual review sampai ada threshold resmi. Width/height aktual boleh ditampilkan tanpa membuat threshold arbitrer.
+
+Jika module Product Showcase internal/admin dibutuhkan sebagai evidence preparation layer, itu boleh ada sebagai optional layer di atas Product Media Management, bukan sebagai module mandiri yang mengubah storefront behavior.
+
+Showcase cover TIDAK BOLEH mengubah storefront/public primary image. Showcase ordering TIDAK BOLEH mengubah product_images ordering di storefront.
+
+Upload baru harus menyimpan validated original/source privately bila source JPEG/PNG, sambil tetap membuat WebP derivatives untuk public storefront.
+
+Saat selected photos = 0, source format/source metadata harus N/A atau NOT EVALUATED, bukan PASS.
+
+Readiness minimal membedakan NOT_READY, REVIEW_REQUIRED, READY sesuai rule deterministic.
+
+Optional submission helper (boleh ditambahkan setelah core stabil):
+
+- Admin-authenticated download retained original per image.
+- Export selected originals sebagai paket/ZIP untuk mempermudah upload manual ke UMK Academy.
+- Export helper bukan source-of-truth dan tidak membuka original file ke public URL.
+
+10. PRODUCT BRAND & STORY
+
+Product Story harus merupakan product capability, bukan top-level module mandiri.
+
+Target placement:
+
+Products
+  → Edit Product
+  → Brand & Story
+
+Fields:
+
+- target market
+- positioning
+- product-story usage status (uses_product_story)
+- distinctive characteristic status (has_distinctive_characteristic)
+- unique value
+- product story
+
+Reuse existing:
+
+- product name
+- product media
+- product identity lainnya
 
 Jangan menduplikasi data yang sudah authoritative.
 
-Contoh:
+Model konseptual (disesuaikan setelah audit schema):
 
 ProductStory
 ────────────────────
@@ -387,8 +512,6 @@ status
 created_at
 updated_at
 
-Nama produk dan product photo sebaiknya diambil dari Product/Media existing kecuali ada kebutuhan snapshot historis yang jelas.
-
 Status dapat berupa konsep:
 
 draft
@@ -397,35 +520,64 @@ archived
 
 tetapi ikuti enum convention existing.
 
-9. LEGALITAS / BUSINESS LEGAL READINESS
+HARDENING PRODUCT STORY:
 
-Buat legal readiness sebagai reusable checklist.
+- Editor Product Story adalah internal/admin.
+- Product Story tidak otomatis mengubah PDP, SEO, JSON-LD, product description, atau public content.
+- Jika di masa depan sebagian story dipublish ke customer-facing content, gunakan explicit publish/projection step yang terpisah.
+- Readiness untuk challenge harus berasal dari kelengkapan field nyata: product photo, product name, target market, positioning, usage/story status, distinctive-characteristic status, unique value, dan story.
+- Jangan membuat persentase readiness random. Gunakan PASS/MISSING/REVIEW atau rule deterministic yang dapat dijelaskan.
 
-Parameter UMK Academy:
+Tidak ada automatic customer-facing publication.
 
-Business name
-Main product/service
-NIB status
-NIB number
-KBLI
-NIB/KBLI suitability status
-Additional licenses owned
-Required licenses not yet owned
-Follow-up / action plan
-Notes
+11. LEGAL & COMPLIANCE
 
-Jangan hard-code sebagai:
+Legal & Compliance adalah durable LOKKA business capability.
 
-UMKAcademyChallengeLegalitas
+Target: Business Readiness → Legal & Compliance
 
-Gunakan domain generik seperti:
+Buat legal readiness sebagai reusable checklist berorientasi pada Business/Vendor existing, bukan Product dan bukan satu row challenge.
+
+Minimum capabilities:
+
+- Business identity diambil dari Vendor/business profile existing.
+- NIB (Nomor Induk Berusaha) status.
+- NIB number/reference.
+- Satu atau more KBLI code + description/reference.
+- NIB/KBLI suitability assessment.
+- Additional licenses/documents owned.
+- Required/missing licenses.
+- Follow-up/action plan.
+- Notes.
+- Evidence/document upload per checklist item bila relevan.
+
+Recommended generic entities setelah audit schema:
 
 BusinessLegalReadiness
-LegalDocument
 LegalRequirement
-LegalChecklist
+LegalChecklistItem
+LegalDocument
 
-setelah menyesuaikan schema existing.
+LegalDocument minimum metadata:
+
+id
+vendor_id / business_id FK
+legal_requirement_id nullable
+document_type
+document_number/reference nullable
+issuer nullable
+issued_at nullable
+expires_at nullable
+status
+storage_key private
+original_filename display-only
+mime_type
+size_bytes
+checksum if architecture supports it
+uploaded_by
+notes nullable
+created_at
+updated_at
 
 Status reusable:
 
@@ -436,65 +588,64 @@ not_applicable
 
 atau existing convention equivalent.
 
-10. PRODUCT SHOWCASE
+Legal document status bukan official government verification kecuali ada integration/source resmi. Gunakan wording seperti self-declared, recorded, reviewed, missing, expired, atau needs_review sesuai rule final.
 
-Ini merupakan salah satu prioritas implementasi awal karena terkait challenge UMK Academy yang waktunya paling dekat.
+HARDENING LEGALITAS — DOCUMENT EVIDENCE:
 
-Kebutuhan challenge:
+Document storage rules:
 
-5 product photos
-JPG / PNG
-High resolution
-Product shown clearly
+- PRIVATE, tidak berada di public static/media directory.
+- Download hanya melalui authenticated + authorized route.
+- Validate magic bytes, file size, extension/MIME, and decode image if image.
+- PDF/JPEG/PNG dapat didukung jika memang dibutuhkan business document workflow.
+- Random storage key; user filename tidak menjadi filesystem authority.
+- No path traversal.
+- No direct filesystem path in HTML/API.
+- Replace/version/delete semantics harus jelas dan audit-sensitive.
 
-Requirement awal memang menetapkan upload lima foto produk dengan validasi tipe file dan menggunakan media system yang sudah ada.
+Legal Checklist UX:
 
-Admin Product Showcase harus dapat:
+Admin Legalitas harus terasa seperti operational checklist, bukan satu textarea besar.
 
-Select Product
-Select/upload media
-Preview
-Reorder images
-Set cover/primary image
-Remove image
-Readiness status
+Contoh:
 
-Reuse media/storage architecture existing.
+Legal Readiness — LOKKA
 
-Jangan membuat folder/storage/upload service baru jika Media service sudah tersedia.
+[✓] Business identity recorded
+[✓] NIB recorded
+[!] KBLI suitability        NEEDS REVIEW
+[✓] Supporting NIB file     [View] [Replace]
+[ ] Additional license      MISSING / NOT APPLICABLE
+[ ] Follow-up action        REQUIRED
 
-Server harus memvalidasi file sebenarnya.
+Setiap checklist item minimal mempunyai label, status, notes, optional due/follow-up, optional evidence attachment, last updated, dan actor bila audit metadata tersedia.
 
-Jangan hanya mempercayai:
+Jangan menyimpulkan legal compliance resmi hanya dari checklist internal.
 
-extension
-browser-provided MIME
-client-side validation
+12. FASHION LOOKBOOK
 
-Mode readiness UMK Academy dapat memeriksa:
+Fashion Lookbook adalah CONDITIONAL modul, bukan mandatory.
 
->= 5 valid images
-JPG/PNG
-image readable
-minimum acceptable resolution jika rule memang ditetapkan
+LOKKA TIDAK harus membuat Lookbook module hanya karena UMK Academy meminta catalog/lookbook link. Reuse dulu:
 
-Jangan menentukan minimum pixel resolution secara arbitrer jika UMK Academy tidak memberikan angka resmi.
+- Products
+- Variants
+- Pricing
+- Media
+- Public product URL
+- Sales Channel information
 
-11. FASHION LOOKBOOK
+Sebagian besar data UMK Academy harus berasal dari Product, Variant, Pricing, Media, dan Sales Channel existing.
 
-Data yang diperlukan UMK Academy mencakup:
+Dedicated Lookbook menjadi modul LOKKA NYATA HANYA jika ada ongoing business need seperti:
 
-Product name
-Price
-Size / variant
-Product photo
-Catalog/lookbook/content URL
-Sales channel URL
-Photo consistency notes
+- seasonal collection
+- wholesale catalog
+- buyer presentation
+- press/editorial lookbook
+- campaign collection
 
-Sebagian besar data harus berasal dari Product, Variant, Pricing, Media, dan Sales Channel existing.
-
-Admin capabilities:
+Jika diimplementasikan, admin capabilities:
 
 Create lookbook
 Title
@@ -519,7 +670,25 @@ Public lookbook hanya muncul jika memang dipublish.
 
 Jangan expose draft.
 
-12. SALES DOMAIN — SINGLE SOURCE OF TRUTH
+Lookbook mempunyai explicit publication lifecycle: draft → published → unpublished/archived. Public route hanya membaca published projection. Draft/internal notes tidak boleh bocor.
+
+HARDENING LOOKBOOK — UMK ACADEMY EVIDENCE:
+
+Challenge meminta: product name, price, size/variant, product photo, catalog/lookbook/content URL, sales channel URL, dan photo consistency notes.
+
+Mapping:
+
+- Product name → Product existing.
+- Price → Variant/Pricing existing.
+- Size/variant → Variant existing.
+- Product photo → Product Media / optionally Showcase-selected media.
+- Catalog/lookbook/content URL → published Lookbook URL atau public product/content URL yang sengaja dipublish.
+- Sales channel URL → SalesChannel/Store URL, bukan internal admin URL.
+- Photo consistency notes → Lookbook/editorial metadata internal.
+
+Publication harus explicit. Tidak ada automatic publication dari internal data ke customer frontend.
+
+13. SALES DOMAIN — SINGLE SOURCE OF TRUTH
 
 Hindari arsitektur seperti:
 
@@ -555,17 +724,9 @@ Actual schema harus mengikuti architecture repository existing.
 
 Jangan memaksakan nama model sebelum audit.
 
-13. POS — PROTECTED OPERATIONAL WORKSPACE
+14. POS — PROTECTED OPERATIONAL WORKSPACE
 
-Ini menggantikan requirement lama “POS hanya backend/admin”.
-
-POS adalah operational frontend/workspace khusus kasir.
-
-Route:
-
-/pos
-
-POS tidak muncul di navigation public.
+POS adalah protected operational application surface dalam codebase LOKKA yang menggunakan URL dan layout tersendiri. POS tidak ditampilkan dalam navigation public dan bukan customer-facing feature. POS menggunakan authentication/authorization internal LOKKA serta shared product, sales, inventory, payment, dan finance domain. Admin Back Office dapat menyediakan shortcut internal menuju POS, tetapi tidak boleh mempunyai implementasi POS kedua.
 
 POS bukan storefront.
 
@@ -623,7 +784,23 @@ Clear payment flow
 
 Jangan menggunakan CRUD form admin untuk transaksi kasir.
 
-14. POS & INVENTORY
+POS HARDENING — KEEP AS SEPARATE SURFACE:
+
+POS dependencies sebelum production use:
+
+- authoritative sellable Product/Variant/Pricing
+- inventory movement model (bukan absolute stock edit saja)
+- normalized Sale/Order transaction semantics
+- atomic stock update / oversell protection
+- finance posting/idempotency
+- cashier permission
+- receipt/reference
+- void/refund policy before those actions are exposed
+- audit trail consideration for void/refund/manual discount
+
+Admin boleh mempunyai shortcut ke /pos setelah POS benar-benar tersedia dan permission-aware. Public header tetap tidak mempunyai POS shortcut.
+
+15. POS & INVENTORY
 
 Jika inventory sudah ada:
 
@@ -650,7 +827,7 @@ Jika inventory belum tersedia, jangan pura-pura membuat integration.
 
 Dokumentasikan gap lalu desain migration/domain terlebih dahulu.
 
-15. POS & FINANCE
+16. POS & FINANCE
 
 POS tidak mempunyai ledger sendiri.
 
@@ -670,20 +847,32 @@ Manual Finance Entry ─────┘
 
 Gunakan idempotency/source reference bila dibutuhkan agar satu sale tidak dicatat dua kali ke finance.
 
-16. CASH FLOW
+17. CASH FLOW
 
-Parameter UMK Academy yang harus dapat direpresentasikan:
+Cash Flow adalah genuine long-term LOKKA capability. Jangan duplicate financial data dalam UMK-specific form.
 
-Product/service
-Sales unit
-Main costs
-Selling price
-Total income
-Total expense
-Ending cash balance
-Improvement plan
+Target architecture:
 
-Cash Flow module harus reusable dan tidak bergantung pada challenge. Parameter itu berasal dari challenge Cash Flow yang sudah dicatat sebelumnya.
+Webstore Sales ──────┐
+POS Sales ───────────┼── Financial Transactions
+Manual Income ───────┤
+Manual Expenses ─────┘
+                           ↓
+                        Finance
+                           ↓
+             ┌─────────────┼─────────────┐
+             ↓             ↓             ↓
+         Cash Flow   Accounting Lite  Tax Readiness
+
+Cash Flow concepts:
+
+- opening balance
+- income
+- expenses
+- ending balance
+- period
+- source/category
+- notes
 
 Konsep data minimal:
 
@@ -716,7 +905,15 @@ Transactions
 
 Perhitungan harus deterministik dan testable.
 
-17. ACCOUNTING LITE
+Opening balance + income - expense = ending balance harus deterministic untuk periode yang sama. Definisikan timezone/periode secara eksplisit. Manual adjustments wajib mempunyai source/reference dan authorization.
+
+HARDENING CASH FLOW — UMK ACADEMY EVIDENCE VIEW:
+
+Challenge meminta: product/service, sales unit, main costs, selling price, total income, total expense, ending cash balance, dan improvement plan.
+
+Jangan membuat duplicate challenge ledger. Buat period-based evidence/readiness view yang mengambil data dari Product/Pricing + normalized Financial Transaction dan hanya menyimpan narrative fields seperti improvement plan bila memang tidak berasal dari transaksi.
+
+18. ACCOUNTING LITE
 
 Jangan membangun Accurate/Jurnal replacement pada fase pertama.
 
@@ -737,11 +934,19 @@ Data financial tidak boleh diketik ulang jika sudah berasal dari Order/POS/Finan
 
 Accounting adalah derived representation atas source transaction.
 
-Requirement awal juga menekankan agar Accounting Lite mengambil source-of-truth transaksi/order dan tidak melakukan input ulang.
+HARDENING ACCOUNTING LITE:
 
-18. TAX READINESS
+- Initial Accounting Lite bukan full ERP accounting package dan bukan double-entry general ledger kecuali requirement berikutnya secara eksplisit meminta itu.
+- Tetapkan basis/reporting semantics dengan jelas (misalnya cash-oriented operational summary pada fase awal).
+- Revenue, COGS/HPP, operating expenses, gross profit, operating result, dan cash balance harus derived dari normalized source transaction/category mapping.
+- Jika suatu nilai belum dapat dihitung karena source data belum tersedia, tampilkan unavailable/needs setup; jangan meminta user mengetik ulang angka yang seharusnya derived.
+- Manual journal/adjustment jika nanti ditambahkan harus protected, attributable, auditable, dan tidak mengubah source sale secara diam-diam.
 
-Tax Readiness bukan official tax engine.
+19. TAX READINESS
+
+Tax Readiness adalah READINESS / SIMULATION.
+
+Tax Readiness BUKAN official tax engine.
 
 Jangan membangun:
 
@@ -785,28 +990,40 @@ rate/config
 
 harus versioned/configurable.
 
-Requirement awal juga secara eksplisit menetapkan bahwa Tax Readiness bukan tax filing engine dan tarif tidak boleh di-hard-code ke core logic.
+HARDENING WAJIB PAJAK READINESS — UMK ACADEMY EVIDENCE:
 
-19. MARKETPLACE / SMEXPO READINESS
+- Business name/main product berasal dari Vendor/Product source-of-truth.
+- Turnover harus dihitung dari finance/sales source untuk period yang dipilih.
+- Jika user memasukkan manual turnover override, provenance harus jelas dan tidak boleh silently mengganti authoritative transaction-derived value.
+- Simulation harus diberi label SIMULATION / NON-FILING dan menyimpan rule/version/effective date jika calculation rules digunakan.
+- Tidak boleh memberikan status seolah-olah LOKKA telah melaporkan pajak ke pemerintah tanpa integration resmi.
+- Jangan label simulation sebagai official tax result.
 
-Jangan membuat module yang hanya dapat digunakan oleh Pertamina SMEXPO.
+20. SALES CHANNELS / SMEXPO
 
-Gunakan konsep generic:
+SMEXPO harus dimodelkan sebagai satu Sales Channel, bukan sebagai hard-coded UMK challenge module.
 
-SalesChannel
-SalesChannelReadiness
+Gunakan domain generik:
 
-Parameter challenge dapat direpresentasikan sebagai:
+Sales Channels
+atau
+Sales Channel Readiness
 
-Business
-Main product
-Channel
-Account/store status
-Business profile readiness
-Catalog/product readiness
-Store URL
-Notes
-Follow-up plan
+Possible channels:
+
+- LOKKA Webstore
+- SMEXPO
+- future marketplaces
+- future social-commerce channels
+
+Parameter readiness:
+
+- account/store status
+- profile readiness
+- product/catalog readiness
+- store URL
+- notes
+- follow-up action
 
 Channel awal dapat mencakup:
 
@@ -815,22 +1032,24 @@ LOKKA Website
 
 dan dapat diperluas kemudian.
 
-Requirement awal memang meminta model ini dibuat generic dan tidak hard-coded hanya untuk SMEXPO.
+HARDENING SMEXPO READINESS — UMK ACADEMY EVIDENCE:
 
-20. BUSINESS READINESS ENGINE
+- State contoh: not_started, account_created, profile_incomplete, catalog_incomplete, ready, active, needs_follow_up. Enum final mengikuti project convention.
+- Store URL hanya ditampilkan sebagai public/external URL yang memang dimiliki. Jangan menyimpan admin credential/token di readiness notes.
+- API integration dengan SMEXPO tidak diperlukan untuk memenuhi readiness unless separately requested.
+
+21. BUSINESS READINESS ENGINE
 
 Business Readiness harus menjadi aggregation layer atas data nyata.
 
 Target kategori:
 
-Product
-Product Story
-Product Showcase
-Lookbook
-Legalitas
+Product Media Management
+Product Brand & Story
+Legal & Compliance
 Finance
 Tax
-Marketplace
+Sales Channels
 
 Jangan membuat:
 
@@ -862,9 +1081,22 @@ deterministic
 testable
 versionable if necessary
 
-Requirement awal juga menyatakan readiness percentage tidak boleh hard-coded dan harus berasal dari rules yang jelas.
+READINESS SEMANTICS:
 
-21. ADMIN DASHBOARD HOME
+Gunakan semantic state yang dapat dijelaskan, bukan vanity score.
+
+Preferred general states:
+
+- NOT_STARTED
+- IN_PROGRESS
+- NOT_READY
+- REVIEW_REQUIRED
+- READY / COMPLETE
+- NOT_APPLICABLE where valid
+
+Jika percentage ditampilkan, setiap numerator/denominator/rule harus dapat ditelusuri dan deterministic. Manual review item harus tidak otomatis dianggap PASS.
+
+22. ADMIN DASHBOARD HOME
 
 Dashboard /admin harus mengambil real data.
 
@@ -891,9 +1123,7 @@ lebih baik daripada fake data.
 
 Charts hanya dipakai jika datanya berguna dan tersedia.
 
-Requirement awal juga menetapkan dashboard harus menggunakan data nyata dan tidak menampilkan fake graph/sample production data.
-
-22. DATA OWNERSHIP
+23. DATA OWNERSHIP
 
 Tetapkan source-of-truth dengan jelas.
 
@@ -920,9 +1150,6 @@ Cash transaction
 Readiness
 → readiness rules + source entity
 
-Lookbook
-→ selection/presentation layer
-
 Product Story
 → product marketing metadata
 
@@ -930,7 +1157,7 @@ Jangan menyalin nilai Product ke lima tabel berbeda hanya supaya form challenge 
 
 Jika perlu snapshot karena kebutuhan historical/audit, dokumentasikan alasannya.
 
-23. DATABASE & MIGRATION
+24. DATABASE & MIGRATION
 
 Sebelum menambahkan tabel:
 
@@ -960,7 +1187,7 @@ Jangan membuat table baru hanya karena nama existing berbeda.
 
 Audit meaning-nya dahulu.
 
-24. SECURITY
+25. SECURITY
 
 Minimal security requirements:
 
@@ -982,9 +1209,54 @@ No open redirects
 
 Admin API dan POS API tetap protected walaupun UI link tidak tersedia.
 
-Security requirement ini konsisten dengan requirement awal yang mewajibkan admin route, role checks, upload validation, serta tidak mengekspos data finance/tax/legalitas ke public API.
+26. PRIVATE FILE STORAGE — SHARED SECURITY CAPABILITY
 
-25. ROUTING BOUNDARY
+LOKKA membutuhkan private file capability yang dapat dipakai oleh retained media source dan LegalDocument tanpa mencampur file publik. Reuse storage primitives jika semantically cocok, tetapi pertahankan namespace/policy jelas.
+
+Required controls:
+
+- random/unpredictable storage key
+- no user-controlled filesystem path
+- magic-byte/type validation
+- size limits
+- checksum optional but recommended for documents
+- authenticated/authorized download
+- Content-Disposition safe filename
+- no direct public static serving
+- access logging for sensitive legal downloads if audit architecture available
+- cleanup on failed persistence
+- retention/delete/version policy documented
+
+Supporting legal/compliance documents MUST be private. They must never be exposed through unrestricted public static URLs. Authenticated/authorized access only.
+
+27. DATA CLASSIFICATION & PUBLICATION BOUNDARY
+
+PUBLIC BY DESIGN:
+
+- published product/catalog content
+- published lookbook
+- public product price/variant/media yang memang digunakan storefront
+
+INTERNAL BUSINESS DATA:
+
+- Product Media readiness/status/notes
+- Product Story drafts/internal readiness
+- Legal checklist
+- Legal documents
+- Finance/Cash Flow/Accounting Lite
+- Tax Readiness
+- SMEXPO/Sales Channel readiness notes
+- internal reports
+
+PRIVATE FILES:
+
+- retained JPG/PNG source originals
+- legal supporting documents
+- sensitive exports
+
+Private/internal data tidak boleh menjadi public hanya karena route tidak ditampilkan di menu. Authorization tetap server-side.
+
+28. ROUTING BOUNDARY
 
 Target konseptual:
 
@@ -1016,7 +1288,7 @@ Ini bukan perintah membuat API prefix baru jika application existing tidak beker
 
 Gunakan hanya sebagai boundary concept.
 
-26. REUSABLE DOMAIN/SERVICE LAYER
+29. REUSABLE DOMAIN/SERVICE LAYER
 
 UI surfaces berbeda tidak boleh menduplikasi business rules.
 
@@ -1044,7 +1316,7 @@ Surface-specific controller/view boleh berbeda.
 
 Domain logic tetap shared.
 
-27. ERROR, EMPTY & LOADING STATES
+30. ERROR, EMPTY & LOADING STATES
 
 Semua surface baru wajib memiliki proper state.
 
@@ -1061,7 +1333,7 @@ Successful submission
 
 Jangan hanya membuat happy path.
 
-28. AUDIT LOG CONSIDERATION
+31. AUDIT LOG CONSIDERATION
 
 Untuk operation sensitif seperti:
 
@@ -1080,7 +1352,7 @@ Jika belum, dokumentasikan sebagai architectural requirement dan tentukan apakah
 
 Jangan diam-diam membuat audit system setengah jadi di satu module saja.
 
-29. POS PAYMENT SCOPE
+32. POS PAYMENT SCOPE
 
 Pada initial POS jangan menambahkan payment gateway baru hanya untuk menyelesaikan POS.
 
@@ -1095,7 +1367,7 @@ Other configured method
 
 Payment integration baru harus menjadi requirement terpisah setelah audit infrastructure.
 
-30. REPORTS
+33. REPORTS
 
 Reports harus derived dari source data.
 
@@ -1113,7 +1385,151 @@ Pada fase awal jangan membuat semua report sekaligus.
 
 Pastikan domain foundation benar dahulu.
 
-31. IMPLEMENTATION PHASES — REFACTORED
+34. ACCEPTANCE GATE PER MODULE
+
+Setiap module baru sebelum dianggap complete wajib mempunyai:
+
+- schema/migration backward-safe bila perlu
+- authorization server-side
+- CSRF/origin protection untuk mutation sesuai architecture
+- validation
+- empty/error states
+- responsive admin UI
+- deterministic domain tests
+- regression tests terhadap public/customer surface
+- production build/test
+- Fastify QA
+- Docker current-working-tree QA bila module menyentuh DB/runtime/storage
+- git diff --check
+- no secret committed
+- no fake production data
+- owner review sebelum commit/push
+
+35. DO-NOT-DRIFT RULES
+
+Jangan salah arah ke pola berikut:
+
+- Satu table/form baru per challenge tanpa domain reuse.
+- Product Media yang mengubah storefront primary/order secara diam-diam.
+- Legalitas hanya berupa notes tanpa checklist/document evidence.
+- Legal document berada di public media folder.
+- Lookbook draft dapat dibuka publik.
+- Cash Flow dibuat sebagai angka summary manual tanpa transaction source.
+- Accounting Lite menjadi duplicate manual bookkeeping.
+- Tax Readiness dianggap tax filing engine.
+- SMEXPO dibuat sebagai architecture hard-coded yang tidak dapat mendukung channel lain.
+- POS dimasukkan ke public storefront atau dibuat sebagai admin CRUD.
+- Finance/tax/legal data muncul di public API/HTML/JSON-LD.
+- Fake readiness percentage atau fake dashboard graph.
+- Menu untuk module yang belum usable ditampilkan sebagai production feature.
+- Product Showcase yang mengubah storefront primary/order secara diam-diam.
+- Lookbook draft dapat dibuka publik.
+
+36. UMK ACADEMY 2026 — CHALLENGE EVIDENCE MAPPING
+
+UMK Academy challenge tidak menjadi nama domain utama. Berikut mapping bukti challenge ke LOKKA business tools.
+
+1) Product Showcase
+Evidence: minimum 5 JPG/PNG high-resolution product photos; product clear/clean/attractive.
+LOKKA module: Product Media Management + optional Showcase evidence preparation layer.
+Surface: Admin only.
+Public impact: none.
+Submission form: manual upload ke UMK Academy; LOKKA dapat menyediakan export/download helper.
+
+2) Fashion Lookbook Challenge
+Evidence: product name, price, size/variant, product photo, catalog/lookbook/content URL, sales channel URL, photo consistency notes.
+LOKKA module: Lookbook (CONDITIONAL) + Product + Variant + Pricing + Media + SalesChannel.
+Surface: Admin editor + explicit published public lookbook URL.
+Public impact: hanya published lookbook jika diimplementasikan.
+
+3) Legalitas Check Challenge
+Evidence: business name, main product/service, NIB/KBLI suitability status, additional legality owned/not-owned, follow-up plan.
+LOKKA module: Business Legal Readiness + Legal Checklist + Legal Documents.
+Surface: Admin only.
+Public impact: none unless separate business disclosure requirement exists.
+
+4) SMEXPO Readiness Challenge
+Evidence: business name, main product, SMEXPO account/store status, business profile readiness, product/catalog readiness, store URL or follow-up plan.
+LOKKA module: generic SalesChannelReadiness with channel=SMEXPO.
+Surface: Admin only.
+Public impact: none, except external store URL as an ordinary outbound link when intentionally used.
+
+5) Cash Flow Challenge
+Evidence: product/service, sales unit, main costs, selling price, total income, total expense, ending cash balance, improvement plan.
+LOKKA module: Finance Transaction + Cash Flow period view + Product/Pricing context.
+Surface: Admin only.
+Public impact: none.
+
+6) Wajib Pajak Readiness
+Evidence: business name, main product/service, tax administration status, turnover/income for selected period, simple tax simulation, follow-up plan.
+LOKKA module: Tax Readiness derived from Business + Finance + versioned simulation rule.
+Surface: Admin only.
+Public impact: none.
+
+7) Product Story Challenge
+Evidence: product photo, product name, target market, positioning, product-story usage status, distinctive-characteristic status, unique value, product story.
+LOKKA module: ProductStory integrated into Product editing (Brand & Story).
+Surface: Admin editor. Optional future public projection only by explicit publish action.
+Public impact in initial phase: none.
+
+37. CHALLENGE EVIDENCE VIEW / EXPORT PRINCIPLE
+
+Untuk setiap challenge, LOKKA boleh menyediakan Evidence Summary / Readiness View agar owner mudah menyalin atau mengunggah bukti ke UMK Academy. Namun Evidence View bukan source-of-truth baru.
+
+Pattern:
+
+Business data/domain
+      ↓
+Readiness/evidence projection
+      ↓
+Owner review
+      ↓
+Manual submission ke UMK Academy
+
+Jangan membuat automation submission atau scraping/integration ke UMK Academy tanpa requirement/API resmi.
+
+38. ADMIN TARGET INFORMATION ARCHITECTURE
+
+Dokumentasikan LONG-TERM target architecture sidebar:
+
+Dashboard
+
+Commerce
+├── Orders
+└── Customers
+
+Products
+├── Products
+├── Categories
+├── Inventory
+└── Media
+
+Sales
+├── POS
+└── Transactions
+
+Finance
+├── Overview
+├── Global Overhead
+├── Cash Flow
+├── Income & Expense
+└── Accounting Lite
+
+Business Readiness
+├── Overview
+├── Legal & Compliance
+├── Tax Readiness
+└── Sales Channels
+
+Reports
+
+Settings
+├── Fulfillment
+└── Users & Permissions
+
+IMPORTANT: A sidebar item MUST NOT appear until its actual feature exists. Jangan membuat permanent UMK Challenge menus. Brand & Story diintegrasikan ke dalam product editing, bukan sidebar terpisah.
+
+39. IMPLEMENTATION PHASES — CORRECTED
 
 Kerjakan incremental.
 
@@ -1134,7 +1550,7 @@ Tests
 
         ↓
 
-PHASE A — ADMIN FOUNDATION
+PHASE A — ADMIN FOUNDATION (COMPLETE)
 AdminAuthLayout
 Office login page
 AdminBackOfficeLayout
@@ -1146,23 +1562,39 @@ Preserve existing admin features
 
         ↓
 
-PHASE B — UMK PRODUCT READINESS
-Product Showcase
-Product Story
-Legalitas
+PHASE B1 — PRODUCT MEDIA HARDENING
+Secure original JPEG/PNG retention
+Source metadata
+Upload validation
+Optimized storefront derivatives
+Media-management improvements
+
+Product Showcase adalah evidence preparation layer, bukan mandatory independent application.
 
         ↓
 
-PHASE C — CATALOG / READINESS
-Lookbook
-Business Readiness aggregation
+PHASE B2 — PRODUCT BRAND & STORY
+Integrated dengan Product administration
+
+        ↓
+
+PHASE B3 — LEGAL & COMPLIANCE
+Including private supporting documents
+
+        ↓
+
+PHASE C — BUSINESS READINESS
+Business Readiness foundation
+Sales Channel readiness
+
+Fashion Lookbook tetap CONDITIONAL berdasarkan real ongoing LOKKA business requirement.
 
         ↓
 
 PHASE D — FINANCE FOUNDATION
 Normalized financial transaction model
 Cash Flow
-Income/Expense
+Income & Expense
 Accounting Lite
 
         ↓
@@ -1179,7 +1611,7 @@ Permissions
 
 PHASE F — TAX & CHANNEL READINESS
 Tax Readiness
-Sales Channel / SMEXPO Readiness
+Sales Channel / SMEXPO expansion
 
         ↓
 
@@ -1187,14 +1619,27 @@ PHASE G — HARDENING
 Reports
 Permissions review
 Audit log where needed
+Security
 Performance
-Responsive QA
-Security QA
-Regression testing
+Regression hardening
 
-Dibanding requirement lama, saya sengaja memisahkan POS menjadi fase sendiri setelah sales/finance foundation cukup jelas. Pada dokumen sebelumnya POS berada bersama Tax/Marketplace di Phase E; struktur baru ini lebih aman karena POS menyentuh product, inventory, sales, payment, dan finance sekaligus. Requirement lama memang mengatur implementasi incremental dan audit sebelum coding.
+Dibanding requirement lama, POS dipisahkan menjadi fase sendiri setelah sales/finance foundation cukup jelas. Struktur ini lebih aman karena POS menyentuh product, inventory, sales, payment, dan finance sekaligus.
 
-32. PRIORITY UMK ACADEMY
+40. NEXT IMPLEMENTATION ORDER FROM CURRENT CHECKPOINT
+
+Setelah Product Media/Showcase owner-approved/committed:
+
+1. Phase B2 — Product Story (integrated into Product editing)
+2. Phase B3 — Legal Readiness + document checklist/private evidence upload
+3. Phase C — Business Readiness foundation + Sales Channel readiness
+4. Phase D — normalized Finance → Cash Flow → Income/Expense → Accounting Lite
+5. Phase E — POS operational surface
+6. Phase F — Tax Readiness + Sales Channel / SMEXPO expansion
+7. Phase G — Reports, permission review, audit logging, security/performance/regression hardening
+
+Challenge deadline/order dapat memengaruhi prioritas delivery, tetapi dependency integrity tidak boleh dikorbankan. Jika deadline meminta evidence sebelum module penuh selesai, gunakan evidence projection/manual owner submission dari data authoritative yang sudah ada; jangan membuat duplicate shortcut schema yang menjadi technical debt permanen.
+
+41. PRIORITY UMK ACADEMY
 
 Business tools dibuat sebagai fitur LOKKA reusable.
 
@@ -1208,7 +1653,7 @@ Sebaliknya:
 
 LOKKA Product
       ↓
-Product Showcase
+Product Media Management
       ↓
 UMK requirement dapat dipenuhi
 LOKKA Finance
@@ -1224,7 +1669,7 @@ UMK requirement dapat dipenuhi
 
 Jadi challenge UMK Academy menjadi validation/use-case dari business data LOKKA, bukan arsitektur inti aplikasi.
 
-33. VISUAL REFERENCE
+42. VISUAL REFERENCE
 
 Gunakan dua screenshot yang sudah diberikan sebagai direction.
 
@@ -1247,6 +1692,7 @@ Exact colors
 Exact typography
 Exact copy
 Pixel-perfect layout
+
 Dashboard reference
 
 Ambil konsep:
@@ -1263,9 +1709,7 @@ Jangan clone branding atau visual assets dari Nebula.Pay/reference lain.
 
 Identitas akhir harus tetap LOKKA.
 
-Requirement original juga secara eksplisit meminta screenshot tersebut hanya sebagai visual direction dan melarang cloning logo/aset/desain pihak lain.
-
-34. BEFORE CODING — REQUIRED AUDIT RESPONSE
+43. BEFORE CODING — REQUIRED AUDIT RESPONSE
 
 Sebelum melakukan perubahan source, berikan laporan audit terlebih dahulu dengan format berikut:
 
@@ -1300,7 +1744,8 @@ Source of truth
 Migration impact
 Public exposure risk
 Permission requirement
-35. IMPLEMENTATION RULE
+
+44. IMPLEMENTATION RULE
 
 Setelah audit:
 
@@ -1320,7 +1765,7 @@ Build
 ↓
 Regression verification
 
-Jangan langsung mengerjakan seluruh Phase A–F sekaligus.
+Jangan langsung mengerjakan seluruh Phase A–G sekaligus.
 
 Setelah Phase A stabil baru lanjut ke phase berikutnya.
 
@@ -1328,7 +1773,7 @@ Gunakan test suite project existing.
 
 Jika command project berbeda, baca package.json, workspace configuration, documentation, CI config, dan scripts existing terlebih dahulu.
 
-36. NO-REGRESSION PRINCIPLE
+45. NO-REGRESSION PRINCIPLE
 
 Existing public store dan business functionality yang sudah bekerja harus tetap bekerja.
 
@@ -1344,7 +1789,7 @@ Domain behavior modification
 
 Jika perubahan domain memang diperlukan, dokumentasikan alasan serta migration/risk-nya.
 
-37. FINAL ARCHITECTURE TARGET
+46. FINAL ARCHITECTURE TARGET
 
 Target akhir yang harus dijaga:
 
@@ -1389,18 +1834,3 @@ No fake business data
 No public exposure of internal data
 Incremental implementation
 Backward-safe migration
-Satu koreksi penting terhadap prompt lama
-
-Bagian lama:
-
-Semua fitur internal berikut hanya boleh tersedia setelah login melalui area /admin: POS ...
-
-dan:
-
-POS hanya backend/admin.
-
-HARUS DIANGGAP SUDAH TIDAK BERLAKU.
-
-Ganti definisinya dengan:
-
-POS adalah protected operational application surface dalam codebase LOKKA yang menggunakan URL dan layout tersendiri. POS tidak ditampilkan dalam navigation public dan bukan customer-facing feature. POS menggunakan authentication/authorization internal LOKKA serta shared product, sales, inventory, payment, dan finance domain. Admin Back Office dapat menyediakan shortcut internal menuju POS, tetapi tidak boleh mempunyai implementasi POS kedua.

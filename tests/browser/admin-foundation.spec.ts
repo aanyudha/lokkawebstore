@@ -80,9 +80,10 @@ test('office shell, responsive drawer, keyboard access and public isolation', as
       .getByLabel('Password', { exact: true })
       .fill('office-browser-password');
     await page.getByRole('button', { name: 'Show', exact: true }).click();
-    await expect(
-      page.getByLabel('Password', { exact: true }),
-    ).toHaveAttribute('type', 'text');
+    await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute(
+      'type',
+      'text',
+    );
     await page.getByRole('button', { name: 'Hide', exact: true }).click();
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL(env.appUrl + '/admin');

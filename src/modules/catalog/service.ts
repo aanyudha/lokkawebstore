@@ -671,19 +671,33 @@ export function createCatalog(
             .from(productImages)
             .where(eq(productImages.productId, productId));
           if (previous.length + saved.length > 20)
-            throw new FormError('images', 'Maksimum 20 gambar per produk.');
+            throw new FormError('images', 'Maximum 20 images per product.');
           for (const [i, image] of saved.entries())
             await tx.insert(productImages).values({
-              ...image,
+              storageKey: image.storageKey,
               productId,
               altText,
               sortOrder: previous.length + i,
               isPrimary: previous.length === 0 && i === 0,
+              width: image.width,
+              height: image.height,
+              sourceStorageKey: image.source.sourceStorageKey,
+              sourceFormat: image.source.sourceFormat,
+              sourceMimeType: image.source.sourceMimeType,
+              sourceWidth: image.source.sourceWidth,
+              sourceHeight: image.source.sourceHeight,
+              sourceSizeBytes: image.source.sourceSizeBytes,
             });
         });
       } catch (error) {
         await Promise.all(
-          saved.map((image) => storage.remove(image.storageKey)),
+          saved.map((image) =>
+            storage.removeWithSource(
+              image.storageKey,
+              image.source.sourceStorageKey,
+              image.source.sourceFormat,
+            ),
+          ),
         );
         throw error;
       }
@@ -696,6 +710,8 @@ export function createCatalog(
     ) {
       await product(productId);
       let deletedKey: string | undefined;
+      let deletedSourceKey: string | null = null;
+      let deletedSourceFormat: string | null = null;
       await db.transaction(async (tx) => {
         await tx
           .select()
@@ -711,10 +727,12 @@ export function createCatalog(
               eq(productImages.productId, productId),
             ),
           );
-        if (!image) throw new FormError('images', 'Gambar tidak ditemukan.');
+        if (!image) throw new FormError('images', 'Image not found.');
         if (remove) {
-          await tx.delete(productImages).where(eq(productImages.id, image.id));
           deletedKey = image.storageKey;
+          deletedSourceKey = image.sourceStorageKey;
+          deletedSourceFormat = image.sourceFormat;
+          await tx.delete(productImages).where(eq(productImages.id, image.id));
           if (image.isPrimary) {
             const [next] = await tx
               .select()
@@ -745,7 +763,12 @@ export function createCatalog(
         }
       });
       // DB first: a failed filesystem cleanup leaves an unreachable orphan, never a broken DB reference.
-      if (deletedKey) await storage.remove(deletedKey);
+      if (deletedKey)
+        await storage.removeWithSource(
+          deletedKey,
+          deletedSourceKey,
+          deletedSourceFormat,
+        );
     },
   };
 }
