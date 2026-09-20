@@ -28,6 +28,26 @@ if (toggle) {
   }
 }
 
+// ─── Password visibility toggles ─────────────
+document
+  .querySelectorAll<HTMLButtonElement>('[data-password-toggle]')
+  .forEach((button) => {
+    const field = button.closest('.password-field');
+    const input = field?.querySelector<HTMLInputElement>(
+      '[data-password-input]',
+    );
+    if (!input) return;
+    const showLabel = button.dataset.labelShow ?? button.textContent ?? '';
+    const hideLabel = button.dataset.labelHide ?? showLabel;
+    button.addEventListener('click', () => {
+      const reveal = input.type === 'password';
+      input.type = reveal ? 'text' : 'password';
+      button.setAttribute('aria-pressed', String(reveal));
+      button.setAttribute('aria-label', reveal ? hideLabel : showLabel);
+      button.textContent = reveal ? hideLabel : showLabel;
+    });
+  });
+
 // ─── Variant picker ──────────────────────────
 document
   .querySelectorAll<HTMLInputElement>('.variant-picker input')

@@ -291,7 +291,7 @@ export async function registerCatalog(
     reply
       .type('text/plain')
       .send(
-        `User-agent: *\nDisallow: /admin\nSitemap: ${new URL('/sitemap.xml', env.appUrl).href}\n`,
+        `User-agent: *\nDisallow: /admin\nDisallow: /account\nDisallow: /id/akun\nSitemap: ${new URL('/sitemap.xml', env.appUrl).href}\n`,
       ),
   );
 

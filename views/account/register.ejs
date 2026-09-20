@@ -1,0 +1,120 @@
+<% const accountT = typeof t === 'function' ? t : (k) => k; %>
+<% const accountRoutes = routes || {}; %>
+<main id="main" class="account">
+  <div class="account-shell">
+    <section class="account-aside">
+      <img
+        src="/images/brand/lokka-logo.webp"
+        alt="LOKKA"
+        width="140"
+        height="70"
+        class="account-logo"
+        onerror="this.onerror=null;this.src='/images/lokka_logo.png';this.width=140;this.height=70;"
+      />
+      <p class="account-eyebrow"><%= accountT('account.register.eyebrow') %></p>
+      <h1 class="account-heading"><%= accountT('account.register.title') %></h1>
+      <p class="account-lead"><%= accountT('account.register.subtitle') %></p>
+    </section>
+    <section class="account-panel">
+      <% if (error) { %>
+      <div class="account-error" id="form-error" role="alert">
+        <strong><%= accountT('account.error.formTitle') %></strong>
+        <span><%= accountT(error.message) %></span>
+      </div>
+      <% } %>
+      <form
+        method="post"
+        action="<%= accountRoutes.register %>"
+        class="account-form"
+        aria-describedby="<%= error ? 'form-error' : '' %>"
+      >
+        <input type="hidden" name="csrf" value="<%= loginCsrf %>" />
+        <div class="account-field">
+          <label for="register-name"><%= accountT('account.field.name') %></label>
+          <input
+            id="register-name"
+            type="text"
+            name="name"
+            required
+            maxlength="150"
+            autocomplete="name"
+            value="<%= values.name || '' %>"
+            <%= error && error.field === 'name' ? 'aria-invalid="true"' : '' %>
+          />
+        </div>
+        <div class="account-field">
+          <label for="register-email"><%= accountT('account.field.email') %></label>
+          <input
+            id="register-email"
+            type="email"
+            name="email"
+            required
+            maxlength="254"
+            autocomplete="email"
+            value="<%= values.email || '' %>"
+            <%= error && error.field === 'email' ? 'aria-invalid="true"' : '' %>
+          />
+        </div>
+        <div class="account-field">
+          <label for="register-password"><%= accountT('account.field.password') %></label>
+          <div class="password-field">
+            <input
+              id="register-password"
+              type="password"
+              name="password"
+              required
+              minlength="10"
+              maxlength="128"
+              autocomplete="new-password"
+              data-password-input
+              aria-describedby="register-password-hint"
+              <%= error && error.field === 'password' ? 'aria-invalid="true"' : '' %>
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              data-password-toggle
+              aria-pressed="false"
+              data-label-show="<%= accountT('account.button.showPassword') %>"
+              data-label-hide="<%= accountT('account.button.hidePassword') %>"
+              aria-label="<%= accountT('account.button.showPassword') %>"
+            ><%= accountT('account.button.showPassword') %></button>
+          </div>
+          <small id="register-password-hint"><%= accountT('account.password.hint') %></small>
+        </div>
+        <div class="account-field">
+          <label for="register-confirm"><%= accountT('account.field.confirmPassword') %></label>
+          <div class="password-field">
+            <input
+              id="register-confirm"
+              type="password"
+              name="confirmPassword"
+              required
+              minlength="10"
+              maxlength="128"
+              autocomplete="new-password"
+              data-password-input
+              <%= error && error.field === 'confirmPassword' ? 'aria-invalid="true"' : '' %>
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              data-password-toggle
+              aria-pressed="false"
+              data-label-show="<%= accountT('account.button.showPassword') %>"
+              data-label-hide="<%= accountT('account.button.hidePassword') %>"
+              aria-label="<%= accountT('account.button.showPassword') %>"
+            ><%= accountT('account.button.showPassword') %></button>
+          </div>
+        </div>
+        <button class="btn btn-primary account-submit" type="submit">
+          <%= accountT('account.register.submit') %>
+        </button>
+      </form>
+      <p class="account-alt">
+        <%= accountT('account.register.haveAccount') %>
+        <a href="<%= accountRoutes.login %>"><%= accountT('account.register.signIn') %></a>
+      </p>
+    </section>
+  </div>
+</main>

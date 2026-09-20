@@ -1,6 +1,6 @@
 # LOKKA Webstore
 
-LOKKA is an Indonesian fashion and batik brand. This modular monolith uses Fastify 5, strict TypeScript, PostgreSQL 18, Drizzle/pg, EJS server rendering, Vite and plain CSS. Milestone 2.5 adds catalog costing, global overhead carry-forward and fulfillment readiness. Purchasing is not enabled.
+LOKKA is an Indonesian fashion and batik brand. This modular monolith uses Fastify 5, strict TypeScript, PostgreSQL 18, Drizzle/pg, EJS server rendering, Vite and plain CSS. Milestone 2.6 adds bilingual customer identity, authentication and an account foundation on top of the Milestone 2.5 commercial work. Purchasing is not enabled.
 
 ## Requirements and Windows setup
 
@@ -54,7 +54,7 @@ Create the first administrator interactively (there is no default administrator 
 npm.cmd run admin:create -- --email admin@example.com --name "LOKKA Admin"
 ```
 
-Open http://127.0.0.1:3000/admin/login. Customer authentication and account logins are **not implemented yet** — the admin login is the only sign-in. Enter and confirm a password of 12–128 characters; the input is not echoed. See the Admin workflow section below for password and origin details.
+Open http://127.0.0.1:3000/admin/login. Customer accounts are separate from admin access: create one at http://127.0.0.1:3000/account/register (Indonesian: /id/akun/daftar). There is no default administrator, customer or password. Enter and confirm a password of 12–128 characters for admins; customer passwords are 10–128 characters. Admin input is not echoed. See the Admin workflow section below for password and origin details.
 
 ### First-time setup (native Fastify, no Docker)
 
@@ -124,6 +124,23 @@ Apply migrations with `npm run db:migrate`. The existing variant price, compare-
 - `/admin/settings/fulfillment`: configure the actual LOKKA dispatch address and one active default origin. No address is seeded and no provider is called.
 
 See [commercial accounting ADR](docs/decisions/003-commercial-pricing-overhead.md) for integer formulas, annual recognition/remainders, worked carry-forward examples, migration handling of legacy compare-at values, and the distinction between planned allocation and actual recovery. Commercial integration and browser verification use disposable migrated databases; the test PostgreSQL role needs CREATEDB.
+
+## Customer accounts (Milestone 2.6)
+
+Customers sign in with a distinct cookie and session namespace, fully isolated from administrators. English routes have no prefix; Indonesian routes live under `/id/akun`.
+
+| Purpose          | English             | Indonesian            |
+| ---------------- | ------------------- | --------------------- |
+| Sign in          | `/account/login`    | `/id/akun/masuk`      |
+| Create account   | `/account/register` | `/id/akun/daftar`     |
+| Account overview | `/account`          | `/id/akun`            |
+| Profile          | `/account/profile`  | `/id/akun/profil`     |
+| Password         | `/account/password` | `/id/akun/kata-sandi` |
+| Sign out (POST)  | `/account/logout`   | `/id/akun/keluar`     |
+
+Emails are trimmed and lowercased for a deterministic unique identity; the original casing is kept for display. Passwords are hashed with the same Argon2id parameters as admin passwords and are never stored or logged. Sessions are opaque database rows that last 30 days, are rotated on sign-in, registration and password change, and are complemented by a CSRF cookie.
+
+Account pages are `noindex,nofollow`, served with `Cache-Control: private, no-store`, excluded from the sitemap and disallowed in `robots.txt`. Sign in, registration and password change are rate-limited. `returnTo` accepts only same-site `/account` and `/id/akun` paths, blocking open redirects. Email verification, password reset and rewards are deliberately deferred; see [customer identity ADR](docs/decisions/004-customer-identity-and-rewards.md).
 
 ## Production build and runtime ownership
 
@@ -271,7 +288,10 @@ Use the service manager to stop the confirmed service, or `kill -TERM <PID>` for
 | /kategori/:slug | Active category and paginated products           |
 | /produk/:slug   | Product gallery, variants, prices and SEO        |
 | /sitemap.xml    | Homepage, collection, active categories/products |
-| /robots.txt     | Crawler policy; excludes admin                   |
+| /robots.txt     | Crawler policy; excludes admin and customer      |
+| /account/login  | Customer sign-in (English)                       |
+| /id/akun/masuk  | Customer sign-in (Indonesian)                    |
+| /account        | Customer account overview                        |
 | /admin/login    | Secure catalog administrator sign-in             |
 | /health         | Process liveness, HTTP 200                       |
 | /ready          | PostgreSQL query succeeds: 200; unavailable: 503 |
@@ -286,6 +306,6 @@ Use the service manager to stop the confirmed service, or `kill -TERM <PID>` for
 - views, web/client, public: EJS, browser TypeScript/CSS and future owned assets.
 - tests, docs, deploy, .github: verification, architecture decisions, deployment example and CI.
 
-See [architecture](docs/architecture.md), [admin/media ADR](docs/decisions/002-admin-catalog-media.md) and [agent rules](AGENTS.md). Money uses bigint whole rupiah. Assets and design are original; photography must be owned or licensed. No cart, checkout, customers/orders, real DOKU/Biteship integration, marketplace, reviews, wishlist, coupons, Redis or deployment is implemented. Automatic old-slug redirects, large-admin-list pagination, image orphan maintenance and audit-event history are deferred.
+See [architecture](docs/architecture.md), [admin/media ADR](docs/decisions/002-admin-catalog-media.md), [commercial ADR](docs/decisions/003-commercial-pricing-overhead.md), [customer identity ADR](docs/decisions/004-customer-identity-and-rewards.md) and [agent rules](AGENTS.md). Money uses bigint whole rupiah. Assets and design are original; photography must be owned or licensed. No cart, checkout, orders, real DOKU/Biteship integration, marketplace, reviews, wishlist, coupons, Redis or deployment is implemented. Automatic old-slug redirects, large-admin-list pagination, image orphan maintenance and audit-event history are deferred.
 
-Next milestone after review: **Milestone 3 — Cart, Checkout Foundation & Stock Reservation**.
+Next milestone after review: **Cart, Checkout Foundation & Stock Reservation**.

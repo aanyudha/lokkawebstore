@@ -4,6 +4,13 @@ import { and, eq, gt, lt } from 'drizzle-orm';
 import type { Database } from '../../db/client.js';
 import { adminUsers, adminSessions } from '../../db/schema/index.js';
 import { FormError } from '../catalog/validation.js';
+/** Shared Argon2id parameters. Admin and customer hashing must stay aligned. */
+export const argon2idOptions = {
+  type: argon2.argon2id,
+  memoryCost: 65536,
+  timeCost: 3,
+  parallelism: 1,
+} as const;
 export const token = () => randomBytes(32).toString('hex');
 export const hashToken = (value: string) =>
   createHash('sha256').update(value).digest('hex');
@@ -26,12 +33,7 @@ export function normalizeEmail(value: string) {
 export async function hashPassword(password: string) {
   if (password.length < 12 || password.length > 128)
     throw new FormError('password', 'Gunakan kata sandi 12–128 karakter.');
-  return argon2.hash(password, {
-    type: argon2.argon2id,
-    memoryCost: 65536,
-    timeCost: 3,
-    parallelism: 1,
-  });
+  return argon2.hash(password, argon2idOptions);
 }
 export function createAuth(db: Database['db']) {
   // A valid dummy hash gives unknown users the same password-verification work.

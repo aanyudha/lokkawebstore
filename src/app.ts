@@ -16,6 +16,7 @@ import { createCatalog } from './modules/catalog/service.js';
 import { LocalCatalogImageStorage } from './modules/catalog/storage.js';
 import { registerCatalog } from './modules/catalog/routes.js';
 import { registerAdmin } from './modules/admin/routes.js';
+import { registerCustomer } from './modules/customer/routes.js';
 import { getAssets, resetAssets } from './config/assets.js';
 import { orderedLocales } from './i18n/index.js';
 import { t } from './i18n/translator.js';
@@ -123,6 +124,9 @@ export async function buildApp(
         locales: orderedLocales,
         htmlLang: 'en',
         alternateLinks: '',
+        customer: null,
+        noindex: false,
+        languagePaths: undefined,
         t: (key: string) => key,
         assets: getAssets(),
       },
@@ -205,6 +209,7 @@ export async function buildApp(
       : undefined;
     // Reset asset cache after build
     resetAssets();
+    if (database.db) await registerCustomer(app, database.db, env);
     await registerRoutes(app, database, catalog, env);
     if (catalog && database.db) {
       await registerCatalog(app, catalog, storage, env);

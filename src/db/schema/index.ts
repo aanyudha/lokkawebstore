@@ -30,6 +30,7 @@ export const recordStatus = pgEnum('record_status', [
 export const categoryStatus = pgEnum('category_status', ['active', 'hidden']);
 export const variantStatus = pgEnum('variant_status', ['active', 'inactive']);
 export const adminStatus = pgEnum('admin_status', ['active', 'disabled']);
+export const customerStatus = pgEnum('customer_status', ['ACTIVE', 'DISABLED']);
 export const vendors = pgTable('vendors', {
   id: uuid('id').defaultRandom().primaryKey(),
   slug: text('slug').notNull().unique(),
@@ -355,6 +356,54 @@ export const adminSessions = pgTable(
   (t) => [
     index('sessions_expiration_idx').on(t.expiresAt),
     index('sessions_user_idx').on(t.adminUserId),
+  ],
+);
+// Customer identity is deliberately isolated from admin authentication:
+// separate tables, service, cookies, middleware and CSRF context.
+export const customers = pgTable(
+  'customers',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    email: text('email').notNull(),
+    emailNormalized: text('email_normalized').notNull(),
+    name: text('name').notNull(),
+    passwordHash: text('password_hash').notNull(),
+    status: customerStatus('status').default('ACTIVE').notNull(),
+    emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
+    lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+    ...timestamps(),
+  },
+  (t) => [
+    uniqueIndex('customers_email_normalized_unique').on(t.emailNormalized),
+    check('customer_name_present', sql`length(btrim(${t.name})) > 0`),
+    check(
+      'customer_email_normalized_lower',
+      sql`${t.emailNormalized} = lower(btrim(${t.emailNormalized}))`,
+    ),
+  ],
+);
+export const customerSessions = pgTable(
+  'customer_sessions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull().unique(),
+    csrfTokenHash: text('csrf_token_hash').notNull(),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index('customer_sessions_expiration_idx').on(t.expiresAt),
+    index('customer_sessions_customer_idx').on(t.customerId),
   ],
 );
 export const productTranslations = pgTable(

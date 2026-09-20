@@ -1,5 +1,9 @@
 <% const navLocale = locale || 'en'; %>
 <% const navT = typeof t === 'function' ? t : (k) => k; %>
+<% const accountCustomer = typeof customer !== 'undefined' ? customer : null; %>
+<% const accountPath = navLocale === 'id' ? '/id/akun' : '/account'; %>
+<% const accountLoginPath = navLocale === 'id' ? '/id/akun/masuk' : '/account/login'; %>
+<% const localePath = (code) => (typeof languagePaths !== 'undefined' && languagePaths && languagePaths[code]) ? languagePaths[code] : null; %>
 <header class="site-header" data-header>
   <div class="header-inner">
     <a class="brand" href="<%= navLocale === 'id' ? '/id' : '/' %>" aria-label="LOKKA">
@@ -23,10 +27,15 @@
     </nav>
 
     <div class="header-actions">
+      <a
+        class="header-account"
+        href="<%= accountCustomer ? accountPath : accountLoginPath %>"
+      ><%= navT(accountCustomer ? 'nav.account' : 'nav.signIn') %></a>
+
       <nav class="lang-switcher" aria-label="<%= navT('language.switchLabel') %>">
         <% for (const loc of (locales || [])) { %>
           <a
-            href="<%= loc.pathPrefix || '/' %>"
+            href="<%= localePath(loc.code) || loc.pathPrefix || '/' %>"
             class="<%= loc.code === navLocale ? 'lang-active' : '' %>"
             lang="<%= loc.htmlLang %>"
             hreflang="<%= loc.htmlLang %>"
@@ -57,9 +66,10 @@
         <% } %>
       <% } %>
       <div class="mobile-lang">
+        <a href="<%= accountCustomer ? accountPath : accountLoginPath %>"><%= navT(accountCustomer ? 'nav.account' : 'nav.signIn') %></a>
         <% for (const loc of (locales || [])) { %>
           <a
-            href="<%= loc.pathPrefix || '/' %>"
+            href="<%= localePath(loc.code) || loc.pathPrefix || '/' %>"
             class="<%= loc.code === navLocale ? 'lang-active' : '' %>"
             lang="<%= loc.htmlLang %>"
           ><%= loc.name %></a>

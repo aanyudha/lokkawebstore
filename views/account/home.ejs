@@ -1,0 +1,36 @@
+<% const accountT = typeof t === 'function' ? t : (k) => k; %>
+<% const accountRoutes = routes || {}; %>
+<main id="main" class="account">
+  <div class="account-shell account-shell--single">
+    <section class="account-panel account-panel--wide">
+      <% if (notice) { %>
+      <div class="account-notice" role="status"><%= notice %></div>
+      <% } %>
+      <p class="account-eyebrow"><%= accountT('account.home.eyebrow') %></p>
+      <h1 class="account-heading"><%= accountT('account.home.title', { name: profile.name }) %></h1>
+      <p class="account-lead"><%= accountT('account.home.subtitle') %></p>
+      <p class="account-meta"><%= accountT('account.home.signedInAs', { email: values.email }) %></p>
+
+      <div class="account-cards">
+        <article class="account-card">
+          <h2><%= accountT('account.home.profileTitle') %></h2>
+          <p><%= accountT('account.home.profileText') %></p>
+          <a class="btn btn-secondary" href="<%= accountRoutes.profile %>"><%= accountT('account.home.manage') %></a>
+        </article>
+        <article class="account-card">
+          <h2><%= accountT('account.home.passwordTitle') %></h2>
+          <p><%= accountT('account.home.passwordText') %></p>
+          <a class="btn btn-secondary" href="<%= accountRoutes.password %>"><%= accountT('account.home.manage') %></a>
+        </article>
+      </div>
+
+      <div class="account-actions">
+        <a class="text-link" href="<%= locale === 'id' ? '/id/koleksi' : '/collections' %>"><%= accountT('account.continueShopping') %></a>
+        <form method="post" action="<%= accountRoutes.logout %>">
+          <input type="hidden" name="csrf" value="<%= csrf %>" />
+          <button class="btn btn-primary" type="submit"><%= accountT('account.home.logout') %></button>
+        </form>
+      </div>
+    </section>
+  </div>
+</main>

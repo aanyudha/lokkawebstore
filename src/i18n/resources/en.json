@@ -11,7 +11,9 @@
     "batik": "Batik",
     "accessories": "Accessories",
     "journal": "Journal",
-    "collections": "Collections"
+    "collections": "Collections",
+    "account": "Account",
+    "signIn": "Sign in"
   },
   "home": {
     "eyebrow": "Fashion & batik from Indonesia",
@@ -72,6 +74,87 @@
     "tooManyRequests": "Too many requests. Please try again later.",
     "requestError": "The request could not be processed.",
     "returnHome": "Return to LOKKA"
+  },
+  "account": {
+    "title": "Account",
+    "metaDescription": "Sign in to your LOKKA account to manage your profile and preferences.",
+    "eyebrow": "LOKKA Account",
+    "backToAccount": "Back to account",
+    "continueShopping": "Back to collections",
+    "login": {
+      "eyebrow": "Sign in",
+      "title": "Welcome back",
+      "subtitle": "Sign in to continue to your LOKKA account.",
+      "submit": "Sign in",
+      "noAccount": "New to LOKKA?",
+      "createAccount": "Create an account"
+    },
+    "register": {
+      "eyebrow": "Create account",
+      "title": "Create your account",
+      "subtitle": "Join LOKKA to keep your details and preferences in one place.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "home": {
+      "eyebrow": "Your account",
+      "title": "Hello, {{name}}",
+      "subtitle": "Manage your profile and account security.",
+      "signedInAs": "Signed in as {{email}}",
+      "profileTitle": "Profile",
+      "profileText": "Update the name we use across LOKKA.",
+      "passwordTitle": "Password",
+      "passwordText": "Change your password and sign out other sessions.",
+      "manage": "Manage",
+      "logout": "Sign out"
+    },
+    "profile": {
+      "eyebrow": "Profile",
+      "title": "Profile",
+      "subtitle": "Keep your personal details up to date.",
+      "name": "Full name",
+      "email": "Email address",
+      "emailNote": "Your email address is used to sign in and cannot be changed here.",
+      "submit": "Save changes"
+    },
+    "password": {
+      "eyebrow": "Security",
+      "title": "Password",
+      "subtitle": "Choose a strong password you do not use anywhere else.",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "submit": "Update password",
+      "hint": "At least 10 characters."
+    },
+    "field": {
+      "name": "Full name",
+      "email": "Email address",
+      "password": "Password",
+      "confirmPassword": "Confirm password",
+      "currentPassword": "Current password",
+      "newPassword": "New password"
+    },
+    "button": {
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    },
+    "notice": {
+      "profileUpdated": "Your profile has been updated.",
+      "passwordUpdated": "Your password has been updated. Other sessions were signed out."
+    },
+    "error": {
+      "formTitle": "Please check the form.",
+      "nameRequired": "Enter your full name.",
+      "emailInvalid": "Enter a valid email address.",
+      "emailTaken": "An account with this email already exists.",
+      "passwordLength": "Use a password between 10 and 128 characters.",
+      "passwordMismatch": "The passwords do not match.",
+      "currentPassword": "Your current password is incorrect.",
+      "invalidCredentials": "Unable to sign in with those credentials.",
+      "sessionExpired": "Your session expired. Please try again."
+    }
   },
   "language": {
     "switchLabel": "Language",

@@ -4,11 +4,13 @@ LOKKA is a single-vendor Indonesian fashion/batik store, built as a modular mono
 
 ## Boundaries
 
-Catalog owns products, variants, categories and image metadata/storage contracts. Auth owns administrator passwords and sessions; admin renders management forms and calls catalog services. A minimal vendors table records ownership for later evolution; only LOKKA is seeded. Customers, cart, checkout, orders, payments and shipping-provider integration remain deferred boundaries. Shared services must be infrastructure, not a catch-all for business logic. See ADR 002 for sessions, CSRF, lifecycle, transactions and media compensation.
+Catalog owns products, variants, categories and image metadata/storage contracts. Auth owns administrator passwords and sessions; Customer owns storefront registration, sign-in, sessions, profile and password changes; admin renders management forms and calls catalog services. A minimal vendors table records ownership for later evolution; only LOKKA is seeded. Cart, checkout, orders, payments and shipping-provider integration remain deferred boundaries. Shared services must be infrastructure, not a catch-all for business logic. See ADR 002 for admin sessions, CSRF, lifecycle, transactions and media compensation, and ADR 004 for customer identity.
 
 Future PaymentService will depend on a provider contract implemented by DokuProvider in payments. Order domain code will not contain DOKU-specific request shapes. ShippingService will depend on a contract implemented by BiteshipProvider in shipping; checkout will consume domain quotes rather than Biteship payloads. Authentication, signature checks, idempotent webhooks, retries and reconciliation belong to later integration milestones. No fake transactions are implemented.
 
 ## Persistence
+
+Milestone 2.6: Customer owns `customers` and `customer_sessions` with Argon2id credentials, deterministic normalized emails and 30-day opaque sessions isolated from admin sessions. Account pages are noindex/private and excluded from the sitemap. No cart, order, reward or email delivery is implemented. See [ADR 004](decisions/004-customer-identity-and-rewards.md).
 
 Milestone 2.5: Finance owns direct product costing, pricing profiles, global overhead masters, period snapshots and an append-only manual recovery workflow. Shipping owns fulfillment-origin settings and an internal shipping-readiness resolver. Admin routes call these modules inside the existing session/CSRF boundary. No shipping provider or commerce integration is implemented. See [ADR 003](decisions/003-commercial-pricing-overhead.md) for formulas, ownership, history and concurrency rules.
 

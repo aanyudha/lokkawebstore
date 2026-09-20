@@ -11,7 +11,9 @@
     "batik": "Batik",
     "accessories": "Aksesori",
     "journal": "Jurnal",
-    "collections": "Koleksi"
+    "collections": "Koleksi",
+    "account": "Akun",
+    "signIn": "Masuk"
   },
   "home": {
     "eyebrow": "Busana & batik Indonesia",
@@ -72,6 +74,87 @@
     "tooManyRequests": "Terlalu banyak permintaan. Silakan coba lagi nanti.",
     "requestError": "Permintaan tidak dapat diproses.",
     "returnHome": "Kembali ke LOKKA"
+  },
+  "account": {
+    "title": "Akun",
+    "metaDescription": "Masuk ke akun LOKKA Anda untuk mengelola profil dan preferensi.",
+    "eyebrow": "Akun LOKKA",
+    "backToAccount": "Kembali ke akun",
+    "continueShopping": "Kembali ke koleksi",
+    "login": {
+      "eyebrow": "Masuk",
+      "title": "Selamat datang kembali",
+      "subtitle": "Masuk untuk melanjutkan ke akun LOKKA Anda.",
+      "submit": "Masuk",
+      "noAccount": "Baru di LOKKA?",
+      "createAccount": "Buat akun"
+    },
+    "register": {
+      "eyebrow": "Daftar",
+      "title": "Buat akun Anda",
+      "subtitle": "Bergabung dengan LOKKA untuk menyimpan data dan preferensi Anda di satu tempat.",
+      "submit": "Buat akun",
+      "haveAccount": "Sudah punya akun?",
+      "signIn": "Masuk"
+    },
+    "home": {
+      "eyebrow": "Akun Anda",
+      "title": "Halo, {{name}}",
+      "subtitle": "Kelola profil dan keamanan akun Anda.",
+      "signedInAs": "Masuk sebagai {{email}}",
+      "profileTitle": "Profil",
+      "profileText": "Perbarui nama yang kami gunakan di seluruh LOKKA.",
+      "passwordTitle": "Kata sandi",
+      "passwordText": "Ubah kata sandi Anda dan keluarkan sesi lain.",
+      "manage": "Kelola",
+      "logout": "Keluar"
+    },
+    "profile": {
+      "eyebrow": "Profil",
+      "title": "Profil",
+      "subtitle": "Jaga data pribadi Anda tetap terbaru.",
+      "name": "Nama lengkap",
+      "email": "Alamat email",
+      "emailNote": "Alamat email digunakan untuk masuk dan tidak dapat diubah di sini.",
+      "submit": "Simpan perubahan"
+    },
+    "password": {
+      "eyebrow": "Keamanan",
+      "title": "Kata sandi",
+      "subtitle": "Pilih kata sandi kuat yang tidak Anda gunakan di tempat lain.",
+      "current": "Kata sandi saat ini",
+      "new": "Kata sandi baru",
+      "confirm": "Konfirmasi kata sandi baru",
+      "submit": "Perbarui kata sandi",
+      "hint": "Minimal 10 karakter."
+    },
+    "field": {
+      "name": "Nama lengkap",
+      "email": "Alamat email",
+      "password": "Kata sandi",
+      "confirmPassword": "Konfirmasi kata sandi",
+      "currentPassword": "Kata sandi saat ini",
+      "newPassword": "Kata sandi baru"
+    },
+    "button": {
+      "showPassword": "Tampilkan kata sandi",
+      "hidePassword": "Sembunyikan kata sandi"
+    },
+    "notice": {
+      "profileUpdated": "Profil Anda telah diperbarui.",
+      "passwordUpdated": "Kata sandi Anda telah diperbarui. Sesi lain telah dikeluarkan."
+    },
+    "error": {
+      "formTitle": "Periksa formulir.",
+      "nameRequired": "Masukkan nama lengkap Anda.",
+      "emailInvalid": "Masukkan alamat email yang valid.",
+      "emailTaken": "Akun dengan email ini sudah ada.",
+      "passwordLength": "Gunakan kata sandi antara 10 dan 128 karakter.",
+      "passwordMismatch": "Kata sandi tidak cocok.",
+      "currentPassword": "Kata sandi saat ini salah.",
+      "invalidCredentials": "Tidak dapat masuk dengan kredensial tersebut.",
+      "sessionExpired": "Sesi Anda berakhir. Silakan coba lagi."
+    }
   },
   "language": {
     "switchLabel": "Bahasa",

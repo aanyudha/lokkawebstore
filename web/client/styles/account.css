@@ -1,0 +1,290 @@
+/* ──────────────────────────────────────────────
+   ACCOUNT: customer identity & authentication
+   Editorial, premium, distinct from admin UI.
+   ────────────────────────────────────────────── */
+
+.account {
+  padding: var(--space-2xl) var(--space-md) var(--space-4xl);
+  background:
+    radial-gradient(
+      120% 80% at 100% 0%,
+      var(--color-brand-bg) 0%,
+      transparent 55%
+    ),
+    var(--color-bg);
+}
+
+.account-shell {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.account-shell--single {
+  max-width: 56rem;
+}
+
+.account-aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-2xl) var(--space-xl);
+  background: linear-gradient(
+    160deg,
+    var(--color-brand-bg) 0%,
+    var(--color-warm-white) 100%
+  );
+}
+
+.account-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  margin-bottom: var(--space-md);
+}
+
+.account-eyebrow {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 600;
+  color: var(--color-brand-light);
+}
+
+.account-heading {
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.account-lead {
+  color: var(--color-text-secondary);
+  max-width: 34ch;
+}
+
+.account-meta {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-sm);
+}
+
+.account-panel {
+  padding: var(--space-2xl) var(--space-xl);
+}
+
+.account-panel--wide {
+  padding: var(--space-3xl) var(--space-2xl);
+}
+
+/* ── Feedback ── */
+
+.account-error {
+  padding: var(--space-md);
+  border-left: 3px solid var(--color-brand);
+  background: var(--color-brand-bg);
+  margin-bottom: var(--space-lg);
+  font-size: 0.875rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.account-error strong {
+  font-weight: 600;
+}
+
+.account-notice {
+  padding: var(--space-md);
+  border-left: 3px solid var(--color-ink);
+  background: var(--color-off-white);
+  margin-bottom: var(--space-lg);
+  font-size: 0.875rem;
+}
+
+/* ── Form ── */
+
+.account-form {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.account-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.account-field > label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.account-field input {
+  padding: 0.75rem 0.875rem;
+  font-size: 0.9375rem;
+}
+
+.account-field small {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.account-field input[readonly] {
+  background: var(--color-off-white);
+  color: var(--color-text-secondary);
+}
+
+.account-field input[aria-invalid='true'] {
+  border-color: var(--color-brand);
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 6.5rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  transform: translateY(-50%);
+  padding: 0.4rem 0.5rem;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+}
+
+.password-toggle:hover {
+  color: var(--color-ink);
+}
+
+.account-submit {
+  width: 100%;
+  margin-top: var(--space-xs);
+}
+
+.account-alt {
+  margin-top: var(--space-lg);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.account-alt a {
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+}
+
+.account-back {
+  margin-top: var(--space-sm);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid currentColor;
+  align-self: flex-start;
+  padding-bottom: 2px;
+}
+
+/* ── Overview cards ── */
+
+.account-cards {
+  display: grid;
+  gap: var(--space-lg);
+  margin-top: var(--space-xl);
+}
+
+.account-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-warm-white);
+}
+
+.account-card h2 {
+  font-size: 1.1rem;
+}
+
+.account-card p {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+
+.account-card .btn {
+  align-self: flex-start;
+}
+
+.account-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--color-border-light);
+}
+
+/* ── Header account link ── */
+
+.header-account {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.header-account:hover {
+  color: var(--color-ink);
+}
+
+/* ──────────────────────────────────────────────
+   RESPONSIVE
+   ────────────────────────────────────────────── */
+
+@media (min-width: 860px) {
+  .account {
+    padding: var(--space-3xl) var(--space-xl) var(--space-4xl);
+  }
+
+  .account-shell {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    align-items: stretch;
+  }
+
+  .account-shell--single {
+    grid-template-columns: 1fr;
+  }
+
+  .account-aside {
+    padding: var(--space-3xl) var(--space-2xl);
+    justify-content: center;
+  }
+
+  .account-panel {
+    padding: var(--space-3xl) var(--space-2xl);
+  }
+
+  .account-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
