@@ -33,6 +33,10 @@ export const adminNavigation = [
     ],
   },
   {
+    label: 'Sales',
+    items: [{ label: 'POS', href: '/pos', area: 'pos' }],
+  },
+  {
     label: 'Finance',
     items: [
       {

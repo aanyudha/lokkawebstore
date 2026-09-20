@@ -1,5 +1,5 @@
 <form method="post" action="/pos/login" class="pos-auth-form" data-pos-login>
-  <input type="hidden" name="csrf" value="<%= csrf %>" />
+  <input type="hidden" name="csrf" value="<%= loginCsrf %>" />
   <% if (locals.error) { %>
     <div class="pos-error" role="alert"><%= error.message %></div>
   <% } %>

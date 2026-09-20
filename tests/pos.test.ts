@@ -165,6 +165,14 @@ describe('POS Authentication', () => {
     expect(res.body).toContain('Sign in to POS');
   });
 
+  it('renders a non-empty CSRF token in the login form', async () => {
+    const res = await app.inject('/pos/login');
+    expect(res.statusCode).toBe(200);
+    const csrfMatch = res.body.match(/name="csrf"\s+value="([a-f0-9]{64})"/);
+    expect(csrfMatch).not.toBeNull();
+    expect(csrfMatch![1]).toMatch(/^[a-f0-9]{64}$/);
+  });
+
   it('rejects invalid credentials', async () => {
     const res = await posLogin('wrongpassword');
     expect(res.statusCode).toBe(401);

@@ -103,16 +103,35 @@ describe('admin presentation boundaries', () => {
       '/admin/categories',
       '/admin/inventory',
       '/admin/media',
+      '/pos',
       '/admin/finance/overhead',
       '/admin/settings/fulfillment',
     ])
       expect(nav).toContain(`href="${path}"`);
-    expect(nav.match(/href=/g)).toHaveLength(7);
+    expect(nav.match(/href=/g)).toHaveLength(8);
     expect(nav).not.toMatch(
-      /POS|Orders|Customers|Story|Lookbook|Cash Flow|Accounting|Legal|Tax|SMEXPO|Reports|User Management/,
+      /Orders|Customers|Story|Lookbook|Cash Flow|Accounting|Legal|Tax|SMEXPO|Reports|User Management/,
     );
     expect(response.body).toContain('aria-controls="admin-sidebar"');
     expect(response.body).toContain('aria-expanded="false"');
+  });
+  it('includes a Sales → POS shortcut linking to the separate POS surface', async () => {
+    const response = await get('/admin');
+    const nav = response.body.match(
+      /<nav aria-label="Admin">([\s\S]*?)<\/nav>/,
+    )![1]!;
+    expect(nav).toContain('Sales');
+    expect(nav).toContain('POS');
+    expect(nav).toContain('href="/pos"');
+    expect(nav).not.toMatch(/href="\/pos\/login"/);
+    expect(nav).not.toMatch(/href="\/admin\/pos"/);
+  });
+  it('does not expose POS in customer/public navigation', async () => {
+    for (const url of ['/', '/collections', '/account/login']) {
+      const response = await app.inject(url);
+      expect(response.body).not.toContain('href="/pos"');
+      expect(response.body).not.toMatch(/>POS</);
+    }
   });
   it('keeps nested product pages active and all pages in one shell', async () => {
     const pages: [string, string][] = [
