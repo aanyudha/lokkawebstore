@@ -30,11 +30,6 @@ export const adminNavigation = [
       { label: 'Categories', href: '/admin/categories', area: 'categories' },
       { label: 'Inventory', href: '/admin/inventory', area: 'inventory' },
       { label: 'Media', href: '/admin/media', area: 'media' },
-      {
-        label: 'Product Showcase',
-        href: '/admin/showcase',
-        area: 'showcase',
-      },
     ],
   },
   {
@@ -157,21 +152,6 @@ function metadata(page: string, data: Record<string, unknown>) {
       description: 'Maintain the dispatch details used by your business.',
       area: 'fulfillment',
       breadcrumbs: [{ label: 'Settings' }, { label: 'Fulfillment' }],
-    },
-    'showcase-index': {
-      title: 'Product Showcase',
-      description: 'Manage editorial readiness for product photography.',
-      area: 'showcase',
-      breadcrumbs: [{ label: 'Product Showcase' }],
-    },
-    'showcase-editor': {
-      title: product ? `Showcase — ${product.name}` : 'Showcase editor',
-      description: 'Select, order and review product showcase images.',
-      area: 'showcase',
-      breadcrumbs: [
-        { label: 'Product Showcase', href: '/admin/showcase' },
-        { label: product?.name ?? 'Product' },
-      ],
     },
   };
   return (

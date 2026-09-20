@@ -287,21 +287,30 @@ describe('admin security', () => {
       ).statusCode,
     ).toBe(403);
   });
-  it.each(['https://foreign.test', 'http://127.0.0.1:3000'])(
-    'rejects an origin that differs from configured localhost: %s',
-    async (origin) => {
-      expect(
-        (
-          await app.inject({
-            method: 'POST',
-            url: '/admin/logout',
-            headers: { cookie, origin },
-            payload: { csrf },
-          })
-        ).statusCode,
-      ).toBe(403);
-    },
-  );
+  it('rejects an origin that differs from configured localhost', async () => {
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/admin/logout',
+          headers: { cookie, origin: 'https://foreign.test' },
+          payload: { csrf },
+        })
+      ).statusCode,
+    ).toBe(403);
+  });
+  it('accepts loopback alias http://127.0.0.1 in development', async () => {
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/admin/categories',
+          headers: { cookie, origin: 'http://127.0.0.1:3000' },
+          payload: { csrf, name: '', status: 'hidden' },
+        })
+      ).statusCode,
+    ).not.toBe(403);
+  });
   it('cannot bypass logout CSRF using multipart', async () => {
     expect(
       (

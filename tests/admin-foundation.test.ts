@@ -103,12 +103,11 @@ describe('admin presentation boundaries', () => {
       '/admin/categories',
       '/admin/inventory',
       '/admin/media',
-      '/admin/showcase',
       '/admin/finance/overhead',
       '/admin/settings/fulfillment',
     ])
       expect(nav).toContain(`href="${path}"`);
-    expect(nav.match(/href=/g)).toHaveLength(8);
+    expect(nav.match(/href=/g)).toHaveLength(7);
     expect(nav).not.toMatch(
       /POS|Orders|Customers|Story|Lookbook|Cash Flow|Accounting|Legal|Tax|SMEXPO|Reports|User Management/,
     );
@@ -127,7 +126,6 @@ describe('admin presentation boundaries', () => {
       [`/admin/categories/${categoryId}/edit`, '/admin/categories'],
       ['/admin/inventory', '/admin/inventory'],
       ['/admin/media', '/admin/media'],
-      ['/admin/showcase', '/admin/showcase'],
       ['/admin/finance/overhead', '/admin/finance/overhead'],
       ['/admin/settings/fulfillment', '/admin/settings/fulfillment'],
     ];

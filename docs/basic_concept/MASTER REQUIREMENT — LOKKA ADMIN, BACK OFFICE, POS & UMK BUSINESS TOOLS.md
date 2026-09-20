@@ -724,13 +724,35 @@ Actual schema harus mengikuti architecture repository existing.
 
 Jangan memaksakan nama model sebelum audit.
 
+DUA SALES SOURCES — INVARIANT
+
+Dua sumber penjualan utama LOKKA:
+
+WEBSTORE
+- pembelian oleh customers melalui public storefront
+- customer-facing ecommerce transactions
+
+POS
+- penjualan internal LOKKA melalui protected POS workspace
+- internal cashier / sales transactions
+
+Keduanya harus pada akhirnya konvergen ke transaction dan finance foundation yang sama dan memberikan data ke:
+
+- payments
+- inventory movements
+- Cash Flow
+- Accounting Lite
+- Tax Readiness
+
 14. POS — PROTECTED OPERATIONAL WORKSPACE
 
-POS adalah protected operational application surface dalam codebase LOKKA yang menggunakan URL dan layout tersendiri. POS tidak ditampilkan dalam navigation public dan bukan customer-facing feature. POS menggunakan authentication/authorization internal LOKKA serta shared product, sales, inventory, payment, dan finance domain. Admin Back Office dapat menyediakan shortcut internal menuju POS, tetapi tidak boleh mempunyai implementasi POS kedua.
+POS adalah protected internal cashier / sales workspace — operational application surface dalam codebase LOKKA yang menggunakan URL dan layout tersendiri. POS tidak ditampilkan dalam navigation public dan bukan customer-facing feature. POS menggunakan authentication/authorization internal LOKKA serta shared product, sales, inventory, payment, dan finance domain. Admin Back Office dapat menyediakan shortcut internal menuju POS, tetapi tidak boleh mempunyai implementasi POS kedua.
 
-POS bukan storefront.
+POS bukan customer storefront.
 
-POS bukan halaman CRUD admin biasa.
+POS bukan generic admin CRUD.
+
+POS bukan sistem finance terpisah.
 
 POS menggunakan layout sendiri:
 

@@ -8,7 +8,6 @@ import type { CatalogImageStorage, ImageSize } from '../catalog/storage.js';
 import { createFinance } from '../finance/service.js';
 import { createFulfillment } from '../shipping/service.js';
 import { registerCommercialAdmin } from './commercial-routes.js';
-import { registerShowcaseAdmin } from './showcase-routes.js';
 import { renderAdmin, renderAdminError } from './presentation.js';
 const body = (request: FastifyRequest) => (request.body ?? {}) as Form;
 export async function registerAdmin(
@@ -17,7 +16,6 @@ export async function registerAdmin(
   catalog: Catalog,
   env: AppEnv,
   storage: CatalogImageStorage,
-  showcase?: import('../catalog/showcase.js').Showcase,
 ) {
   const auth = createAuth(db);
   const cookies = {
@@ -113,16 +111,35 @@ export async function registerAdmin(
           // Multipart CSRF is validated from the first part before processing any file.
           if (
             !['GET', 'HEAD'].includes(request.method) &&
-            request.headers.origin &&
-            request.headers.origin !== new URL(env.appUrl).origin
-          )
-            return renderAdminError(
-              reply,
-              403,
-              'Invalid origin.',
-              request.internalAdmin,
-              request.cookies.lokka_admin_csrf,
-            );
+            request.headers.origin
+          ) {
+            const origin = request.headers.origin;
+            const allowed = new URL(env.appUrl).origin;
+            let originOk = origin === allowed;
+            // Development loopback alias: accept localhost ↔ 127.0.0.1
+            if (!originOk && env.nodeEnv !== 'production') {
+              try {
+                const cfg = new URL(env.appUrl);
+                const alias =
+                  cfg.hostname === 'localhost'
+                    ? `http://127.0.0.1:${cfg.port}`
+                    : cfg.hostname === '127.0.0.1'
+                      ? `http://localhost:${cfg.port}`
+                      : '';
+                if (alias && origin === alias) originOk = true;
+              } catch {
+                // invalid APP_URL — strict check above will fail
+              }
+            }
+            if (!originOk)
+              return renderAdminError(
+                reply,
+                403,
+                'Invalid origin.',
+                request.internalAdmin,
+                request.cookies.lokka_admin_csrf,
+              );
+          }
         });
         protectedRoutes.addHook('preHandler', async (request, reply) => {
           if (
@@ -172,15 +189,6 @@ export async function registerAdmin(
           createFulfillment(db, catalog),
           page,
         );
-        if (showcase) {
-          registerShowcaseAdmin(
-            protectedRoutes,
-            showcase,
-            catalog,
-            storage,
-            page,
-          );
-        }
         protectedRoutes.get<{ Params: { id: string; imageId: string } }>(
           '/products/:id/images/:imageId/preview',
           async (request, reply) => {
