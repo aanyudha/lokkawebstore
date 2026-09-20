@@ -6,7 +6,11 @@ export default defineConfig({
     emptyOutDir: true,
     cssCodeSplit: true,
     lib: {
-      entry: { main: 'web/client/main.ts', admin: 'web/client/admin.ts' },
+      entry: {
+        main: 'web/client/main.ts',
+        admin: 'web/client/admin.ts',
+        pos: 'web/client/pos.ts',
+      },
       formats: ['es'],
       fileName: (_format, entryName) => `${entryName}.[hash].js`,
     },

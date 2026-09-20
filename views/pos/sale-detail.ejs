@@ -1,0 +1,59 @@
+<div class="pos-sale-detail">
+  <div class="pos-sale-detail-header">
+    <a href="/pos/history" class="pos-btn pos-btn-ghost">Back to history</a>
+    <a href="/pos" class="pos-btn pos-btn-primary">New sale</a>
+  </div>
+  <div class="pos-receipt-printable">
+    <div class="pos-receipt-header">
+      <h2>LOKKA</h2>
+      <p>Point of Sale</p>
+    </div>
+    <div class="pos-receipt-meta">
+      <p><strong>Transaction:</strong> <%= sale.transactionNumber %></p>
+      <p><strong>Date:</strong> <%= new Date(sale.createdAt).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' }) %></p>
+      <p><strong>Source:</strong> <%= sale.source %></p>
+      <p><strong>Cashier:</strong> <%= sale.cashier?.name ?? '—' %></p>
+      <p><strong>Status:</strong> <%= sale.status %></p>
+    </div>
+    <table class="pos-receipt-items" aria-label="Sale items">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Qty</th>
+          <th>Unit Price</th>
+          <th>Line Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% for (const item of sale.items) { %>
+          <tr>
+            <td>
+              <strong><%= item.productNameSnapshot %></strong><br />
+              <small><%= item.variantNameSnapshot %> &middot; <%= item.skuSnapshot %></small>
+            </td>
+            <td><%= item.quantity %></td>
+            <td><%= new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(item.unitPrice)) %></td>
+            <td><%= new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(item.lineTotal)) %></td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+    <div class="pos-receipt-totals">
+      <div class="pos-receipt-row"><span>Subtotal</span><span><%= new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(sale.subtotal)) %></span></div>
+      <div class="pos-receipt-row pos-receipt-total"><span>Total</span><span><%= new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(sale.total)) %></span></div>
+    </div>
+    <% if (sale.payments.length) { %>
+      <div class="pos-receipt-payment">
+        <% for (const p of sale.payments) { %>
+          <div class="pos-receipt-row"><span>Payment (<%= p.method %>)</span><span><%= new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(p.amountTendered)) %></span></div>
+          <% if (Number(p.changeAmount) > 0) { %>
+            <div class="pos-receipt-row"><span>Change</span><span><%= new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(p.changeAmount)) %></span></div>
+          <% } %>
+        <% } %>
+      </div>
+    <% } %>
+  </div>
+  <div class="pos-sale-detail-actions no-print">
+    <button type="button" class="pos-btn pos-btn-ghost" onclick="window.print()">Print receipt</button>
+  </div>
+</div>

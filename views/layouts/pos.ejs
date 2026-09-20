@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head><%- include('../partials/pos/head.ejs') %></head>
+<body class="pos-ui" data-pos-layout="register">
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="pos-shell">
+  <header class="pos-topbar">
+    <div class="pos-topbar-left">
+      <h1 class="pos-brand">LOKKA <span>POS</span></h1>
+    </div>
+    <div class="pos-topbar-center">
+      <span class="pos-register-status" aria-live="polite">Register</span>
+    </div>
+    <div class="pos-topbar-right">
+      <span class="pos-cashier-name"><%= principal.name %></span>
+      <a href="/pos/history" class="pos-nav-link">History</a>
+      <form method="post" action="/pos/logout" class="pos-logout-form">
+        <input type="hidden" name="csrf" value="<%= csrf %>" />
+        <button type="submit" class="pos-btn pos-btn-ghost">Sign out</button>
+      </form>
+    </div>
+  </header>
+  <main id="main" class="pos-main" tabindex="-1">
+    <%- body %>
+  </main>
+</div>
+</body>
+</html>

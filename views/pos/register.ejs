@@ -1,0 +1,81 @@
+<div class="pos-register" data-pos-register>
+  <div class="pos-catalog-panel">
+    <div class="pos-search">
+      <label for="pos-product-search" class="sr-only">Search products</label>
+      <input type="search" id="pos-product-search" placeholder="Search by name or SKU..." autocomplete="off" data-pos-search />
+      <span class="pos-search-hint" aria-live="polite" data-pos-search-status></span>
+    </div>
+    <div class="pos-product-grid" data-pos-product-grid role="list" aria-label="Product catalog">
+      <p class="pos-empty-catalog">Search for products to begin a sale.</p>
+    </div>
+  </div>
+  <div class="pos-cart-panel">
+    <div class="pos-cart-header">
+      <h2>Current Sale</h2>
+      <span class="pos-cart-count" data-pos-cart-count aria-live="polite">0 items</span>
+    </div>
+    <div class="pos-cart-lines" data-pos-cart-lines role="list" aria-label="Cart items">
+      <p class="pos-empty-cart">No items in sale.</p>
+    </div>
+    <div class="pos-cart-summary">
+      <div class="pos-summary-row"><span>Subtotal</span><span data-pos-subtotal>Rp0</span></div>
+      <div class="pos-summary-row pos-total"><span>Total</span><span data-pos-total>Rp0</span></div>
+    </div>
+    <div class="pos-cart-actions">
+      <button type="button" class="pos-btn pos-btn-ghost" data-pos-cancel disabled>Cancel</button>
+      <button type="button" class="pos-btn pos-btn-primary" data-pos-pay disabled>Pay</button>
+    </div>
+  </div>
+</div>
+
+<div class="pos-modal" data-pos-payment-modal hidden aria-modal="true" role="dialog">
+  <div class="pos-modal-backdrop" data-pos-payment-close></div>
+  <div class="pos-modal-content">
+    <h2>Payment</h2>
+    <div class="pos-payment-total">
+      <span>Total due</span>
+      <span data-pos-payment-due>Rp0</span>
+    </div>
+    <div class="pos-field">
+      <label for="pos-cash-input">Cash received</label>
+      <input type="text" id="pos-cash-input" inputmode="numeric" data-pos-cash-input placeholder="0" />
+    </div>
+    <div class="pos-change-display">
+      <span>Change</span>
+      <span data-pos-change>Rp0</span>
+    </div>
+    <div class="pos-exact-cash">
+      <button type="button" class="pos-btn pos-btn-ghost" data-pos-exact-cash>Exact amount</button>
+    </div>
+    <div class="pos-payment-actions">
+      <button type="button" class="pos-btn pos-btn-ghost" data-pos-payment-close-btn>Cancel</button>
+      <button type="button" class="pos-btn pos-btn-primary" data-pos-complete-sale disabled>Complete sale</button>
+    </div>
+  </div>
+</div>
+
+<div class="pos-modal" data-pos-receipt-modal hidden aria-modal="true" role="dialog">
+  <div class="pos-modal-backdrop" data-pos-receipt-close></div>
+  <div class="pos-modal-content pos-receipt">
+    <div class="pos-receipt-header">
+      <h2>LOKKA</h2>
+      <p>Point of Sale</p>
+    </div>
+    <div class="pos-receipt-details" data-pos-receipt-content></div>
+    <div class="pos-receipt-actions">
+      <button type="button" class="pos-btn pos-btn-ghost" data-pos-print-receipt>Print</button>
+      <button type="button" class="pos-btn pos-btn-primary" data-pos-new-sale>New sale</button>
+    </div>
+  </div>
+</div>
+
+<div class="pos-modal" data-pos-variant-modal hidden aria-modal="true" role="dialog">
+  <div class="pos-modal-backdrop" data-pos-variant-close></div>
+  <div class="pos-modal-content">
+    <h2 data-pos-variant-product-name>Select variant</h2>
+    <div class="pos-variant-list" data-pos-variant-list role="listbox" aria-label="Product variants"></div>
+    <div class="pos-variant-actions">
+      <button type="button" class="pos-btn pos-btn-ghost" data-pos-variant-close-btn>Cancel</button>
+    </div>
+  </div>
+</div>

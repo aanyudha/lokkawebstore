@@ -19,4 +19,4 @@
 - Admin mutations require active DB sessions, CSRF validation, ownership checks and server-side validation. Use existing catalog services and storage abstraction.
 - Integration tests require migrated PostgreSQL. Browser checks use npm run test:browser after build.
 
-Next milestone after review: Cart, Checkout Foundation & Stock Reservation.
+Next milestone: Transaction Foundation + POS MVP. Webstore checkout is future work.

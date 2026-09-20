@@ -18,6 +18,8 @@ import { registerCatalog } from './modules/catalog/routes.js';
 import { registerAdmin } from './modules/admin/routes.js';
 import { renderAdminError } from './modules/admin/presentation.js';
 import { registerCustomer } from './modules/customer/routes.js';
+import { registerPos } from './modules/pos/routes.js';
+import { renderPosError } from './modules/pos/presentation.js';
 import { getAssets, resetAssets } from './config/assets.js';
 import { orderedLocales } from './i18n/index.js';
 import { t } from './i18n/translator.js';
@@ -138,6 +140,12 @@ export async function buildApp(
       root: resolve('views'),
       propertyName: 'adminView',
     });
+    // A separate renderer for POS layout isolation.
+    await app.register(view, {
+      engine: { ejs },
+      root: resolve('views'),
+      propertyName: 'posView',
+    });
     // ─── Official logo route (original PNG, not for web delivery) ───
     app.get('/images/lokka_logo.png', async (_request, reply) =>
       reply
@@ -176,6 +184,17 @@ export async function buildApp(
           'The requested admin page could not be found.',
           request.internalAdmin,
           request.cookies.lokka_admin_csrf,
+        );
+      if (
+        request.url.split('?')[0] === '/pos' ||
+        request.url.startsWith('/pos/')
+      )
+        return renderPosError(
+          reply,
+          404,
+          'The requested POS page could not be found.',
+          request.posPrincipal,
+          request.cookies.lokka_pos_csrf,
         );
       if (request.url.startsWith('/api/')) return { error: 'Not found' };
       const locale = request.url.startsWith('/id') ? 'id' : 'en';
@@ -217,6 +236,17 @@ export async function buildApp(
           request.cookies.lokka_admin_csrf,
         );
       if (
+        request.url.split('?')[0] === '/pos' ||
+        request.url.startsWith('/pos/')
+      )
+        return renderPosError(
+          reply,
+          status,
+          message,
+          request.posPrincipal,
+          request.cookies.lokka_pos_csrf,
+        );
+      if (
         request.url.startsWith('/api/') ||
         request.url === '/ready' ||
         request.url === '/health'
@@ -243,6 +273,7 @@ export async function buildApp(
     if (catalog && database.db) {
       await registerCatalog(app, catalog, storage, env);
       await registerAdmin(app, database.db, catalog, env, storage);
+      await registerPos(app, database.db, env, storage);
     }
     return app;
   } catch (error) {

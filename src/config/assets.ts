@@ -9,7 +9,7 @@ const cachedAssets = new Map<string, { css: string; js: string }>();
  * Resolve the content-hashed asset filenames from Vite build output.
  * Falls back to unhashed names if build directory is missing.
  */
-export function getAssets(entry: 'main' | 'admin' = 'main'): {
+export function getAssets(entry: 'main' | 'admin' | 'pos' = 'main'): {
   css: string;
   js: string;
 } {

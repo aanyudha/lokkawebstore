@@ -483,3 +483,202 @@ export const productImages = pgTable(
       .where(sql`${t.isPrimary} = true`),
   ],
 );
+// ─── Transaction Foundation ──────────────────────────────────
+export const saleSource = pgEnum('sale_source', [
+  'POS',
+  'WEBSTORE',
+  'MARKETPLACE',
+  'MANUAL',
+]);
+export const saleStatus = pgEnum('sale_status', [
+  'pending',
+  'completed',
+  'cancelled',
+  'refunded',
+]);
+export const paymentMethod = pgEnum('payment_method', [
+  'CASH',
+  'QRIS',
+  'CARD',
+  'BANK_TRANSFER',
+  'E_WALLET',
+]);
+export const paymentStatus = pgEnum('payment_status', [
+  'PENDING',
+  'COMPLETED',
+  'FAILED',
+  'REFUNDED',
+]);
+export const inventoryMovementType = pgEnum('inventory_movement_type', [
+  'SALE',
+  'RETURN',
+  'MANUAL_ADJUSTMENT',
+  'CORRECTION',
+]);
+export const inventoryMovementRefType = pgEnum(
+  'inventory_movement_reference_type',
+  ['SALE', 'RETURN', 'MANUAL'],
+);
+// ─── POS Sessions (isolated from admin sessions) ────────────
+export const posSessions = pgTable(
+  'pos_sessions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    adminUserId: uuid('admin_user_id')
+      .notNull()
+      .references(() => adminUsers.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull().unique(),
+    csrfTokenHash: text('csrf_token_hash').notNull(),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index('pos_sessions_expiration_idx').on(t.expiresAt),
+    index('pos_sessions_user_idx').on(t.adminUserId),
+  ],
+);
+// ─── Transaction Counter (collision-safe numbering) ─────────
+export const transactionCounters = pgTable('transaction_counters', {
+  date: date('date').primaryKey(),
+  nextSequence: integer('next_sequence').default(1).notNull(),
+});
+// ─── Sales ──────────────────────────────────────────────────
+export const sales = pgTable(
+  'sales',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    transactionNumber: text('transaction_number').notNull().unique(),
+    source: saleSource('source').notNull(),
+    status: saleStatus('status').default('pending').notNull(),
+    customerId: uuid('customer_id').references(() => customers.id),
+    cashierId: uuid('cashier_id').references(() => adminUsers.id),
+    subtotal: bigint('subtotal', { mode: 'bigint' }).notNull(),
+    discountAmount: bigint('discount_amount', { mode: 'bigint' })
+      .default(sql`0`)
+      .notNull(),
+    total: bigint('total', { mode: 'bigint' }).notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    index('sales_source_idx').on(t.source),
+    index('sales_status_idx').on(t.status),
+    index('sales_cashier_idx').on(t.cashierId),
+    index('sales_customer_idx').on(t.customerId),
+    index('sales_created_at_idx').on(t.createdAt),
+  ],
+);
+// ─── Sale Items (historical snapshot) ───────────────────────
+export const saleItems = pgTable(
+  'sale_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    saleId: uuid('sale_id')
+      .notNull()
+      .references(() => sales.id, { onDelete: 'cascade' }),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id),
+    variantId: uuid('variant_id')
+      .notNull()
+      .references(() => productVariants.id),
+    skuSnapshot: text('sku_snapshot').notNull(),
+    productNameSnapshot: text('product_name_snapshot').notNull(),
+    variantNameSnapshot: text('variant_name_snapshot').notNull(),
+    quantity: integer('quantity').notNull(),
+    unitPrice: bigint('unit_price', { mode: 'bigint' }).notNull(),
+    lineTotal: bigint('line_total', { mode: 'bigint' }).notNull(),
+    costSnapshot: bigint('cost_snapshot', { mode: 'bigint' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index('sale_items_sale_idx').on(t.saleId),
+    index('sale_items_product_idx').on(t.productId),
+    index('sale_items_variant_idx').on(t.variantId),
+    check('sale_items_quantity_positive', sql`${t.quantity} > 0`),
+  ],
+);
+// ─── Sale Payments ──────────────────────────────────────────
+export const salePayments = pgTable(
+  'sale_payments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    saleId: uuid('sale_id')
+      .notNull()
+      .references(() => sales.id, { onDelete: 'cascade' }),
+    method: paymentMethod('method').notNull(),
+    status: paymentStatus('status').default('PENDING').notNull(),
+    amountDue: bigint('amount_due', { mode: 'bigint' }).notNull(),
+    amountTendered: bigint('amount_tendered', { mode: 'bigint' }).notNull(),
+    changeAmount: bigint('change_amount', { mode: 'bigint' })
+      .default(sql`0`)
+      .notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    index('sale_payments_sale_idx').on(t.saleId),
+    index('sale_payments_method_idx').on(t.method),
+    index('sale_payments_status_idx').on(t.status),
+  ],
+);
+// ─── Inventory Movements ────────────────────────────────────
+export const inventoryMovements = pgTable(
+  'inventory_movements',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    variantId: uuid('variant_id')
+      .notNull()
+      .references(() => productVariants.id),
+    type: inventoryMovementType('type').notNull(),
+    quantityChange: integer('quantity_change').notNull(),
+    referenceType: inventoryMovementRefType('reference_type').notNull(),
+    referenceId: uuid('reference_id'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index('inventory_movements_variant_idx').on(t.variantId),
+    index('inventory_movements_type_idx').on(t.type),
+    index('inventory_movements_reference_idx').on(
+      t.referenceType,
+      t.referenceId,
+    ),
+    index('inventory_movements_created_at_idx').on(t.createdAt),
+  ],
+);
+// ─── Financial Transactions (downstream finance events) ─────
+export const financialTransactions = pgTable(
+  'financial_transactions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    saleId: uuid('sale_id')
+      .notNull()
+      .references(() => sales.id),
+    source: saleSource('source').notNull(),
+    type: text('type', { enum: ['REVENUE', 'CASH_INFLOW'] }).notNull(),
+    amountRupiah: bigint('amount_rupiah', { mode: 'bigint' }).notNull(),
+    saleDate: timestamp('sale_date', { withTimezone: true }).notNull(),
+    periodMonth: date('period_month').notNull(),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index('financial_transactions_sale_idx').on(t.saleId),
+    index('financial_transactions_source_idx').on(t.source),
+    index('financial_transactions_type_idx').on(t.type),
+    index('financial_transactions_period_idx').on(t.periodMonth),
+    index('financial_transactions_created_at_idx').on(t.createdAt),
+  ],
+);

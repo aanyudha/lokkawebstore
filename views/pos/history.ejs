@@ -1,0 +1,42 @@
+<div class="pos-history">
+  <div class="pos-history-header">
+    <h2>Sales History</h2>
+    <a href="/pos" class="pos-btn pos-btn-primary">New sale</a>
+  </div>
+  <% if (!sales.length) { %>
+    <div class="pos-empty-state">
+      <p>No sales recorded yet.</p>
+    </div>
+  <% } else { %>
+    <div style="overflow-x:auto">
+      <table class="pos-history-table" aria-label="Sales history">
+        <thead>
+          <tr>
+            <th scope="col">Transaction #</th>
+            <th scope="col">Date/Time</th>
+            <th scope="col">Items</th>
+            <th scope="col">Total</th>
+            <th scope="col">Payment</th>
+            <th scope="col">Status</th>
+            <th scope="col">Cashier</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for (const s of sales) { %>
+            <tr>
+              <td class="pos-history-txn"><%= s.transactionNumber %></td>
+              <td><%= new Date(s.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) %></td>
+              <td><%= s.itemCount %></td>
+              <td class="pos-history-total"><%= s.totalFormatted %></td>
+              <td><%= s.paymentMethod %></td>
+              <td><span class="pos-status pos-status-<%= s.status.toLowerCase() %>"><%= s.status %></span></td>
+              <td><%= s.cashierName ?? '—' %></td>
+              <td><a href="/pos/sales/<%= s.id %>" class="pos-btn pos-btn-small">Receipt</a></td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>

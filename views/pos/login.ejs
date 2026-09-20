@@ -1,0 +1,16 @@
+<form method="post" action="/pos/login" class="pos-auth-form" data-pos-login>
+  <input type="hidden" name="csrf" value="<%= csrf %>" />
+  <% if (locals.error) { %>
+    <div class="pos-error" role="alert"><%= error.message %></div>
+  <% } %>
+  <div class="pos-field">
+    <label for="pos-email">Email</label>
+    <input type="email" id="pos-email" name="email" required autocomplete="username" value="<%= locals.values?.email ?? '' %>" />
+  </div>
+  <div class="pos-field">
+    <label for="pos-password">Password</label>
+    <input type="password" id="pos-password" name="password" required autocomplete="current-password" />
+  </div>
+  <button type="submit" class="pos-btn pos-btn-primary pos-btn-full">Sign in to POS</button>
+  <p class="pos-auth-footer">LOKKA Internal Use Only</p>
+</form>

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head><%- include('../partials/pos/head.ejs') %></head>
+<body class="pos-ui pos-auth">
+<a class="skip-link" href="#main">Skip to content</a>
+<main id="main" class="pos-auth-workspace">
+  <section class="pos-auth-brand" aria-label="LOKKA POS">
+    <div class="pos-auth-logo">
+      <img src="/images/brand/lokka-logo.webp" width="120" height="60" alt="LOKKA" />
+    </div>
+    <h1>LOKKA POS</h1>
+    <p class="pos-auth-subtitle">Point of Sale</p>
+  </section>
+  <section class="pos-auth-panel"><%- body %></section>
+</main>
+</body>
+</html>
