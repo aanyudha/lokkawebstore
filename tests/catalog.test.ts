@@ -7,6 +7,7 @@ import sharp from 'sharp';
 import { buildApp } from '../src/app.js';
 import { readEnv } from '../src/config/env.js';
 import { createDatabase } from '../src/db/client.js';
+import { commercialDatabase } from './helpers/commercial-database.js';
 import {
   adminUsers,
   adminSessions,
@@ -25,17 +26,18 @@ import {
   slug,
 } from '../src/modules/catalog/validation.js';
 import type { FastifyInstance } from 'fastify';
+
+let fixture: Awaited<ReturnType<typeof commercialDatabase>>;
 const run = randomUUID();
 const env = readEnv({
   ...process.env,
   NODE_ENV: 'test',
-  DATABASE_URL: process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL,
   APP_URL: 'http://localhost:3000',
   CATALOG_STORAGE_ROOT: `storage/tests/${run}`,
 });
-const database = createDatabase(env.databaseUrl);
-const storage = new LocalCatalogImageStorage(env.catalogStorageRoot);
-const catalog = createCatalog(database.db, storage);
+let database: ReturnType<typeof createDatabase>;
+let storage: LocalCatalogImageStorage;
+let catalog: ReturnType<typeof createCatalog>;
 let app: FastifyInstance;
 let userId: string;
 let cookie = '';
@@ -107,6 +109,10 @@ async function createCategoryTranslations(
 }
 
 beforeAll(async () => {
+  fixture = await commercialDatabase();
+  database = fixture.database;
+  storage = new LocalCatalogImageStorage(env.catalogStorageRoot);
+  catalog = createCatalog(database.db, storage);
   await database.check();
   await database.db
     .insert(vendors)
@@ -121,7 +127,17 @@ beforeAll(async () => {
     })
     .returning();
   userId = user!.id;
-  app = await buildApp(env, { database, logger: false });
+  const testEnv = readEnv({
+    ...process.env,
+    NODE_ENV: 'test',
+    DATABASE_URL: fixture.url,
+    APP_URL: 'http://localhost:3000',
+    CATALOG_STORAGE_ROOT: `storage/tests/${run}`,
+  });
+  app = await buildApp(testEnv, {
+    database: { db: database.db, check: database.check, close: async () => {} },
+    logger: false,
+  });
   const result = await login();
   expect(result.statusCode).toBe(303);
   cookie = result.cookies
@@ -151,8 +167,10 @@ afterAll(async () => {
   }
   if (userId)
     await database.db.delete(adminUsers).where(eq(adminUsers.id, userId));
+  await database.db.delete(vendors).where(eq(vendors.slug, 'lokka'));
   await Promise.all(imageKeys.map((key) => storage.remove(key)));
   await app?.close();
+  await fixture?.cleanup();
 }, 30000);
 describe('admin security', () => {
   it('sets Secure cookies in production', async () => {
@@ -671,6 +689,61 @@ describe('catalog workflow', () => {
     expect(
       (await app.inject('/id/produk/nonexistent-product')).statusCode,
     ).toBe(404);
+  });
+  it('auto-creates an English translation when saving a new product', async () => {
+    const p = await catalog.saveProduct({
+      name: `Auto Translate ${run}`,
+      slug: `auto-translate-${run}`,
+      status: 'draft',
+    });
+    productIds.push(p.id);
+    const translation = await catalog.productTranslationFor(p.id, 'en');
+    expect(translation).not.toBeNull();
+    expect(translation!.name).toBe(`Auto Translate ${run}`);
+    expect(translation!.slug).toBe(`auto-translate-${run}`);
+    await expect(
+      catalog.saveProduct(
+        {
+          name: `Auto Translate ${run}`,
+          slug: `auto-translate-${run}`,
+          status: 'draft',
+        },
+        p.id,
+      ),
+    ).resolves.toBeDefined();
+    const after = await catalog.productTranslationFor(p.id, 'en');
+    expect(after!.name).toBe(`Auto Translate ${run}`);
+  });
+  it('makes admin-created product visible on storefront via auto-translation', async () => {
+    const product = await catalog.saveProduct({
+      name: `Storefront Visible ${run}`,
+      slug: `storefront-visible-${run}`,
+      status: 'draft',
+    });
+    productIds.push(product.id);
+    await catalog.saveVariant(product.id, {
+      name: 'Regular',
+      sku: `SV-${run}`,
+      price: '50000',
+      weightGrams: '100',
+      stockQuantity: '10',
+      status: 'active',
+      sortOrder: '0',
+    });
+    await catalog.saveProduct(
+      {
+        name: `Storefront Visible ${run}`,
+        slug: `storefront-visible-${run}`,
+        status: 'active',
+      },
+      product.id,
+    );
+    expect(
+      (await app.inject(`/product/storefront-visible-${run}`)).statusCode,
+    ).toBe(200);
+    expect(
+      (await app.inject(`/id/produk/storefront-visible-${run}`)).statusCode,
+    ).toBe(200);
   });
   it('rejects ownership mismatches', async () => {
     await expect(catalog.saveVariant(randomUUID(), {})).rejects.toThrow(

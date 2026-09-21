@@ -882,4 +882,27 @@
   body {
     background: #fff;
   }
+  .pos-modal {
+    position: static !important;
+    display: block !important;
+  }
+  .pos-modal-backdrop {
+    display: none !important;
+  }
+  .pos-modal-content {
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: none !important;
+  }
+  .pos-catalog-panel,
+  .pos-cart-panel {
+    display: none !important;
+  }
+  .pos-register {
+    display: block !important;
+  }
 }

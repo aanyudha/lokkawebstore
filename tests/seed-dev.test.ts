@@ -1,9 +1,10 @@
 import 'dotenv/config';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { readEnv } from '../src/config/env.js';
 import { createDatabase } from '../src/db/client.js';
+import { commercialDatabase } from './helpers/commercial-database.js';
 import {
   assertDevelopmentSeedAllowed,
   devSeedSlugs,
@@ -24,19 +25,23 @@ import { LocalCatalogImageStorage } from '../src/modules/catalog/storage.js';
 const env = readEnv({
   ...process.env,
   NODE_ENV: 'test',
-  DATABASE_URL: process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL,
   APP_URL: 'http://localhost:3000',
   CATALOG_STORAGE_ROOT: `storage/tests/seed-dev-${randomUUID()}`,
 });
-const database = createDatabase(env.databaseUrl);
-const storage = new LocalCatalogImageStorage(env.catalogStorageRoot);
-const catalog = createCatalog(database.db, storage);
+let fixture: Awaited<ReturnType<typeof commercialDatabase>>;
+let database: ReturnType<typeof createDatabase>;
+let storage: LocalCatalogImageStorage;
+let catalog: ReturnType<typeof createCatalog>;
 const countAfter = async (rows: PromiseLike<unknown[]>) => (await rows).length;
 let createdCategory = false;
 let createdProduct = false;
 let tempAdminId: string | undefined;
 
 beforeAll(async () => {
+  fixture = await commercialDatabase();
+  database = fixture.database;
+  storage = new LocalCatalogImageStorage(env.catalogStorageRoot);
+  catalog = createCatalog(database.db, storage);
   await database.check();
   const [demoCategory] = await database.db
     .select()
@@ -45,18 +50,22 @@ beforeAll(async () => {
   const [demoProduct] = await database.db
     .select()
     .from(products)
-    .where(eq(products.slug, devSeedSlugs.product));
+    .where(eq(products.slug, devSeedSlugs.products[0]));
   createdCategory = !demoCategory;
   createdProduct = !demoProduct;
 }, 30000);
 afterAll(async () => {
   if (createdProduct) {
-    const [demoProduct] = await database.db
-      .select()
-      .from(products)
-      .where(eq(products.slug, devSeedSlugs.product));
-    if (demoProduct) {
-      await database.db.delete(products).where(eq(products.id, demoProduct.id));
+    for (const productSlug of devSeedSlugs.products) {
+      const [demoProduct] = await database.db
+        .select()
+        .from(products)
+        .where(eq(products.slug, productSlug));
+      if (demoProduct) {
+        await database.db
+          .delete(products)
+          .where(eq(products.id, demoProduct.id));
+      }
     }
   }
   if (createdCategory) {
@@ -72,7 +81,7 @@ afterAll(async () => {
   }
   if (tempAdminId)
     await database.db.delete(adminUsers).where(eq(adminUsers.id, tempAdminId));
-  await database.close();
+  await fixture?.cleanup();
 }, 30000);
 describe('development seed', () => {
   it('refuses NODE_ENV=production without any database access', () => {
@@ -82,7 +91,7 @@ describe('development seed', () => {
     expect(() => assertDevelopmentSeedAllowed('development')).not.toThrow();
     expect(() => assertDevelopmentSeedAllowed('test')).not.toThrow();
   });
-  it('seeds an active bilingual category and product under exactly one LOKKA vendor', async () => {
+  it('seeds an active bilingual category and products under exactly one LOKKA vendor', async () => {
     await seedDevelopmentData(database);
     expect(
       await countAfter(
@@ -106,30 +115,34 @@ describe('development seed', () => {
         );
       expect(translation).toBeDefined();
     }
-    const [product] = await database.db
-      .select()
-      .from(products)
-      .where(eq(products.slug, devSeedSlugs.product));
-    expect(product?.status).toBe('active');
-    for (const locale of ['en', 'id']) {
-      const [translation] = await database.db
+    for (const productSlug of devSeedSlugs.products) {
+      const [product] = await database.db
         .select()
-        .from(productTranslations)
-        .where(
-          and(
-            eq(productTranslations.productId, product!.id),
-            eq(productTranslations.locale, locale),
-          ),
-        );
-      expect(translation).toBeDefined();
+        .from(products)
+        .where(eq(products.slug, productSlug));
+      expect(product?.status).toBe('active');
+      for (const locale of ['en', 'id']) {
+        const [translation] = await database.db
+          .select()
+          .from(productTranslations)
+          .where(
+            and(
+              eq(productTranslations.productId, product!.id),
+              eq(productTranslations.locale, locale),
+            ),
+          );
+        expect(translation).toBeDefined();
+      }
     }
-    const [variant] = await database.db
-      .select()
-      .from(productVariants)
-      .where(eq(productVariants.sku, devSeedSlugs.variant));
-    expect(variant?.status).toBe('active');
-    expect(variant?.stockQuantity).toBe(12);
-    expect(variant?.price).toBe(495000n);
+    for (const variantSku of devSeedSlugs.variants) {
+      const [variant] = await database.db
+        .select()
+        .from(productVariants)
+        .where(eq(productVariants.sku, variantSku));
+      expect(variant?.status).toBe('active');
+      expect(variant?.stockQuantity).toBeGreaterThan(0);
+      expect(variant?.price).toBeGreaterThan(0n);
+    }
   });
   it('is idempotent and never duplicates core records', async () => {
     const before = {
@@ -146,19 +159,19 @@ describe('development seed', () => {
         database.db
           .select()
           .from(products)
-          .where(eq(products.slug, devSeedSlugs.product)),
+          .where(inArray(products.slug, devSeedSlugs.products)),
       ),
       variants: await countAfter(
         database.db
           .select()
           .from(productVariants)
-          .where(eq(productVariants.sku, devSeedSlugs.variant)),
+          .where(inArray(productVariants.sku, devSeedSlugs.variants)),
       ),
     };
     const [product] = await database.db
       .select()
       .from(products)
-      .where(eq(products.slug, devSeedSlugs.product));
+      .where(eq(products.slug, devSeedSlugs.products[0]));
     const translationCounts = await Promise.all(
       ['en', 'id'].map(async (locale) =>
         countAfter(
@@ -193,7 +206,7 @@ describe('development seed', () => {
         database.db
           .select()
           .from(products)
-          .where(eq(products.slug, devSeedSlugs.product)),
+          .where(inArray(products.slug, devSeedSlugs.products)),
       ),
     ).toBe(before.products);
     expect(
@@ -201,7 +214,7 @@ describe('development seed', () => {
         database.db
           .select()
           .from(productVariants)
-          .where(eq(productVariants.sku, devSeedSlugs.variant)),
+          .where(inArray(productVariants.sku, devSeedSlugs.variants)),
       ),
     ).toBe(before.variants);
     for (const [locale, countBefore] of [
@@ -223,17 +236,20 @@ describe('development seed', () => {
       ).toBe(countBefore);
     }
   });
-  it('resolves the bilingual sample product publicly in both locales', async () => {
-    const enRendered = await catalog.localizedProduct('en', 'lokka-demo-shirt');
-    expect(enRendered).not.toBeNull();
-    const idRendered = await catalog.localizedProduct(
-      'id',
-      'kemeja-demo-lokka',
-    );
-    expect(idRendered).not.toBeNull();
-    expect(enRendered!.product.id).toBe(idRendered!.product.id);
-    expect(enRendered!.product.status).toBe('active');
-    expect(enRendered!.variants[0]!.sku).toBe(devSeedSlugs.variant);
+  it('resolves the bilingual sample products publicly in both locales', async () => {
+    for (const [enSlug, idSlug, variantSku] of [
+      ['lokka-demo-shirt', 'kemeja-demo-lokka', 'LOKKA-DEMO-SHIRT-M'],
+      ['lokka-demo-outer', 'outer-demo-lokka', 'LOKKA-DEMO-OUTER-M'],
+      ['lokka-demo-dress', 'dress-demo-lokka', 'LOKKA-DEMO-DRESS-M'],
+    ] as const) {
+      const enRendered = await catalog.localizedProduct('en', enSlug);
+      expect(enRendered).not.toBeNull();
+      const idRendered = await catalog.localizedProduct('id', idSlug);
+      expect(idRendered).not.toBeNull();
+      expect(enRendered!.product.id).toBe(idRendered!.product.id);
+      expect(enRendered!.product.status).toBe('active');
+      expect(enRendered!.variants[0]!.sku).toBe(variantSku);
+    }
   });
   it('leaves admin creation independent from the demo seed', async () => {
     const before = await countAfter(

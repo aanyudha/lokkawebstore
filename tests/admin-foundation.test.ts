@@ -14,6 +14,7 @@ let cookie = '';
 let csrf = '';
 let productId = '';
 let categoryId = '';
+let catalog: ReturnType<typeof createCatalog>;
 beforeAll(async () => {
   fixture = await commercialDatabase();
   const db = fixture.database.db;
@@ -25,7 +26,7 @@ beforeAll(async () => {
     name: 'Office <Admin>',
     passwordHash: await hashPassword('foundation-test-password'),
   });
-  const catalog = createCatalog(
+  catalog = createCatalog(
     db,
     new LocalCatalogImageStorage('storage/tests/admin-foundation'),
   );
@@ -224,5 +225,25 @@ describe('admin presentation boundaries', () => {
     }
     expect((await app.inject('/admin')).statusCode).toBe(303);
     expect((await get('/account')).statusCode).toBe(303);
+  });
+  it('auto-creates an English translation when creating a product via admin form', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/products',
+      headers: { cookie },
+      payload: {
+        csrf,
+        name: 'Admin Auto Translate Product',
+        status: 'draft',
+      },
+    });
+    expect(res.statusCode).toBe(303);
+    const match = res.headers.location!.match(
+      /\/admin\/products\/([^/]+)\/edit/,
+    );
+    const id = match![1]!;
+    const translation = await catalog.productTranslationFor(id, 'en');
+    expect(translation).not.toBeNull();
+    expect(translation!.name).toBe('Admin Auto Translate Product');
   });
 });

@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { buildApp } from '../src/app.js';
 import { readEnv } from '../src/config/env.js';
 import { createDatabase } from '../src/db/client.js';
+import { commercialDatabase } from './helpers/commercial-database.js';
 import {
   adminUsers,
   vendors,
@@ -15,20 +16,13 @@ import {
   salePayments,
   inventoryMovements,
   financialTransactions,
-  posSessions,
 } from '../src/db/schema/index.js';
 import { hashPassword, token } from '../src/modules/auth/service.js';
 import type { FastifyInstance } from 'fastify';
 
+let fixture: Awaited<ReturnType<typeof commercialDatabase>>;
 const run = randomUUID();
-const env = readEnv({
-  ...process.env,
-  NODE_ENV: 'test',
-  DATABASE_URL: process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL,
-  APP_URL: 'http://localhost:3000',
-  CATALOG_STORAGE_ROOT: `storage/tests/${run}`,
-});
-const database = createDatabase(env.databaseUrl);
+let database: ReturnType<typeof createDatabase>;
 
 let app: FastifyInstance;
 let userId = '';
@@ -73,6 +67,8 @@ async function adminLogin() {
 }
 
 beforeAll(async () => {
+  fixture = await commercialDatabase();
+  database = fixture.database;
   await database.check();
   await database.db
     .insert(vendors)
@@ -121,33 +117,22 @@ beforeAll(async () => {
     variantIds.push(variant!.id);
   }
 
-  app = await buildApp(env, {
-    database: { db: database.db, check: database.check, close: database.close },
+  const testEnv = readEnv({
+    ...process.env,
+    NODE_ENV: 'test',
+    DATABASE_URL: fixture.url,
+    APP_URL: 'http://localhost:3000',
+    CATALOG_STORAGE_ROOT: `storage/tests/${run}`,
+  });
+  app = await buildApp(testEnv, {
+    database: { db: database.db, check: database.check, close: async () => {} },
   });
   await app.ready();
 }, 30000);
 
 afterAll(async () => {
-  for (const vid of variantIds) {
-    await database.db
-      .delete(inventoryMovements)
-      .where(eq(inventoryMovements.variantId, vid));
-  }
-  for (const pid of productIds) {
-    await database.db.delete(saleItems).where(eq(saleItems.productId, pid));
-    await database.db.delete(products).where(eq(products.id, pid));
-  }
-  if (userId) {
-    await database.db
-      .delete(posSessions)
-      .where(eq(posSessions.adminUserId, userId));
-    await database.db.delete(adminUsers).where(eq(adminUsers.id, userId));
-  }
-  if (app) {
-    await app.close();
-  } else {
-    await database.close();
-  }
+  await app?.close();
+  await fixture?.cleanup();
 });
 
 describe('POS Authentication', () => {
@@ -216,6 +201,40 @@ describe('POS Authentication', () => {
     });
     expect(res.statusCode).toBe(303);
     expect(res.headers.location).toBe('/pos/login');
+  });
+});
+
+describe('POS Navigation', () => {
+  let navCookie = '';
+
+  beforeAll(async () => {
+    const res = await posLogin();
+    const session = res.cookies.find((c) => c.name === 'lokka_pos');
+    if (session) {
+      navCookie = `lokka_pos=${session.value}; lokka_pos_csrf=${res.cookies.find((c) => c.name === 'lokka_pos_csrf')?.value ?? ''}`;
+    }
+  });
+
+  it('includes a Back Office link in the topbar of the register page', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/pos',
+      headers: { cookie: navCookie },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain('href="/admin"');
+    expect(res.body).toContain('Back Office');
+  });
+
+  it('wraps receipt modal content in pos-receipt-printable', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/pos',
+      headers: { cookie: navCookie },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain('pos-receipt-printable');
+    expect(res.body).toContain('data-pos-print-receipt');
   });
 });
 
@@ -494,6 +513,8 @@ describe('POS History and Detail', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('Sales History');
+    expect(res.body).toContain('href="/admin"');
+    expect(res.body).toContain('Back Office');
   });
 
   it('shows sale detail page', async () => {
@@ -510,6 +531,7 @@ describe('POS History and Detail', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('LOKKA');
+    expect(res.body).toContain('pos-receipt-printable');
   });
 
   it('returns 404 for nonexistent sale', async () => {

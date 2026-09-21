@@ -571,6 +571,32 @@ export function createCatalog(
                 .where(eq(products.id, productId))
                 .returning()
             : await tx.insert(products).values(values).returning();
+          if (!productId) {
+            for (const locale of supportedLocaleCodes) {
+              const [existingTranslation] = await tx
+                .select()
+                .from(productTranslations)
+                .where(
+                  and(
+                    eq(productTranslations.productId, row!.id),
+                    eq(productTranslations.locale, locale),
+                  ),
+                );
+              if (!existingTranslation) {
+                await tx.insert(productTranslations).values({
+                  productId: row!.id,
+                  locale,
+                  name: row!.name,
+                  slug: row!.slug,
+                  shortDescription: row!.shortDescription,
+                  description: row!.description,
+                  seoTitle: row!.seoTitle,
+                  seoDescription: row!.seoDescription,
+                  updatedAt: new Date(),
+                });
+              }
+            }
+          }
           return row!;
         });
       } catch (error) {

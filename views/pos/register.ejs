@@ -1,4 +1,5 @@
 <div class="pos-register" data-pos-register>
+  <input type="hidden" name="csrf" value="<%= csrf %>" />
   <div class="pos-catalog-panel">
     <div class="pos-search">
       <label for="pos-product-search" class="sr-only">Search products</label>
@@ -57,12 +58,14 @@
 <div class="pos-modal" data-pos-receipt-modal hidden aria-modal="true" role="dialog">
   <div class="pos-modal-backdrop" data-pos-receipt-close></div>
   <div class="pos-modal-content pos-receipt">
-    <div class="pos-receipt-header">
-      <h2>LOKKA</h2>
-      <p>Point of Sale</p>
+    <div class="pos-receipt-printable">
+      <div class="pos-receipt-header">
+        <h2>LOKKA</h2>
+        <p>Point of Sale</p>
+      </div>
+      <div class="pos-receipt-details" data-pos-receipt-content></div>
     </div>
-    <div class="pos-receipt-details" data-pos-receipt-content></div>
-    <div class="pos-receipt-actions">
+    <div class="pos-receipt-actions no-print">
       <button type="button" class="pos-btn pos-btn-ghost" data-pos-print-receipt>Print</button>
       <button type="button" class="pos-btn pos-btn-primary" data-pos-new-sale>New sale</button>
     </div>

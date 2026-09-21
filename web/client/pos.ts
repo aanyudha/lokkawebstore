@@ -40,6 +40,7 @@ if (registerEl) {
 }
 
 function initRegister(register: HTMLElement) {
+  const root = document;
   const searchInput =
     register.querySelector<HTMLInputElement>('[data-pos-search]');
   const searchStatus = register.querySelector<HTMLElement>(
@@ -59,62 +60,68 @@ function initRegister(register: HTMLElement) {
   const cancelBtn =
     register.querySelector<HTMLButtonElement>('[data-pos-cancel]');
   const payBtn = register.querySelector<HTMLButtonElement>('[data-pos-pay]');
-  const paymentModal = register.querySelector<HTMLElement>(
+  const paymentModal = root.querySelector<HTMLElement>(
     '[data-pos-payment-modal]',
   );
-  const paymentDue = register.querySelector<HTMLElement>(
+  const paymentDue = paymentModal?.querySelector<HTMLElement>(
     '[data-pos-payment-due]',
   );
-  const cashInput = register.querySelector<HTMLInputElement>(
+  const cashInput = paymentModal?.querySelector<HTMLInputElement>(
     '[data-pos-cash-input]',
   );
-  const changeEl = register.querySelector<HTMLElement>('[data-pos-change]');
-  const exactCashBtn = register.querySelector<HTMLButtonElement>(
+  const changeEl =
+    paymentModal?.querySelector<HTMLElement>('[data-pos-change]');
+  const exactCashBtn = paymentModal?.querySelector<HTMLButtonElement>(
     '[data-pos-exact-cash]',
   );
-  const completeBtn = register.querySelector<HTMLButtonElement>(
+  const completeBtn = paymentModal?.querySelector<HTMLButtonElement>(
     '[data-pos-complete-sale]',
   );
-  const receiptModal = register.querySelector<HTMLElement>(
+  const receiptModal = root.querySelector<HTMLElement>(
     '[data-pos-receipt-modal]',
   );
-  const receiptContent = register.querySelector<HTMLElement>(
+  const receiptContent = receiptModal?.querySelector<HTMLElement>(
     '[data-pos-receipt-content]',
   );
-  const variantModal = register.querySelector<HTMLElement>(
+  const variantModal = root.querySelector<HTMLElement>(
     '[data-pos-variant-modal]',
   );
-  const variantList = register.querySelector<HTMLElement>(
+  const variantList = variantModal?.querySelector<HTMLElement>(
     '[data-pos-variant-list]',
   );
-  const variantProductName = register.querySelector<HTMLElement>(
+  const variantProductName = variantModal?.querySelector<HTMLElement>(
     '[data-pos-variant-product-name]',
   );
   const csrfInput =
     register.querySelector<HTMLInputElement>('input[name="csrf"]');
 
-  if (
-    !searchInput ||
-    !productGrid ||
-    !cartLines ||
-    !cartCount ||
-    !subtotalEl ||
-    !totalEl ||
-    !cancelBtn ||
-    !payBtn ||
-    !paymentModal ||
-    !paymentDue ||
-    !cashInput ||
-    !changeEl ||
-    !completeBtn ||
-    !receiptModal ||
-    !receiptContent ||
-    !variantModal ||
-    !variantList ||
-    !variantProductName ||
-    !csrfInput
-  )
-    return;
+  const requiredElements = {
+    searchInput,
+    productGrid,
+    cartLines,
+    cartCount,
+    subtotalEl,
+    totalEl,
+    cancelBtn,
+    payBtn,
+    paymentModal,
+    paymentDue,
+    cashInput,
+    changeEl,
+    completeBtn,
+    receiptModal,
+    receiptContent,
+    variantModal,
+    variantList,
+    variantProductName,
+    csrfInput,
+  };
+  for (const [name, el] of Object.entries(requiredElements)) {
+    if (!el) {
+      console.error('[POS] Missing required element:', name);
+      return;
+    }
+  }
 
   type CartItem = {
     variantId: string;
@@ -180,9 +187,9 @@ function initRegister(register: HTMLElement) {
     return csrfInput!.value;
   }
 
-  searchInput.addEventListener('input', () => {
+  searchInput!.addEventListener('input', () => {
     clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => searchProducts(searchInput.value), 200);
+    searchTimeout = setTimeout(() => searchProducts(searchInput!.value), 200);
   });
 
   async function searchProducts(query: string) {
@@ -303,11 +310,11 @@ function initRegister(register: HTMLElement) {
     if (variantModal) variantModal.hidden = true;
   }
 
-  register
-    .querySelector('[data-pos-variant-close]')
+  variantModal
+    ?.querySelector('[data-pos-variant-close]')
     ?.addEventListener('click', closeVariantModal);
-  register
-    .querySelector('[data-pos-variant-close-btn]')
+  variantModal
+    ?.querySelector('[data-pos-variant-close-btn]')
     ?.addEventListener('click', closeVariantModal);
 
   function addToCart(item: Omit<CartItem, 'quantity'>) {
@@ -391,7 +398,7 @@ function initRegister(register: HTMLElement) {
     payBtn.disabled = false;
   }
 
-  cartLines.addEventListener('click', (e) => {
+  cartLines!.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     const variantId = target.getAttribute('data-variant');
     if (!variantId) return;
@@ -401,13 +408,13 @@ function initRegister(register: HTMLElement) {
     else if (action === 'remove') removeItem(variantId);
   });
 
-  cancelBtn.addEventListener('click', () => {
+  cancelBtn!.addEventListener('click', () => {
     if (!confirm('Cancel this sale?')) return;
     cart = [];
     renderCart();
   });
 
-  payBtn.addEventListener('click', () => {
+  payBtn!.addEventListener('click', () => {
     if (
       !cart.length ||
       !paymentModal ||
@@ -429,7 +436,7 @@ function initRegister(register: HTMLElement) {
     cashInput.focus();
   });
 
-  cashInput.addEventListener('input', () => {
+  cashInput!.addEventListener('input', () => {
     const raw = cashInput!.value.replace(/[^0-9]/g, '');
     const cashVal = raw ? BigInt(raw) : 0n;
     const subtotal = cart.reduce(
@@ -454,18 +461,18 @@ function initRegister(register: HTMLElement) {
     });
   }
 
-  register
-    .querySelector('[data-pos-payment-close]')
+  paymentModal
+    ?.querySelector('[data-pos-payment-close]')
     ?.addEventListener('click', closePaymentModal);
-  register
-    .querySelector('[data-pos-payment-close-btn]')
+  paymentModal
+    ?.querySelector('[data-pos-payment-close-btn]')
     ?.addEventListener('click', closePaymentModal);
 
   function closePaymentModal() {
     if (paymentModal) paymentModal.hidden = true;
   }
 
-  completeBtn.addEventListener('click', async () => {
+  completeBtn!.addEventListener('click', async () => {
     if (!paymentModal || !cashInput || !completeBtn) return;
     const subtotal = cart.reduce(
       (sum, item) => sum + item.price * BigInt(item.quantity),
@@ -543,11 +550,11 @@ function initRegister(register: HTMLElement) {
       </div>
     `;
     receiptModal.hidden = false;
-    register
-      .querySelector('[data-pos-receipt-close]')
+    receiptModal
+      ?.querySelector('[data-pos-receipt-close]')
       ?.addEventListener('click', closeReceiptModal, { once: true });
-    register
-      .querySelector('[data-pos-new-sale]')
+    receiptModal
+      ?.querySelector('[data-pos-new-sale]')
       ?.addEventListener('click', closeReceiptModal, { once: true });
   }
 
