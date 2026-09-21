@@ -109,6 +109,9 @@ function initRegister(register: HTMLElement) {
   const completeBtn = paymentModal?.querySelector<HTMLButtonElement>(
     '[data-pos-complete-sale]',
   );
+  const paymentError = paymentModal?.querySelector<HTMLElement>(
+    '[data-pos-payment-error]',
+  );
   const receiptModal = root.querySelector<HTMLElement>(
     '[data-pos-receipt-modal]',
   );
@@ -470,6 +473,10 @@ function initRegister(register: HTMLElement) {
     paymentDue.textContent = formatRupiah(subtotal);
     cashInput.value = '';
     changeEl.textContent = formatRupiah(0n);
+    if (paymentError) {
+      paymentError.textContent = '';
+      paymentError.hidden = true;
+    }
     completeBtn.disabled = true;
     paymentModal.hidden = false;
     cashInput.focus();
@@ -541,7 +548,10 @@ function initRegister(register: HTMLElement) {
       });
       const result = await res.json();
       if (!res.ok) {
-        alert(result.error || 'Sale failed');
+        if (paymentError) {
+          paymentError.textContent = result.error || 'Sale failed';
+          paymentError.hidden = false;
+        }
         completeBtn.disabled = false;
         completeBtn.textContent = 'Complete sale';
         return;
@@ -551,7 +561,10 @@ function initRegister(register: HTMLElement) {
       renderCart();
       closePaymentModal();
     } catch {
-      alert('Sale failed. Please try again.');
+      if (paymentError) {
+        paymentError.textContent = 'Sale failed. Please try again.';
+        paymentError.hidden = false;
+      }
       completeBtn.disabled = false;
       completeBtn.textContent = 'Complete sale';
     }

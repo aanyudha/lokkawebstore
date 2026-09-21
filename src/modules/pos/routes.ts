@@ -214,7 +214,16 @@ export async function registerPos(
       pos.post('/api/sales', async (request, reply) => {
         const principal = request.posPrincipal!;
         const form = body(request);
-        const itemsRaw = form.items;
+        let itemsRaw: unknown = form.items;
+        if (typeof itemsRaw === 'string') {
+          try {
+            itemsRaw = JSON.parse(itemsRaw);
+          } catch {
+            return reply
+              .code(422)
+              .send({ error: 'Sale must have at least one item' });
+          }
+        }
         if (!Array.isArray(itemsRaw) || !itemsRaw.length) {
           return reply
             .code(422)

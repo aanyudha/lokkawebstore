@@ -455,6 +455,149 @@ describe('POS Sale Completion', () => {
     const result = JSON.parse(res.body);
     expect(result.changeAmount).toBe('0');
   });
+
+  it('accepts items as JSON string (browser URL-encoded form contract)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/pos/api/sales',
+      headers: {
+        cookie: saleCookie,
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: new URLSearchParams({
+        csrf: saleCsrf,
+        items: JSON.stringify([{ variantId: vid(1), quantity: 1 }]),
+        cashTendered: '200000',
+      }).toString(),
+    });
+    expect(res.statusCode).toBe(200);
+    const result = JSON.parse(res.body);
+    expect(result.items.length).toBe(1);
+    expect(result.items[0].quantity).toBe(1);
+    expect(result.total).toBe('200000');
+    expect(result.cashReceived).toBe('200000');
+    expect(result.changeAmount).toBe('0');
+  });
+
+  it('accepts multi-item sale as JSON string', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/pos/api/sales',
+      headers: {
+        cookie: saleCookie,
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: new URLSearchParams({
+        csrf: saleCsrf,
+        items: JSON.stringify([
+          { variantId: vid(1), quantity: 2 },
+          { variantId: vid(2), quantity: 1 },
+        ]),
+        cashTendered: '600000',
+      }).toString(),
+    });
+    expect(res.statusCode).toBe(200);
+    const result = JSON.parse(res.body);
+    expect(result.items.length).toBe(2);
+    expect(result.items[0].quantity).toBe(2);
+    expect(result.items[1].quantity).toBe(1);
+  });
+
+  it('rejects malformed JSON items string', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/pos/api/sales',
+      headers: {
+        cookie: saleCookie,
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: new URLSearchParams({
+        csrf: saleCsrf,
+        items: 'not-valid-json',
+        cashTendered: '100000',
+      }).toString(),
+    });
+    expect(res.statusCode).toBe(422);
+    const result = JSON.parse(res.body);
+    expect(result.error).toContain('Sale must have at least one item');
+  });
+
+  it('rejects JSON string containing empty array', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/pos/api/sales',
+      headers: {
+        cookie: saleCookie,
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: new URLSearchParams({
+        csrf: saleCsrf,
+        items: JSON.stringify([]),
+        cashTendered: '100000',
+      }).toString(),
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('rejects JSON string containing non-array object', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/pos/api/sales',
+      headers: {
+        cookie: saleCookie,
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: new URLSearchParams({
+        csrf: saleCsrf,
+        items: JSON.stringify({ variantId: vid(0), quantity: 1 }),
+        cashTendered: '100000',
+      }).toString(),
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('serializes tendered money as decimal string in response', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/pos/api/sales',
+      headers: { cookie: saleCookie },
+      payload: {
+        csrf: saleCsrf,
+        items: [{ variantId: vid(1), quantity: 1 }],
+        cashTendered: '200000',
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const result = JSON.parse(res.body);
+    expect(typeof result.total).toBe('string');
+    expect(typeof result.cashReceived).toBe('string');
+    expect(typeof result.changeAmount).toBe('string');
+    expect(result.total).not.toContain('n');
+    expect(result.cashReceived).not.toContain('n');
+  });
+
+  it('submits canonical variant ID', async () => {
+    const vId = vid(0);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/pos/api/sales',
+      headers: { cookie: saleCookie },
+      payload: {
+        csrf: saleCsrf,
+        items: [{ variantId: vId, quantity: 1 }],
+        cashTendered: '100000',
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const result = JSON.parse(res.body);
+    expect(result.items[0].sku).toBeDefined();
+    const itemRows = await database.db
+      .select()
+      .from(saleItems)
+      .where(eq(saleItems.saleId, result.saleId))
+      .limit(1);
+    expect(itemRows[0]!.variantId).toBe(vId);
+  });
 });
 
 describe('POS Transaction Numbering', () => {
