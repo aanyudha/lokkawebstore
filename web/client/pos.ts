@@ -2,19 +2,51 @@ import './styles/pos.css';
 
 document.documentElement.dataset.assets = 'ready';
 
-function formatIdr(value: number | bigint): string {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Number(value));
+function formatRupiah(value: bigint): string {
+  const sign = value < 0n ? '-' : '';
+  const abs = value < 0n ? -value : value;
+  const str = abs.toString();
+  const groups: string[] = [];
+  for (let i = str.length; i > 0; i -= 3) {
+    const start = Math.max(0, i - 3);
+    groups.unshift(str.slice(start, i));
+  }
+  return sign + 'Rp' + groups.join('.');
+}
+
+function toBigInt(value: string | number | bigint): bigint {
+  if (typeof value === 'bigint') return value;
+  if (typeof value === 'number') return BigInt(Math.trunc(value));
+  return BigInt(value.replace(/[^0-9]/g, ''));
 }
 
 function escHtml(s: string): string {
   const div = document.createElement('div');
   div.textContent = s;
   return div.innerHTML;
+}
+
+interface VariantDataRaw {
+  id: string;
+  name: string;
+  sku: string;
+  price: string;
+  stockQuantity: number;
+  status: string;
+}
+
+interface ProductDataRaw {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  categoryId: string | null;
+  variants: VariantDataRaw[];
+  primaryImage: {
+    storageKey: string;
+    width: number;
+    height: number;
+  } | null;
 }
 
 // ─── POS Login form ────────────────────────────
@@ -199,7 +231,14 @@ function initRegister(register: HTMLElement) {
         `/pos/api/products?q=${encodeURIComponent(query)}`,
       );
       const data = await res.json();
-      allProducts = data.products ?? [];
+      const rawProducts = (data.products ?? []) as ProductDataRaw[];
+      allProducts = rawProducts.map((p) => ({
+        ...p,
+        variants: p.variants.map((v) => ({
+          ...v,
+          price: toBigInt(v.price),
+        })),
+      }));
       renderProducts(allProducts);
       if (searchStatus) {
         searchStatus.textContent = allProducts.length
@@ -238,8 +277,8 @@ function initRegister(register: HTMLElement) {
             hasVariants
               ? `<button type="button" class="pos-btn pos-btn-small pos-variant-select" data-product-id="${product.id}">${product.variants.length} variants</button>`
               : product.variants[0]
-                ? `<span class="pos-product-price">${formatIdr(product.variants[0].price)}</span>
-                 <span class="pos-product-stock ${product.variants[0].stockQuantity <= 0 ? 'out-of-stock' : ''}">${product.variants[0].stockQuantity <= 0 ? 'OUT OF STOCK' : `Stock: ${product.variants[0].stockQuantity}`}</span>`
+                ? `<span class="pos-product-price">${formatRupiah(toBigInt(product.variants[0].price))}</span>
+                  <span class="pos-product-stock ${product.variants[0].stockQuantity <= 0 ? 'out-of-stock' : ''}">${product.variants[0].stockQuantity <= 0 ? 'OUT OF STOCK' : `Stock: ${product.variants[0].stockQuantity}`}</span>`
                 : ''
           }
         </div>
@@ -281,7 +320,7 @@ function initRegister(register: HTMLElement) {
       btn.innerHTML = `
         <span class="pos-variant-name">${escHtml(v.name)}</span>
         <span class="pos-variant-sku">${escHtml(v.sku)}</span>
-        <span class="pos-variant-price">${formatIdr(v.price)}</span>
+        <span class="pos-variant-price">${formatRupiah(toBigInt(v.price))}</span>
         <span class="pos-variant-stock ${v.stockQuantity <= 0 ? 'out-of-stock' : ''}">${v.stockQuantity <= 0 ? 'OUT OF STOCK' : `Stock: ${v.stockQuantity}`}</span>
       `;
       if (v.stockQuantity > 0 && v.status === 'active') {
@@ -359,8 +398,8 @@ function initRegister(register: HTMLElement) {
     if (!cart.length) {
       cartLines.innerHTML = '<p class="pos-empty-cart">No items in sale.</p>';
       cartCount.textContent = '0 items';
-      subtotalEl.textContent = formatIdr(0);
-      totalEl.textContent = formatIdr(0);
+      subtotalEl.textContent = formatRupiah(0n);
+      totalEl.textContent = formatRupiah(0n);
       cancelBtn.disabled = true;
       payBtn.disabled = true;
       return;
@@ -379,7 +418,7 @@ function initRegister(register: HTMLElement) {
         <div class="pos-cart-line-info">
           <span class="pos-cart-line-name">${escHtml(item.productName)} / ${escHtml(item.variantName)}</span>
           <span class="pos-cart-line-sku">${escHtml(item.sku)}</span>
-          <span class="pos-cart-line-unit">${formatIdr(item.price)}</span>
+          <span class="pos-cart-line-unit">${formatRupiah(item.price)}</span>
         </div>
         <div class="pos-cart-line-controls">
           <button type="button" class="pos-qty-btn" data-action="decrease" data-variant="${item.variantId}" aria-label="Decrease quantity">&minus;</button>
@@ -387,13 +426,13 @@ function initRegister(register: HTMLElement) {
           <button type="button" class="pos-qty-btn" data-action="increase" data-variant="${item.variantId}" aria-label="Increase quantity" ${item.quantity >= item.stock ? 'disabled' : ''}>+</button>
           <button type="button" class="pos-remove-btn" data-action="remove" data-variant="${item.variantId}" aria-label="Remove ${escHtml(item.variantName)}">&times;</button>
         </div>
-        <div class="pos-cart-line-total">${formatIdr(lineTotal)}</div>
+        <div class="pos-cart-line-total">${formatRupiah(lineTotal)}</div>
       `;
       cartLines.appendChild(div);
     }
     cartCount.textContent = `${totalQty} item${totalQty === 1 ? '' : 's'}`;
-    subtotalEl.textContent = formatIdr(subtotal);
-    totalEl.textContent = formatIdr(subtotal);
+    subtotalEl.textContent = formatRupiah(subtotal);
+    totalEl.textContent = formatRupiah(subtotal);
     cancelBtn.disabled = false;
     payBtn.disabled = false;
   }
@@ -428,9 +467,9 @@ function initRegister(register: HTMLElement) {
       (sum, item) => sum + item.price * BigInt(item.quantity),
       0n,
     );
-    paymentDue.textContent = formatIdr(subtotal);
+    paymentDue.textContent = formatRupiah(subtotal);
     cashInput.value = '';
-    changeEl.textContent = formatIdr(0);
+    changeEl.textContent = formatRupiah(0n);
     completeBtn.disabled = true;
     paymentModal.hidden = false;
     cashInput.focus();
@@ -444,7 +483,7 @@ function initRegister(register: HTMLElement) {
       0n,
     );
     const change = cashVal >= subtotal ? cashVal - subtotal : 0n;
-    if (changeEl) changeEl.textContent = formatIdr(change);
+    if (changeEl) changeEl.textContent = formatRupiah(change);
     if (completeBtn) completeBtn.disabled = cashVal < subtotal;
   });
 
@@ -455,7 +494,7 @@ function initRegister(register: HTMLElement) {
         0n,
       );
       if (cashInput) {
-        cashInput.value = String(subtotal);
+        cashInput.value = subtotal.toString();
         cashInput.dispatchEvent(new Event('input'));
       }
     });
@@ -526,8 +565,8 @@ function initRegister(register: HTMLElement) {
         <tr>
           <td>${escHtml(item.productName)} / ${escHtml(item.variantName)}<br /><small>${escHtml(item.sku)}</small></td>
           <td>${item.quantity}</td>
-          <td>${formatIdr(item.unitPrice)}</td>
-          <td>${formatIdr(item.lineTotal)}</td>
+          <td>${formatRupiah(toBigInt(item.unitPrice))}</td>
+          <td>${formatRupiah(toBigInt(item.lineTotal))}</td>
         </tr>
       `,
       )
@@ -543,10 +582,10 @@ function initRegister(register: HTMLElement) {
         <tbody>${itemsHtml}</tbody>
       </table>
       <div class="pos-receipt-totals">
-        <div class="pos-receipt-row"><span>Subtotal</span><span>${formatIdr(sale.subtotal)}</span></div>
-        <div class="pos-receipt-row pos-receipt-total"><span>Total</span><span>${formatIdr(sale.total)}</span></div>
-        <div class="pos-receipt-row"><span>Cash received</span><span>${formatIdr(sale.cashReceived)}</span></div>
-        <div class="pos-receipt-row"><span>Change</span><span>${formatIdr(sale.changeAmount)}</span></div>
+        <div class="pos-receipt-row"><span>Subtotal</span><span>${formatRupiah(toBigInt(sale.subtotal))}</span></div>
+        <div class="pos-receipt-row pos-receipt-total"><span>Total</span><span>${formatRupiah(toBigInt(sale.total))}</span></div>
+        <div class="pos-receipt-row"><span>Cash received</span><span>${formatRupiah(toBigInt(sale.cashReceived))}</span></div>
+        <div class="pos-receipt-row"><span>Change</span><span>${formatRupiah(toBigInt(sale.changeAmount))}</span></div>
       </div>
     `;
     receiptModal.hidden = false;
