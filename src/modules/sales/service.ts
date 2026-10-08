@@ -8,10 +8,10 @@ import {
   saleItems,
   salePayments,
   inventoryMovements,
-  financialTransactions,
   transactionCounters,
   adminUsers,
 } from '../../db/schema/index.js';
+import { insertSaleIncome } from '../finance/ledger.js';
 
 export interface SaleItemInput {
   variantId: string;
@@ -286,7 +286,6 @@ export function createSalesService(db: Database['db']) {
       const total = subtotal;
       const transactionNumber = await nextTransactionNumber(tx);
       const now = new Date();
-      const periodMonth = now.toISOString().slice(0, 7) + '-01';
 
       // Create sale
       const [sale] = await tx
@@ -380,26 +379,15 @@ export function createSalesService(db: Database['db']) {
           .where(eq(productVariants.id, item.variantId));
       }
 
-      // Create financial transaction events
-      await tx.insert(financialTransactions).values({
+      // Canonical finance entry: exactly one posted income row per sale.
+      // Cash tendered and change stay in sale_payments; they never become a
+      // second ledger row (no double counting).
+      await insertSaleIncome(tx, {
         saleId: sale.id,
         source: input.source,
-        type: 'REVENUE',
         amountRupiah: total,
-        saleDate: now,
-        periodMonth,
+        occurredAt: now,
         notes: `Sale ${transactionNumber}`,
-        createdAt: now,
-      });
-      await tx.insert(financialTransactions).values({
-        saleId: sale.id,
-        source: input.source,
-        type: 'CASH_INFLOW',
-        amountRupiah: cashReceived,
-        saleDate: now,
-        periodMonth,
-        notes: `Cash received for ${transactionNumber}`,
-        createdAt: now,
       });
 
       return {

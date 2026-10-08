@@ -8,8 +8,10 @@ import type { Catalog } from '../catalog/service.js';
 import { FormError, type Form, textField, id } from '../catalog/validation.js';
 import type { CatalogImageStorage, ImageSize } from '../catalog/storage.js';
 import { createFinance } from '../finance/service.js';
+import { createLedger } from '../finance/ledger.js';
 import { createFulfillment } from '../shipping/service.js';
 import { registerCommercialAdmin } from './commercial-routes.js';
+import { registerFinanceAdmin } from './finance-routes.js';
 import { renderAdmin, renderAdminError } from './presentation.js';
 const body = (request: FastifyRequest) => (request.body ?? {}) as Form;
 export async function registerAdmin(
@@ -191,6 +193,7 @@ export async function registerAdmin(
           createFulfillment(db, catalog),
           page,
         );
+        registerFinanceAdmin(protectedRoutes, createLedger(db), page);
         protectedRoutes.get<{ Params: { id: string; imageId: string } }>(
           '/products/:id/images/:imageId/preview',
           async (request, reply) => {

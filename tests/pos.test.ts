@@ -376,14 +376,17 @@ describe('POS Sale Completion', () => {
     expect(movRows[0]!.type).toBe('SALE');
     expect(movRows[0]!.quantityChange).toBe(-2);
 
-    // Verify financial transaction
+    // Verify financial transaction: exactly one posted income per sale
     const finRows = await database.db
       .select()
       .from(financialTransactions)
-      .where(eq(financialTransactions.saleId, sale.id))
-      .limit(1);
-    expect(finRows.length).toBeGreaterThanOrEqual(1);
+      .where(eq(financialTransactions.saleId, sale.id));
+    expect(finRows).toHaveLength(1);
     expect(finRows[0]!.source).toBe('POS');
+    expect(finRows[0]!.direction).toBe('INCOME');
+    expect(finRows[0]!.type).toBe('REVENUE');
+    expect(finRows[0]!.status).toBe('POSTED');
+    expect(finRows[0]!.amountRupiah).toBe(sale.total);
   });
 
   it('rejects out-of-stock sale', async () => {

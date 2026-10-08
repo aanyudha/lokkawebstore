@@ -40,6 +40,16 @@ export const adminNavigation = [
     label: 'Finance',
     items: [
       {
+        label: 'Cash Flow',
+        href: '/admin/finance/cash-flow',
+        area: 'cash-flow',
+      },
+      {
+        label: 'Income & Expense',
+        href: '/admin/finance/income-expense',
+        area: 'income-expense',
+      },
+      {
         label: 'Global overhead',
         href: '/admin/finance/overhead',
         area: 'overhead',
@@ -150,6 +160,21 @@ function metadata(page: string, data: Record<string, unknown>) {
         'Manage business-wide costs, allocation and recovery periods.',
       area: 'overhead',
       breadcrumbs: [{ label: 'Finance' }, { label: 'Global overhead' }],
+    },
+    'cash-flow': {
+      title: 'Cash Flow',
+      description:
+        'Cash in, cash out and ending balance for a period, derived from the finance ledger.',
+      area: 'cash-flow',
+      breadcrumbs: [{ label: 'Finance' }, { label: 'Cash Flow' }],
+    },
+    'income-expense': {
+      title: 'Income & Expense',
+      description:
+        'Record real income and expenses. POS income is posted automatically.',
+      area: 'income-expense',
+      breadcrumbs: [{ label: 'Finance' }, { label: 'Income & Expense' }],
+      action: { label: 'Add transaction', href: '#add-transaction' },
     },
     fulfillment: {
       title: 'LOKKA fulfillment origin',

@@ -1,0 +1,90 @@
+
+<div class="admin-content commercial-page">
+
+<%- include('../partials/form-error.ejs') %>
+<p>Cash Flow is derived from the finance ledger: every posted income and expense, nothing else. This is <strong>not profit and loss</strong> — accruals, costing and Global Overhead planning never move cash, so only real recorded transactions appear here.</p>
+
+<nav class="commercial-periods" aria-label="Cash flow period"><% for (const link of periodLinks) { %><a href="<%= link.href %>"<%= link.active ? ' aria-current="page"' : '' %>><%= link.label %></a><% } %></nav>
+<form method="get" action="/admin/finance/cash-flow" class="form-stack">
+<input type="hidden" name="period" value="custom" />
+<label>From<input type="date" name="from" min="2000-01-01" required value="<%= period.fromInput %>" /></label>
+<label>To<input type="date" name="to" min="2000-01-01" required value="<%= period.toInput %>" /></label>
+<button>Apply range</button>
+</form>
+
+<section class="admin-section">
+<h2><%= period.period === 'today' ? 'Today' : period.period === 'month' ? 'This month' : 'Custom range' %>: <time datetime="<%= period.from.toISOString() %>"><%= period.fromInput %></time> → <time datetime="<%= period.to.toISOString() %>"><%= period.toInput %></time> (UTC)</h2>
+<dl class="commercial-totals">
+<dt>Opening Balance</dt><dd data-cash-opening><%= formatIdr(cashFlow.openingBalance) %></dd>
+<dt>Income</dt><dd data-cash-income><%= formatIdr(cashFlow.income) %></dd>
+<dt>Expenses</dt><dd data-cash-expenses><%= formatIdr(cashFlow.expenses) %></dd>
+<dt>Net Cash Movement</dt><dd data-cash-net><%= formatIdr(cashFlow.net) %></dd>
+<dt>Ending Balance</dt><dd data-cash-ending><%= formatIdr(cashFlow.endingBalance) %></dd>
+</dl>
+<p>Opening Balance = every valid cash movement before <%= period.fromInput %>. Ending Balance = Opening Balance + Income − Expenses.</p>
+</section>
+
+<div class="commercial-grid">
+<section class="admin-section">
+<h2>Income by Source</h2>
+<% if (!cashFlow.bySource.length) { %><p>No income recorded in this period.</p><% } else { %>
+<ul data-income-by-source><% for (const row of cashFlow.bySource) { %><li data-source="<%= row.key %>"><%= sourceLabels[row.key] ?? row.key %> — <strong><%= formatIdr(row.total) %></strong></li><% } %></ul>
+<% } %>
+</section>
+<section class="admin-section">
+<h2>Expenses by Category</h2>
+<% if (!cashFlow.byCategory.length) { %><p>No expenses recorded in this period.</p><% } else { %>
+<ul data-expense-by-category><% for (const row of cashFlow.byCategory) { %><li data-category="<%= row.key %>"><%= categoryLabels[row.key] ?? row.key %> — <strong><%= formatIdr(row.total) %></strong></li><% } %></ul>
+<% } %>
+</section>
+</div>
+
+<section class="admin-section">
+<h2>Initial cash balance</h2>
+<% const liveOpenings = openingBalances.filter((b) => b.status === 'POSTED'); %>
+<% if (openingBalances.length) { %>
+<ul data-opening-balances><% for (const balance of openingBalances) { %><li data-opening-status="<%= balance.status %>"><time datetime="<%= balance.occurredAt.toISOString() %>"><%= balance.occurredAt.toISOString().replace('T', ' ').slice(0, 16) %></time> · <strong><%= formatIdr(balance.amountRupiah) %></strong> · <%= balance.status %><% if (balance.voidReason) { %> · <%= balance.voidReason %><% } %> · <%= balance.notes ?? '' %></li><% } %></ul>
+<% } %>
+<% if (liveOpenings.length) { %>
+<p>The opening balance is a real ledger event. To correct it, void the entry in <a href="/admin/finance/income-expense">Income &amp; Expense</a> and record a new one here.</p>
+<% } else { %>
+<form method="post" action="/admin/finance/opening-balance" class="form-stack">
+<p>Record the cash you actually held before tracking began. It is stored as a ledger event, not as a display-only setting. Date it before the first period you want to review.</p>
+<input type="hidden" name="csrf" value="<%= csrf %>" />
+<input type="hidden" name="period" value="<%= period.period %>" />
+<% if (period.period === 'custom') { %><input type="hidden" name="from" value="<%= period.fromInput %>" /><input type="hidden" name="to" value="<%= period.toInput %>" /><% } %>
+<label>Amount (whole Rupiah)<input name="amountRupiah" inputmode="numeric" pattern="[0-9]+" required value="<%= action === '/admin/finance/opening-balance' ? values.amountRupiah || '' : '' %>" /></label>
+<label>Date &amp; time the cash was on hand<input name="occurredAt" type="datetime-local" required value="<%= action === '/admin/finance/opening-balance' ? values.occurredAt || '' : '' %>" /></label>
+<label>Notes (optional)<input name="notes" maxlength="2000" value="<%= action === '/admin/finance/opening-balance' ? values.notes || '' : '' %>" /></label>
+<button>Record opening balance</button>
+</form>
+<% } %>
+</section>
+
+<section class="admin-section">
+<h2>Transactions (<%= cashFlow.transactionCount %>)</h2>
+<% if (!cashFlow.transactions.length) { %><p>No transactions in this period.</p><% } else { %>
+<p><%= cashFlow.transactions.length %> most recent shown. Voided entries stay visible for audit and are excluded from every total.</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable cash flow transaction table">
+<table>
+<thead>
+<tr><th scope="col">Date (UTC)</th><th scope="col">Description</th><th scope="col">Source</th><th scope="col">Category</th><th scope="col">Reference</th><th scope="col">Status</th><th scope="col">Amount</th></tr>
+</thead>
+<tbody>
+<% for (const row of cashFlow.transactions) { %>
+<tr data-transaction-status="<%= row.status %>" data-transaction-source="<%= row.source %>">
+<td><time datetime="<%= row.occurredAt.toISOString() %>"><%= row.occurredAt.toISOString().replace('T', ' ').slice(0, 16) %></time></td>
+<td><%= row.notes ?? (row.type === 'OPENING_BALANCE' ? 'Opening balance' : row.type === 'MANUAL' ? 'Manual entry' : 'Sale income') %></td>
+<td><%= sourceLabels[row.source] ?? row.source %></td>
+<td><%= categoryLabels[row.category] ?? row.category %></td>
+<td><%= row.transactionNumber ?? '—' %></td>
+<td><%- include('../partials/admin/status-badge.ejs', { status: row.status }) %></td>
+<td><%= row.direction === 'EXPENSE' ? '−' : '' %><%= formatIdr(row.amountRupiah) %></td>
+</tr>
+<% } %>
+</tbody>
+</table>
+</div>
+<% } %>
+</section>
+</div>

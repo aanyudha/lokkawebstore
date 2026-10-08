@@ -141,9 +141,9 @@ test('commercial admin workflows and responsive visual review', async ({
       .getByLabel('Email', { exact: true })
       .fill('browser@example.test');
     await page
-      .getByLabel('Kata sandi', { exact: true })
+      .getByLabel('Password', { exact: true })
       .fill('temporary-browser-password');
-    await page.getByRole('button', { name: 'Masuk', exact: true }).click();
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL(`${env.appUrl}/admin`);
     await page.goto(`${env.appUrl}/admin/settings/fulfillment`);
     await expect(page.getByRole('status')).toHaveText(

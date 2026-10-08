@@ -31,6 +31,25 @@ export const categoryStatus = pgEnum('category_status', ['active', 'hidden']);
 export const variantStatus = pgEnum('variant_status', ['active', 'inactive']);
 export const adminStatus = pgEnum('admin_status', ['active', 'disabled']);
 export const customerStatus = pgEnum('customer_status', ['ACTIVE', 'DISABLED']);
+export const financeDirection = pgEnum('finance_direction', [
+  'INCOME',
+  'EXPENSE',
+]);
+export const financeStatus = pgEnum('finance_status', ['POSTED', 'VOIDED']);
+export const financeCategory = pgEnum('finance_category', [
+  'PRODUCT_SALES',
+  'OTHER_INCOME',
+  'PACKAGING',
+  'SUPPLIES',
+  'UTILITIES',
+  'RENT',
+  'SALARIES',
+  'MARKETING',
+  'TRANSPORT',
+  'MAINTENANCE',
+  'OTHER_EXPENSE',
+  'OPENING_BALANCE',
+]);
 export const vendors = pgTable('vendors', {
   id: uuid('id').defaultRandom().primaryKey(),
   slug: text('slug').notNull().unique(),
@@ -656,19 +675,29 @@ export const inventoryMovements = pgTable(
     index('inventory_movements_created_at_idx').on(t.createdAt),
   ],
 );
-// ─── Financial Transactions (downstream finance events) ─────
+// ─── Financial Transactions (canonical cash ledger) ─────────
+// One table feeds Cash Flow and future consumers (Accounting Lite, Tax).
+// Cash Flow is always derived from these rows; it is never a second ledger.
 export const financialTransactions = pgTable(
   'financial_transactions',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-    saleId: uuid('sale_id')
-      .notNull()
-      .references(() => sales.id),
+    // Automated entries reference their originating sale; manual entries do not.
+    saleId: uuid('sale_id').references(() => sales.id),
     source: saleSource('source').notNull(),
-    type: text('type', { enum: ['REVENUE', 'CASH_INFLOW'] }).notNull(),
+    direction: financeDirection('direction').default('INCOME').notNull(),
+    type: text('type', {
+      enum: ['REVENUE', 'CASH_INFLOW', 'MANUAL', 'OPENING_BALANCE'],
+    }).notNull(),
+    category: financeCategory('category').notNull(),
     amountRupiah: bigint('amount_rupiah', { mode: 'bigint' }).notNull(),
-    saleDate: timestamp('sale_date', { withTimezone: true }).notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
     periodMonth: date('period_month').notNull(),
+    status: financeStatus('status').default('POSTED').notNull(),
+    voidReason: text('void_reason'),
+    voidedAt: timestamp('voided_at', { withTimezone: true }),
+    voidedById: uuid('voided_by_id').references(() => adminUsers.id),
+    createdBy: uuid('created_by').references(() => adminUsers.id),
     notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
@@ -680,5 +709,32 @@ export const financialTransactions = pgTable(
     index('financial_transactions_type_idx').on(t.type),
     index('financial_transactions_period_idx').on(t.periodMonth),
     index('financial_transactions_created_at_idx').on(t.createdAt),
+    index('financial_transactions_occurred_at_idx').on(t.occurredAt),
+    index('financial_transactions_status_direction_idx').on(
+      t.status,
+      t.direction,
+    ),
+    // One sale contributes income exactly once: DB-level no-double-counting.
+    uniqueIndex('financial_transactions_posted_sale_income_uidx')
+      .on(t.saleId)
+      .where(
+        sql`${t.status} = 'POSTED' AND ${t.direction} = 'INCOME' AND ${t.saleId} IS NOT NULL`,
+      ),
+    check(
+      'financial_transactions_posted_amount_positive',
+      sql`${t.status} = 'VOIDED' OR ${t.amountRupiah} > 0`,
+    ),
+    check(
+      'financial_transactions_sale_reference',
+      sql`${t.saleId} IS NULL OR ${t.source} <> 'MANUAL'`,
+    ),
+    check(
+      'financial_transactions_revenue_is_sale_income',
+      sql`${t.type} <> 'REVENUE' OR (${t.saleId} IS NOT NULL AND ${t.direction} = 'INCOME' AND ${t.source} <> 'MANUAL')`,
+    ),
+    check(
+      'financial_transactions_void_fields',
+      sql`(${t.status} = 'POSTED' AND ${t.voidReason} IS NULL AND ${t.voidedAt} IS NULL AND ${t.voidedById} IS NULL) OR (${t.status} = 'VOIDED' AND ${t.voidReason} IS NOT NULL AND ${t.voidedAt} IS NOT NULL)`,
+    ),
   ],
 );

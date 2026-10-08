@@ -10,6 +10,8 @@ Future PaymentService will depend on a provider contract implemented by DokuProv
 
 ## Persistence
 
+Milestone D1: Finance owns the single canonical `financial_transactions` cash ledger: direction (INCOME/EXPENSE), source (POS/WEBSTORE/MANUAL), structured categories, POSTED/VOIDED status and an optional sale reference. One completed sale posts income exactly once, protected by a partial unique index plus idempotent insert. Cash Flow and Income & Expense are admin views derived from that ledger by server-side aggregation; the opening balance is itself a ledger event. Global Overhead remains a costing/planning model and never becomes a Cash Flow expense. Cash Flow is cash movement, not profit and loss; Accounting Lite and Tax Readiness are deferred consumers of the same rows. See [ADR 005](decisions/005-finance-ledger-cash-flow.md).
+
 Milestone 2.6: Customer owns `customers` and `customer_sessions` with Argon2id credentials, deterministic normalized emails and 30-day opaque sessions isolated from admin sessions. Account pages are noindex/private and excluded from the sitemap. No cart, order, reward or email delivery is implemented. See [ADR 004](decisions/004-customer-identity-and-rewards.md).
 
 Milestone 2.5: Finance owns direct product costing, pricing profiles, global overhead masters, period snapshots and an append-only manual recovery workflow. Shipping owns fulfillment-origin settings and an internal shipping-readiness resolver. Admin routes call these modules inside the existing session/CSRF boundary. No shipping provider or commerce integration is implemented. See [ADR 003](decisions/003-commercial-pricing-overhead.md) for formulas, ownership, history and concurrency rules.

@@ -12,4 +12,11 @@ export default tseslint.config(
   },
   js.configs.recommended,
   tseslint.configs.recommended,
+  {
+    // Node build/test scripts run outside the browser lint profile.
+    files: ['scripts/**/*.mjs', 'scripts/**/*.js'],
+    languageOptions: {
+      globals: { console: 'readonly', process: 'readonly' },
+    },
+  },
 );

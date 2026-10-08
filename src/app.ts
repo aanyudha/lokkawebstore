@@ -38,6 +38,11 @@ export async function buildApp(
   const app = Fastify({
     routerOptions: { maxParamLength: 200 },
     bodyLimit: 64 * 1024,
+    // In tests a browser page is still open while the app closes, and Node's
+    // server.close() can then wait forever on a single lingering keep-alive
+    // socket (the connection pool itself closes in milliseconds). Test runs
+    // must not block on client sockets; production keeps the graceful drain.
+    forceCloseConnections: env.nodeEnv === 'test',
     trustProxy: env.trustProxy ? ['127.0.0.1', '::1'] : false,
     logController: new LogController({ disableRequestLogging: true }),
     logger:
