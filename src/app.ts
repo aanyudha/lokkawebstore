@@ -25,6 +25,8 @@ import { orderedLocales } from './i18n/index.js';
 import { t } from './i18n/translator.js';
 import type { Database } from './db/client.js';
 import { createOriginValidator } from './security/origin.js';
+import { createHomepageHero } from './modules/storefront/hero.js';
+import type { ImageSize } from './modules/catalog/storage.js';
 export async function buildApp(
   env: AppEnv,
   options: {
@@ -301,10 +303,34 @@ export async function buildApp(
     // Reset asset cache after build
     resetAssets();
     if (database.db) await registerCustomer(app, database.db, env);
-    await registerRoutes(app, database, catalog, env);
+    const hero = database.db
+      ? createHomepageHero(database.db, storage, () =>
+          app.log.warn(
+            'Previous homepage media cleanup failed; live reference preserved.',
+          ),
+        )
+      : undefined;
+    await registerRoutes(app, database, catalog, env, hero);
+    if (hero)
+      app.get('/media/homepage/:key/:size', async (request, reply) => {
+        const { key, size } = request.params as { key: string; size: string };
+        if (
+          !/^[a-f0-9-]{36}$/.test(key) ||
+          !/^(thumb|card|detail)\.webp$/.test(size)
+        )
+          return reply.callNotFound();
+        const image = await hero.get();
+        if (!image || image.storageKey !== key) return reply.callNotFound();
+        return reply
+          .type('image/webp')
+          .header('Cache-Control', 'public, max-age=300')
+          .send(
+            await storage.read(key, size.replace('.webp', '') as ImageSize),
+          );
+      });
     if (catalog && database.db) {
       await registerCatalog(app, catalog, storage, env);
-      await registerAdmin(app, database.db, catalog, env, storage);
+      await registerAdmin(app, database.db, catalog, env, storage, hero!);
       await registerPos(app, database.db, env, storage);
     }
     return app;

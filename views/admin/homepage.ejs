@@ -1,0 +1,16 @@
+<div class="admin-content commercial-page">
+<%- include('../partials/form-error.ejs') %>
+<p>Choose one homepage hero image, shared by English and Indonesian. Product images are managed separately.</p>
+<% if (hero) { %>
+<img class="homepage-hero-preview" src="<%= hero.src %>" alt="<%= hero.altText %>" width="<%= hero.width %>" height="<%= hero.height %>" />
+<% } else { %><p role="status">No homepage hero configured. The homepage shows a neutral placeholder.</p><% } %>
+<form method="post" action="/admin/settings/homepage" enctype="multipart/form-data" class="form-stack">
+<input type="hidden" name="csrf" value="<%= csrf %>" />
+<label>Hero image<input type="file" name="image" accept="image/jpeg,image/png,image/webp" <%= hero ? '' : 'required' %> aria-describedby="hero-upload-help" /></label>
+<p id="hero-upload-help">One static JPG, PNG or WebP, up to 10 MB. Choose a new file to replace the image; leave empty to update alt text only.</p>
+<label>Hero alt text<input name="altText" maxlength="300" value="<%= hero ? hero.altText : '' %>" aria-describedby="hero-alt-help" /></label>
+<p id="hero-alt-help">Describe the image. Leave empty only when the image is decorative.</p>
+<button type="submit">Save homepage hero</button>
+</form>
+<% if (hero) { %><form method="post" action="/admin/settings/homepage/remove"><input type="hidden" name="csrf" value="<%= csrf %>" /><button type="submit" class="secondary">Remove homepage hero</button></form><% } %>
+</div>

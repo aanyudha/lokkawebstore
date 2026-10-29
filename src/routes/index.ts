@@ -4,12 +4,14 @@ import type { AppEnv } from '../config/env.js';
 import { locales, orderedLocales } from '../i18n/index.js';
 import { t } from '../i18n/translator.js';
 import { runtimeIdentity } from '../config/identity.js';
+import type { HomepageHero } from '../modules/storefront/hero.js';
 
 export async function registerRoutes(
   app: FastifyInstance,
   database: { check: () => Promise<void> },
   catalog?: Catalog,
   env?: AppEnv,
+  hero?: HomepageHero,
 ) {
   const identity = runtimeIdentity(
     env?.nodeEnv ?? 'development',
@@ -21,6 +23,7 @@ export async function registerRoutes(
   });
   // ─── English homepage (default, no prefix) ─────────────────
   app.get('/', async (_request, reply) => {
+    reply.header('Cache-Control', 'no-cache');
     const categories = catalog
       ? (await catalog.categoryListLocale('en')).map((c) => ({
           id: c.category.id,
@@ -42,6 +45,7 @@ export async function registerRoutes(
       alternateLinks: `<link rel="alternate" hreflang="en" href="${env?.appUrl}" />\n    <link rel="alternate" hreflang="id-ID" href="${env?.appUrl ? new URL('/id', env.appUrl).href : '/id'}" />\n    <link rel="alternate" hreflang="x-default" href="${env?.appUrl}" />`,
       htmlLang: locales.en.htmlLang,
       featuredProducts: products,
+      hero: hero ? await hero.publicImage() : null,
       storage: catalog ? undefined : undefined,
       formatIdr: undefined,
     });
@@ -49,6 +53,7 @@ export async function registerRoutes(
 
   // ─── Indonesian homepage (with /id prefix) ─────────────────
   app.get('/id', async (_request, reply) => {
+    reply.header('Cache-Control', 'no-cache');
     const categories = catalog
       ? (await catalog.categoryListLocale('id')).map((c) => ({
           id: c.category.id,
@@ -70,6 +75,7 @@ export async function registerRoutes(
       alternateLinks: `<link rel="alternate" hreflang="en" href="${env?.appUrl}" />\n    <link rel="alternate" hreflang="id-ID" href="${env?.appUrl ? new URL('/id', env.appUrl).href : '/id'}" />\n    <link rel="alternate" hreflang="x-default" href="${env?.appUrl}" />`,
       htmlLang: locales.id.htmlLang,
       featuredProducts: products,
+      hero: hero ? await hero.publicImage() : null,
       storage: catalog ? undefined : undefined,
       formatIdr: undefined,
     });

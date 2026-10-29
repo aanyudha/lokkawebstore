@@ -22,6 +22,24 @@ const timestamps = () => ({
     .defaultNow()
     .notNull(),
 });
+// One independent storefront hero; never a reference to product media.
+export const homepageHero = pgTable(
+  'homepage_hero',
+  {
+    id: text('id').primaryKey(),
+    storageKey: text('storage_key').notNull(),
+    sourceStorageKey: text('source_storage_key').notNull(),
+    sourceFormat: text('source_format').notNull(),
+    width: integer('width').notNull(),
+    height: integer('height').notNull(),
+    altText: text('alt_text').default('').notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    check('homepage_hero_singleton', sql`${t.id} = 'homepage'`),
+    check('homepage_hero_dimensions', sql`${t.width} > 0 AND ${t.height} > 0`),
+  ],
+);
 export const recordStatus = pgEnum('record_status', [
   'draft',
   'active',

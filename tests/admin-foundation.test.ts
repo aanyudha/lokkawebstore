@@ -110,9 +110,10 @@ describe('admin presentation boundaries', () => {
       '/admin/finance/accounting',
       '/admin/finance/overhead',
       '/admin/settings/fulfillment',
+      '/admin/settings/homepage',
     ])
       expect(nav).toContain(`href="${path}"`);
-    expect(nav.match(/href=/g)).toHaveLength(11);
+    expect(nav.match(/href=/g)).toHaveLength(12);
     expect(nav).not.toMatch(
       /Orders|Customers|Story|Lookbook|Legal|Tax|SMEXPO|Reports|User Management/,
     );

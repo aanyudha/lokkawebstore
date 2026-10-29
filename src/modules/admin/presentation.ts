@@ -64,6 +64,7 @@ export const adminNavigation = [
   {
     label: 'Settings',
     items: [
+      { label: 'Homepage', href: '/admin/settings/homepage', area: 'homepage' },
       {
         label: 'Fulfillment',
         href: '/admin/settings/fulfillment',
@@ -86,6 +87,12 @@ function metadata(page: string, data: Record<string, unknown>) {
       action?: Crumb;
     }
   > = {
+    homepage: {
+      title: 'Homepage',
+      description: 'Manage the storefront hero image.',
+      area: 'homepage',
+      breadcrumbs: [{ label: 'Settings' }, { label: 'Homepage' }],
+    },
     dashboard: {
       title: 'Dashboard',
       description:

@@ -14,6 +14,8 @@ import { createFulfillment } from '../shipping/service.js';
 import { registerCommercialAdmin } from './commercial-routes.js';
 import { registerFinanceAdmin } from './finance-routes.js';
 import { renderAdmin, renderAdminError } from './presentation.js';
+import { registerHomepageAdmin } from './homepage-routes.js';
+import type { HomepageHero } from '../storefront/hero.js';
 const body = (request: FastifyRequest) => (request.body ?? {}) as Form;
 export async function registerAdmin(
   app: FastifyInstance,
@@ -21,6 +23,7 @@ export async function registerAdmin(
   catalog: Catalog,
   env: AppEnv,
   storage: CatalogImageStorage,
+  hero: HomepageHero,
 ) {
   const auth = createAuth(db);
   const cookies = {
@@ -117,7 +120,10 @@ export async function registerAdmin(
         protectedRoutes.addHook('preHandler', async (request, reply) => {
           if (
             request.isMultipart() &&
-            request.routeOptions.url !== '/admin/products/:id/images'
+            ![
+              '/admin/products/:id/images',
+              '/admin/settings/homepage',
+            ].includes(request.routeOptions.url ?? '')
           )
             return renderAdminError(
               reply,
@@ -156,6 +162,7 @@ export async function registerAdmin(
             principal: request.internalAdmin,
             ...data,
           });
+        registerHomepageAdmin(protectedRoutes, hero, page);
         registerCommercialAdmin(
           protectedRoutes,
           createFinance(db, catalog),

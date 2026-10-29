@@ -1,5 +1,6 @@
 <% const homeLocale = locale || 'en'; %>
 <% const homeT = typeof t === 'function' ? t : (k) => k; %>
+<% const homeHero = typeof hero === 'undefined' ? null : hero; %>
 <main id="main">
   <section class="hero">
     <div class="hero-content">
@@ -8,8 +9,10 @@
       <p class="hero-sub"><%- homeT('home.heroSubtitle').replace(/\n/g, '<br />') %></p>
       <a class="btn btn-primary" href="<%= homeLocale === 'id' ? '/id/koleksi' : '/collections' %>"><%= homeT('home.exploreCollections') %></a>
     </div>
-    <div class="hero-visual" aria-hidden="true">
-      <div class="hero-placeholder"></div>
+    <div class="hero-visual">
+      <% if (homeHero) { %>
+      <img class="hero-image" src="<%= homeHero.src %>" srcset="<%= homeHero.srcset %>" sizes="(max-width: 768px) 100vw, 50vw" width="<%= homeHero.width %>" height="<%= homeHero.height %>" alt="<%= homeHero.altText %>" fetchpriority="high" />
+      <% } else { %><div class="hero-placeholder" aria-hidden="true"></div><% } %>
     </div>
   </section>
 

@@ -1,4 +1,9 @@
 /* Loaded only by the internal layouts. No storefront/customer imports. */
+.admin-ui .homepage-hero-preview {
+  max-width: 100%;
+  width: 400px;
+  height: auto;
+}
 .admin-ui {
   --ink: #202a35;
   --muted: #606b75;
