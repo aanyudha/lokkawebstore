@@ -24,6 +24,7 @@ import { getAssets, resetAssets } from './config/assets.js';
 import { orderedLocales } from './i18n/index.js';
 import { t } from './i18n/translator.js';
 import type { Database } from './db/client.js';
+import { createOriginValidator } from './security/origin.js';
 export async function buildApp(
   env: AppEnv,
   options: {
@@ -69,8 +70,18 @@ export async function buildApp(
     await database.close();
   });
   try {
+    const publicUrl = new URL(env.appUrl);
+    const trustworthyPublicContext =
+      publicUrl.protocol === 'https:' ||
+      ['localhost', '127.0.0.1', '[::1]'].includes(publicUrl.hostname);
     await app.register(helmet, {
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      // Chromium cannot apply COOP to plain-HTTP LAN development and logs an
+      // error on every page. Retain it for production and trustworthy contexts.
+      crossOriginOpenerPolicy:
+        env.nodeEnv === 'production' || trustworthyPublicContext
+          ? { policy: 'same-origin' }
+          : false,
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
@@ -150,6 +161,22 @@ export async function buildApp(
       engine: { ejs },
       root: resolve('views'),
       propertyName: 'posView',
+    });
+    const validOrigin = createOriginValidator(env);
+    // One policy covers every mutation, including login/register/logout, before
+    // body processing or domain writes. Existing session/CSRF hooks stay intact.
+    app.addHook('onRequest', async (request, reply) => {
+      if (
+        ['GET', 'HEAD'].includes(request.method) ||
+        validOrigin(request.headers.origin)
+      )
+        return;
+      const path = request.url.split('?')[0]!;
+      if (path === '/admin' || path.startsWith('/admin/'))
+        return renderAdminError(reply, 403, 'Invalid origin.');
+      if (path === '/pos' || path.startsWith('/pos/'))
+        return reply.code(403).send({ error: 'Invalid origin' });
+      return reply.code(403).send('Invalid origin.');
     });
     // ─── Official logo route (original PNG, not for web delivery) ───
     app.get('/images/lokka_logo.png', async (_request, reply) =>

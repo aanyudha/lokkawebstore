@@ -297,12 +297,6 @@ export async function registerCustomer(
         )
       )
         return reply.redirect(routes.login, 303);
-      if (
-        !['GET', 'HEAD'].includes(request.method) &&
-        request.headers.origin &&
-        request.headers.origin !== new URL(env.appUrl).origin
-      )
-        return reply.code(403).send('Invalid origin.');
       request.customerIdentity = identity;
     });
 

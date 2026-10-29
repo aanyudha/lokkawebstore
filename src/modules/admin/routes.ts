@@ -113,38 +113,6 @@ export async function registerAdmin(
               'Session invalid. Sign in again.',
             );
           request.internalAdmin = session.user;
-          // Multipart CSRF is validated from the first part before processing any file.
-          if (
-            !['GET', 'HEAD'].includes(request.method) &&
-            request.headers.origin
-          ) {
-            const origin = request.headers.origin;
-            const allowed = new URL(env.appUrl).origin;
-            let originOk = origin === allowed;
-            // Development loopback alias: accept localhost ↔ 127.0.0.1
-            if (!originOk && env.nodeEnv !== 'production') {
-              try {
-                const cfg = new URL(env.appUrl);
-                const alias =
-                  cfg.hostname === 'localhost'
-                    ? `http://127.0.0.1:${cfg.port}`
-                    : cfg.hostname === '127.0.0.1'
-                      ? `http://localhost:${cfg.port}`
-                      : '';
-                if (alias && origin === alias) originOk = true;
-              } catch {
-                // invalid APP_URL — strict check above will fail
-              }
-            }
-            if (!originOk)
-              return renderAdminError(
-                reply,
-                403,
-                'Invalid origin.',
-                request.internalAdmin,
-                request.cookies.lokka_admin_csrf,
-              );
-          }
         });
         protectedRoutes.addHook('preHandler', async (request, reply) => {
           if (

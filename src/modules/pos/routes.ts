@@ -165,33 +165,11 @@ export async function registerPos(
         request.posPrincipal = identity.user;
       });
 
-      // ─── Protected routes: CSRF + origin in preHandler ──
+      // Origin is checked centrally; this surface retains its own CSRF tokens.
       pos.addHook('preHandler', async (request, reply) => {
         const path = request.url.split('?')[0];
         if (request.method !== 'GET' && request.method !== 'HEAD') {
-          const origin = request.headers.origin;
-          if (origin) {
-            try {
-              const originUrl = new URL(origin);
-              const appUrl = new URL(env.appUrl);
-              const originHost = originUrl.hostname;
-              const appHost = appUrl.hostname;
-              const originMatch =
-                originUrl.origin === appUrl.origin ||
-                (env.nodeEnv !== 'production' &&
-                  originUrl.protocol === appUrl.protocol &&
-                  originUrl.port === appUrl.port &&
-                  ((originHost === 'localhost' && appHost === '127.0.0.1') ||
-                    (originHost === '127.0.0.1' && appHost === 'localhost')));
-              if (!originMatch) {
-                return reply.code(403).send({ error: 'Invalid origin' });
-              }
-            } catch {
-              return reply.code(403).send({ error: 'Invalid origin' });
-            }
-          }
-          // Login/logout validate their own form tokens. Origin validation
-          // applies to them too; matching only a hostname admits other ports.
+          // Login/logout validate their own form tokens.
           if (path === '/pos/login' || path === '/pos/logout') return;
           const csrf = request.cookies[CSRF_COOKIE] ?? '';
           const form = body(request);

@@ -103,7 +103,9 @@ npm.cmd run admin:create -- --email admin@example.com --name "LOKKA Admin"
 
 Enter and confirm a password of 12–128 characters; input is not echoed. There is no default administrator or password. Open http://127.0.0.1:3000/admin/login using the host configured in APP_URL (origin checks protect form submissions). Production requires HTTPS and NODE_ENV=production for Secure cookies. Sessions expire after eight hours; logout revokes the current session. To revoke all access operationally, set the admin user's status to disabled in the database. Password recovery, MFA and user-management UI are deferred.
 
-If logout or another admin form reports `Invalid origin.`, compare the browser address with `APP_URL` in `.env`: scheme, hostname and port must match exactly. `localhost` and `127.0.0.1` are different origins. For the default local setup use `APP_URL=http://127.0.0.1:3000` and `NODE_ENV=development`, restart the server after changing `.env`, then reopen `/admin` and use its logout button. Do not disable origin or CSRF validation to bypass a configuration mismatch.
+If any Admin, POS or customer action reports `Invalid origin.`, compare the browser address with `APP_URL` in `.env`. One central policy validates the scheme, hostname and port for every mutation, including login/register/logout. Set `APP_URL` to the address actually used by the owner. For LAN development, for example, use `APP_URL=http://192.168.1.122:3000`; optional `DEV_ALLOWED_ORIGINS=http://127.0.0.1:3000,http://localhost:3000` keeps explicitly configured local entry points usable. Development/test also supports the localhost/127.0.0.1 pair at the same configured protocol and port; it never infers another LAN address or port. Restart the server after changing `.env`.
+
+Production accepts only the public origin from `APP_URL` and ignores `DEV_ALLOWED_ORIGINS`. Behind Nginx, configure `APP_URL=https://actual-domain`; Fastify may still receive internal HTTP traffic. Origin allowances never come from request Host, Referer or forwarded headers. `TRUST_PROXY=true` trusts only loopback proxies for Fastify's proxy metadata. A supplied malformed or foreign Origin is rejected; missing Origin retains the existing non-browser policy and still requires the relevant session and CSRF tokens. Do not disable either protection to bypass a configuration mismatch.
 
 1. **Categories:** create a category, optional parent, description, SEO text and sort order. Active categories appear publicly; hidden categories do not. Cycles are rejected. Slugs generate when blank; retain existing slugs to preserve established URLs.
 2. **Products:** create draft details, choose a category, save, then add variants and images. Vendor is always LOKKA. Set active when ready; archived/draft products are hidden publicly. Featured is an optional truthful label.
@@ -203,7 +205,7 @@ DATABASE_URL=postgresql://lokka:CHANGE_ME@127.0.0.1:5432/lokka
 DATABASE_URL_DOCKER=
 ```
 
-Other LAN devices reach `http://192.168.1.200:3000` if the OS firewall permits it. Use `APP_URL` only if `127.0.0.1` in the admin flows is not what you type in the browser; never weaken origin/CSRF validation to support extra addresses.
+Other LAN devices reach `http://192.168.1.200:3000` if the OS firewall permits it. Set `APP_URL` to the actual LAN address used in the browser, and explicitly list any additional development entry points in `DEV_ALLOWED_ORIGINS`. Production remains canonical-only; never weaken origin/CSRF validation to support extra addresses.
 
 **3. Production domain**
 

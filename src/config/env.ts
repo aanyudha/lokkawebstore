@@ -62,6 +62,29 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
     lowStockThreshold > 2147483647
   )
     throw new Error('Invalid LOW_STOCK_THRESHOLD');
+  // Extra development entry points must be named explicitly. They are never
+  // used in production, whose only trusted origin is APP_URL.
+  const developmentOrigins =
+    nodeEnv === 'production'
+      ? []
+      : (source.DEV_ALLOWED_ORIGINS ?? '')
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean);
+  for (const value of developmentOrigins) {
+    try {
+      const parsed = new URL(value);
+      if (
+        !['http:', 'https:'].includes(parsed.protocol) ||
+        parsed.origin !== value
+      )
+        throw new Error();
+    } catch {
+      throw new Error(
+        'Invalid DEV_ALLOWED_ORIGINS: use complete HTTP(S) origins without paths or wildcards.',
+      );
+    }
+  }
   return {
     nodeEnv,
     appRuntime,
@@ -72,6 +95,7 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
       source.CATALOG_STORAGE_ROOT ?? 'storage/uploads/catalog',
     logLevel,
     trustProxy: trustProxy === 'true',
+    developmentOrigins,
     databaseUrl: resolveDatabaseUrl(appRuntime, source),
     appUrl: url('APP_URL', ['http:', 'https:']),
   };

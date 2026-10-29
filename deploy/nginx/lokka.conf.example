@@ -3,6 +3,11 @@
 # The reverse proxy terminates https://lokka.id and forwards to 127.0.0.1:3000;
 # Fastify binds 0.0.0.0 internally. DNS (lokka.id -> server IP) and certificates
 # are infrastructure concerns outside LOKKA's control.
+# Origin validation always compares with configured APP_URL, never these
+# forwarding headers or the internal Host/protocol. Use the real HTTPS public
+# APP_URL with your TLS server block; DEV_ALLOWED_ORIGINS is ignored in production.
+# TRUST_PROXY=true trusts loopback proxies only. Nginx must overwrite forwarded
+# headers as below; do not expose an untrusted forwarding-header bypass.
 server {
     listen 80;
     server_name lokka.id;
