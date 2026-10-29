@@ -1,4 +1,4 @@
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { eq, and, sql, desc, getTableColumns } from 'drizzle-orm';
 import type { Database } from '../../db/client.js';
 import {
   products,
@@ -13,6 +13,8 @@ import {
   directCosts,
 } from '../../db/schema/index.js';
 import { insertSaleIncome } from '../finance/ledger.js';
+import { FormError, id } from '../catalog/validation.js';
+import { MAX_RUPIAH } from '../finance/calculations.js';
 
 export interface SaleItemInput {
   variantId: string;
@@ -75,24 +77,16 @@ async function nextTransactionNumber(
   const today = new Date();
   const dateStr = today.toISOString().slice(0, 10);
   const [counter] = await tx
-    .select()
-    .from(transactionCounters)
-    .where(eq(transactionCounters.date, dateStr))
-    .for('update');
-  let seq: number;
-  if (counter) {
-    seq = counter.nextSequence;
-    await tx
-      .update(transactionCounters)
-      .set({ nextSequence: seq + 1 })
-      .where(eq(transactionCounters.date, dateStr));
-  } else {
-    seq = 1;
-    await tx.insert(transactionCounters).values({
-      date: dateStr,
-      nextSequence: 2,
-    });
-  }
+    .insert(transactionCounters)
+    .values({ date: dateStr, nextSequence: 2 })
+    .onConflictDoUpdate({
+      target: transactionCounters.date,
+      set: {
+        nextSequence: sql`${transactionCounters.nextSequence} + 1`,
+      },
+    })
+    .returning({ nextSequence: transactionCounters.nextSequence });
+  const seq = counter!.nextSequence - 1;
   const dateCompact = dateStr.replace(/-/g, '');
   return `POS-${dateCompact}-${String(seq).padStart(6, '0')}`;
 }
@@ -138,7 +132,7 @@ export function createSalesService(db: Database['db']) {
         categoryId: products.categoryId,
       })
       .from(products)
-      .where(idsCondition)
+      .where(and(activeCondition, idsCondition))
       .limit(50);
 
     const productIds = productsList.map((p) => p.id);
@@ -223,12 +217,46 @@ export function createSalesService(db: Database['db']) {
 
   async function completeSale(input: SaleCompletionInput): Promise<SaleResult> {
     if (!input.items.length)
-      throw new Error('Sale must have at least one item');
+      throw new FormError('items', 'Sale must have at least one item');
     if (input.source === 'POS' && !input.cashierId)
-      throw new Error('POS sale requires a cashier');
+      throw new FormError('cashier', 'POS sale requires a cashier');
+    if (input.source === 'POS' && input.cashTendered === undefined)
+      throw new FormError('cashTendered', 'Enter cash received.');
+    if (
+      input.cashTendered !== undefined &&
+      (input.cashTendered <= 0n || input.cashTendered > MAX_RUPIAH)
+    )
+      throw new FormError(
+        'cashTendered',
+        'Use a positive whole Rupiah amount within the supported range.',
+      );
+    const quantities = new Map<string, number>();
+    for (const item of input.items) {
+      const variantId = id(item?.variantId, 'variantId');
+      if (
+        !Number.isSafeInteger(item.quantity) ||
+        item.quantity <= 0 ||
+        item.quantity > 2147483647
+      )
+        throw new FormError(
+          'quantity',
+          'Quantity must be a positive whole number.',
+        );
+      const combined = (quantities.get(variantId) ?? 0) + item.quantity;
+      if (combined > 2147483647)
+        throw new FormError(
+          'quantity',
+          'Quantity exceeds the supported range.',
+        );
+      quantities.set(variantId, combined);
+    }
+    const items = [...quantities].map(([variantId, quantity]) => ({
+      variantId,
+      quantity,
+    }));
 
     return db.transaction(async (tx) => {
-      const variantIds = input.items.map((i) => i.variantId);
+      const variantIds = items.map((i) => i.variantId);
       const parents = await tx
         .select({ productId: productVariants.productId })
         .from(productVariants)
@@ -243,7 +271,11 @@ export function createSalesService(db: Database['db']) {
       // hold the product lock, so cost capture cannot race their updates.
       const productSnapshots = productIds.length
         ? await tx
-            .select({ id: products.id, name: products.name })
+            .select({
+              id: products.id,
+              name: products.name,
+              status: products.status,
+            })
             .from(products)
             .where(
               sql`${products.id} IN (${sql.join(
@@ -287,13 +319,22 @@ export function createSalesService(db: Database['db']) {
         lineTotal: bigint;
       }[] = [];
 
-      for (const item of input.items) {
+      for (const item of items) {
         const variant = variantMap.get(item.variantId);
-        if (!variant) throw new Error(`Variant not found: ${item.variantId}`);
+        if (!variant) throw new FormError('items', 'Variant not found.');
+        if (
+          productSnapshots.find((p) => p.id === variant.productId)?.status !==
+          'active'
+        )
+          throw new FormError(
+            'items',
+            'Product is no longer active. Refresh the catalog.',
+          );
         if (variant.status !== 'active')
-          throw new Error(`Variant ${variant.sku} is not active`);
+          throw new FormError('items', `Variant ${variant.sku} is not active`);
         if (variant.stockQuantity < item.quantity)
-          throw new Error(
+          throw new FormError(
+            'items',
             `Insufficient stock for ${variant.sku}: available ${variant.stockQuantity}, requested ${item.quantity}`,
           );
 
@@ -310,6 +351,13 @@ export function createSalesService(db: Database['db']) {
       }
 
       const total = subtotal;
+      if (total <= 0n || total > MAX_RUPIAH)
+        throw new FormError(
+          'items',
+          'Sale total exceeds the supported Rupiah range.',
+        );
+      if (input.cashTendered !== undefined && input.cashTendered < total)
+        throw new FormError('cashTendered', 'Insufficient cash received.');
       const transactionNumber = await nextTransactionNumber(tx);
       const now = new Date();
 
@@ -348,6 +396,11 @@ export function createSalesService(db: Database['db']) {
         )
         .groupBy(directCosts.productId);
       const costMap = new Map(costs.map((c) => [c.productId, BigInt(c.cost)]));
+      if ([...costMap.values()].some((cost) => cost > MAX_RUPIAH))
+        throw new FormError(
+          'items',
+          'Unit cost exceeds the supported Rupiah range.',
+        );
 
       // Create sale items with historical snapshots. No configured components
       // means unknown cost, not a claimed zero; an explicit zero component is valid.
@@ -497,8 +550,13 @@ export function createSalesService(db: Database['db']) {
 
     const [items, countResult] = await Promise.all([
       db
-        .select()
+        .select({
+          ...getTableColumns(sales),
+          cashierName: adminUsers.name,
+          itemCount: sql<string>`(select coalesce(sum(${saleItems.quantity}::numeric), 0)::text from ${saleItems} where ${saleItems.saleId} = ${sales.id})`,
+        })
         .from(sales)
+        .leftJoin(adminUsers, eq(sales.cashierId, adminUsers.id))
         .where(where)
         .orderBy(desc(sales.createdAt))
         .limit(limit)

@@ -545,9 +545,9 @@ describe('catalog workflow', () => {
         })
       ).statusCode,
     ).toBe(303);
-    // After editing, the translation still has the old name — that's expected
+    // Copied fallback text follows the base edit; distinct translations remain.
     expect((await app.inject(`/product/batik-${run}`)).body).toContain(
-      `Batik ${run}`,
+      `Edited ${run}`,
     );
     // Multipart upload exercises authentication, first-part CSRF, decode, DB and disk.
     const picture = await sharp({

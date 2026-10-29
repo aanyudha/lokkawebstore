@@ -496,7 +496,7 @@ describe('POS Sale Completion', () => {
           { variantId: vid(1), quantity: 2 },
           { variantId: vid(2), quantity: 1 },
         ]),
-        cashTendered: '600000',
+        cashTendered: '700000',
       }).toString(),
     });
     expect(res.statusCode).toBe(200);

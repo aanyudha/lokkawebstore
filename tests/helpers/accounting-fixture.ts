@@ -1,4 +1,5 @@
 import { commercialDatabase } from './commercial-database.js';
+import { eq } from 'drizzle-orm';
 import {
   adminUsers,
   directCosts,
@@ -70,11 +71,19 @@ export async function accountingFixture() {
       ledger: createLedger(db),
       salesService: createSalesService(db),
       async sell(source: 'POS' | 'WEBSTORE' = 'POS', quantity = 1) {
+        const [current] = await db
+          .select({ price: productVariants.price })
+          .from(productVariants)
+          .where(eq(productVariants.id, variant!.id));
+        const total = current!.price * BigInt(quantity);
         return createSalesService(db).completeSale({
           source,
           cashierId: admin!.id,
           items: [{ variantId: variant!.id, quantity }],
-          cashTendered: 1000000n * BigInt(quantity),
+          cashTendered:
+            total > 1000000n * BigInt(quantity)
+              ? total
+              : 1000000n * BigInt(quantity),
         });
       },
       async expense(

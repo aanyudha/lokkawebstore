@@ -536,12 +536,13 @@ export function createCatalog(
       };
       try {
         return await db.transaction(async (tx) => {
-          if (productId)
-            await tx
-              .select()
-              .from(products)
-              .where(eq(products.id, productId))
-              .for('update');
+          const [previous] = productId
+            ? await tx
+                .select()
+                .from(products)
+                .where(eq(products.id, productId))
+                .for('update')
+            : [];
           if (status === 'active') {
             const variants = productId
               ? await tx
@@ -571,6 +572,32 @@ export function createCatalog(
                 .where(eq(products.id, productId))
                 .returning()
             : await tx.insert(products).values(values).returning();
+          if (previous) {
+            // Text copied into fallback translations follows base edits;
+            // independently translated fields remain owner-supplied text.
+            const copied = (
+              key:
+                | 'name'
+                | 'slug'
+                | 'shortDescription'
+                | 'description'
+                | 'seoTitle'
+                | 'seoDescription',
+            ) =>
+              sql`case when ${productTranslations[key]} is not distinct from ${previous[key]} then ${row![key]} else ${productTranslations[key]} end`;
+            await tx
+              .update(productTranslations)
+              .set({
+                name: copied('name'),
+                slug: copied('slug'),
+                shortDescription: copied('shortDescription'),
+                description: copied('description'),
+                seoTitle: copied('seoTitle'),
+                seoDescription: copied('seoDescription'),
+                updatedAt: new Date(),
+              })
+              .where(eq(productTranslations.productId, row!.id));
+          }
           if (!productId) {
             for (const locale of supportedLocaleCodes) {
               const [existingTranslation] = await tx

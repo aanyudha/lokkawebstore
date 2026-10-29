@@ -218,11 +218,11 @@
 .pos-cashier-name {
   color: #d1d5db;
 }
-.pos-nav-link {
+.pos-ui .pos-nav-link {
   color: #d1d5db;
   text-decoration: none;
 }
-.pos-nav-link:hover {
+.pos-ui .pos-nav-link:hover {
   color: #fff;
 }
 .pos-logout-form {
@@ -704,6 +704,14 @@
   padding-top: 8px;
   border-top: 1px solid var(--pos-line);
 }
+.pos-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.pos-table-scroll:focus-visible {
+  outline: 2px solid var(--pos-ink);
+  outline-offset: 2px;
+}
 
 /* ─── Status badges ────────────────────────────────────── */
 .pos-status {
@@ -894,6 +902,9 @@
   .pos-modal {
     position: static !important;
     display: block !important;
+  }
+  .pos-modal[hidden] {
+    display: none !important;
   }
   .pos-modal-backdrop {
     display: none !important;

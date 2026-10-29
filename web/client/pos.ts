@@ -1,6 +1,9 @@
 import './styles/pos.css';
 
 document.documentElement.dataset.assets = 'ready';
+document.querySelectorAll('[data-pos-print-receipt]').forEach((button) => {
+  button.addEventListener('click', () => window.print());
+});
 
 function formatRupiah(value: bigint): string {
   const sign = value < 0n ? '-' : '';
@@ -589,6 +592,7 @@ function initRegister(register: HTMLElement) {
         <p><strong>Transaction:</strong> ${escHtml(sale.transactionNumber)}</p>
         <p><strong>Date:</strong> ${new Date(sale.completedAt).toLocaleString('id-ID')}</p>
         <p><strong>Source:</strong> POS</p>
+        <p><strong>Cashier:</strong> ${escHtml(document.querySelector('.pos-cashier-name')?.textContent ?? '')}</p>
       </div>
       <table class="pos-receipt-items">
         <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
@@ -613,12 +617,6 @@ function initRegister(register: HTMLElement) {
   function closeReceiptModal() {
     if (receiptModal) receiptModal.hidden = true;
   }
-
-  register
-    .querySelector('[data-pos-print-receipt]')
-    ?.addEventListener('click', () => {
-      window.print();
-    });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {

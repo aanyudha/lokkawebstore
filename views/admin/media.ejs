@@ -7,7 +7,7 @@
 </div>
 <% } else { %>
 <p class="media-summary"><%= images.length %> product image<%= images.length === 1 ? '' : 's' %> across <%= products.length %> product<%= products.length === 1 ? '' : 's' %>.</p>
-<div style="overflow-x:auto">
+<div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable media table">
 <table class="media-table" aria-label="Product images">
 <thead>
 <tr>

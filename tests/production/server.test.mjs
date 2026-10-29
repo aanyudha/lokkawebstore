@@ -10,12 +10,15 @@ import process from 'node:process';
 import { URL, URLSearchParams, fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { randomUUID } from 'node:crypto';
+import pg from 'pg';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { eq } from 'drizzle-orm';
 import { createDatabase } from '../../dist/db/client.js';
 import {
   adminUsers,
   categories,
   products,
+  vendors,
 } from '../../dist/db/schema/index.js';
 import { hashPassword } from '../../dist/modules/auth/service.js';
 import { createCatalog } from '../../dist/modules/catalog/service.js';
@@ -51,6 +54,43 @@ test(
       probe.once('error', reject);
       probe.listen(port, '127.0.0.1', () => probe.close(resolve));
     });
+    // Production HTTP checks mutate fixtures too. Never point the release at
+    // the owner database, even when temporary records would be cleaned up.
+    const source = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
+    assert.ok(source, 'PostgreSQL URL required for production verification.');
+    const maintenance = new pg.Pool({ connectionString: source });
+    const databaseName = `lokka_production_${randomUUID().replaceAll('-', '')}`;
+    let created = false;
+    t.after(async () => {
+      try {
+        if (created) {
+          await maintenance.query(
+            'SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()',
+            [databaseName],
+          );
+          await maintenance.query(`DROP DATABASE "${databaseName}"`);
+        }
+      } finally {
+        await maintenance.end();
+      }
+    });
+    await maintenance.query(`CREATE DATABASE "${databaseName}"`);
+    created = true;
+    const target = new URL(source);
+    target.pathname = `/${databaseName}`;
+    assert.notEqual(target.pathname, new URL(source).pathname);
+    const migrated = createDatabase(target.href);
+    try {
+      await migrate(migrated.db, { migrationsFolder: join(root, 'drizzle') });
+      await migrated.db
+        .insert(vendors)
+        .values({ slug: 'lokka', name: 'LOKKA', status: 'active' });
+    } finally {
+      await migrated.close();
+    }
+    t.diagnostic(
+      'Production fixture uses a fresh migrated lokka_production_* database; owner connection is a template only.',
+    );
     await mkdir(join(root, 'test-results'), { recursive: true });
     const release = await mkdtemp(join(root, 'test-results/production-'));
     t.after(() => rm(release, { recursive: true, force: true }));
@@ -74,7 +114,7 @@ test(
       HOST: '127.0.0.1',
       PORT: String(port),
       APP_URL: `http://127.0.0.1:${port}`,
-      DATABASE_URL: process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL,
+      DATABASE_URL: target.href,
       LOG_LEVEL: 'info',
     };
     function start() {

@@ -88,9 +88,21 @@ export async function registerCatalog(
     const data = await catalog.publicListLocale(page, locale, category?.id);
     if (page > 1 && (page - 1) * 24 >= data.total) return reply.callNotFound();
 
-    const prefix = locales[locale].pathPrefix;
     const collectionPath = locale === 'id' ? '/id/koleksi' : '/collections';
-    const categoryPath = slug ? `${prefix}/kategori/${slug}` : collectionPath;
+    const categoryPath = slug
+      ? `${locale === 'id' ? '/id/kategori' : '/category'}/${slug}`
+      : collectionPath;
+    const languagePaths: Record<string, string> = {};
+    for (const loc of orderedLocales) {
+      const translated = category
+        ? await catalog.categoryTranslationFor(category.id, loc.code)
+        : null;
+      languagePaths[loc.code] = translated
+        ? `${loc.code === 'id' ? '/id/kategori' : '/category'}/${translated.slug}`
+        : loc.code === 'id'
+          ? '/id/koleksi'
+          : '/collections';
+    }
 
     const titlePrefix =
       category?.seoTitle || category?.name || t(locale, 'catalog.title');
@@ -109,9 +121,7 @@ export async function registerCatalog(
         const locPrefix = loc.pathPrefix;
         let locPath: string;
         if (slug && category) {
-          const locCat = categories.find((c) => c.id === category.id);
-          if (!locCat) return '';
-          locPath = `${locPrefix}/kategori/${locCat.slug}`;
+          locPath = languagePaths[loc.code]!;
         } else {
           locPath = loc.code === 'id' ? `${locPrefix}/koleksi` : '/collections';
         }
@@ -139,6 +149,7 @@ export async function registerCatalog(
       alternateLinks,
       htmlLang: locales[locale].htmlLang,
       collectionPath,
+      languagePaths,
     });
   }
 
@@ -188,6 +199,13 @@ export async function registerCatalog(
       .replace(/&/g, '\\u0026');
 
     const translations = await catalog.productTranslationsList(data.product.id);
+    const languagePaths: Record<string, string> = {};
+    for (const loc of orderedLocales) {
+      const translation = translations.find((row) => row.locale === loc.code);
+      languagePaths[loc.code] = translation
+        ? `${loc.code === 'id' ? '/id/produk' : '/product'}/${translation.slug}`
+        : loc.pathPrefix || '/';
+    }
     const alternateLinks = orderedLocales
       .map((loc) => {
         const translation = translations.find((row) => row.locale === loc.code);
@@ -230,6 +248,7 @@ export async function registerCatalog(
         t(locale, key, interp),
       alternateLinks,
       htmlLang: locales[locale].htmlLang,
+      languagePaths,
     });
   }
 

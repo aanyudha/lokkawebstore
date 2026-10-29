@@ -6,11 +6,16 @@ import { createPosAuth, tokenMatches, hashToken } from './auth.js';
 import { renderPos, renderPosError } from './presentation.js';
 import { createSalesService } from '../sales/service.js';
 import type { Form } from '../catalog/validation.js';
-import { FormError, textField } from '../catalog/validation.js';
+import {
+  FormError,
+  textField,
+  money,
+  id,
+  formatIdr,
+} from '../catalog/validation.js';
 import type { CatalogImageStorage } from '../catalog/storage.js';
 
 const body = (request: FastifyRequest) => (request.body ?? {}) as Form;
-type SaleItemForm = { variantId: string; quantity: number | string };
 
 function stringify(data: unknown): string {
   return JSON.stringify(data, (_key, value) =>
@@ -163,13 +168,7 @@ export async function registerPos(
       // ─── Protected routes: CSRF + origin in preHandler ──
       pos.addHook('preHandler', async (request, reply) => {
         const path = request.url.split('?')[0];
-        if (path === '/pos/login' || path === '/pos/logout') return;
         if (request.method !== 'GET' && request.method !== 'HEAD') {
-          const csrf = request.cookies[CSRF_COOKIE] ?? '';
-          const form = body(request);
-          if (!form.csrf || !tokenMatches(form.csrf, hashToken(csrf))) {
-            return reply.code(403).send({ error: 'CSRF validation failed' });
-          }
           const origin = request.headers.origin;
           if (origin) {
             try {
@@ -178,8 +177,10 @@ export async function registerPos(
               const originHost = originUrl.hostname;
               const appHost = appUrl.hostname;
               const originMatch =
-                originHost === appHost ||
+                originUrl.origin === appUrl.origin ||
                 (env.nodeEnv !== 'production' &&
+                  originUrl.protocol === appUrl.protocol &&
+                  originUrl.port === appUrl.port &&
                   ((originHost === 'localhost' && appHost === '127.0.0.1') ||
                     (originHost === '127.0.0.1' && appHost === 'localhost')));
               if (!originMatch) {
@@ -188,6 +189,14 @@ export async function registerPos(
             } catch {
               return reply.code(403).send({ error: 'Invalid origin' });
             }
+          }
+          // Login/logout validate their own form tokens. Origin validation
+          // applies to them too; matching only a hostname admits other ports.
+          if (path === '/pos/login' || path === '/pos/logout') return;
+          const csrf = request.cookies[CSRF_COOKIE] ?? '';
+          const form = body(request);
+          if (!form.csrf || !tokenMatches(form.csrf, hashToken(csrf))) {
+            return reply.code(403).send({ error: 'CSRF validation failed' });
           }
         }
       });
@@ -229,14 +238,26 @@ export async function registerPos(
             .code(422)
             .send({ error: 'Sale must have at least one item' });
         }
-        const items = (itemsRaw as SaleItemForm[]).map((item) => ({
-          variantId: String(item.variantId),
-          quantity: Number(item.quantity),
-        }));
-        const cashTendered = form.cashTendered
-          ? BigInt(String(form.cashTendered))
-          : undefined;
         try {
+          const items = itemsRaw.map((item: unknown) => {
+            if (!item || typeof item !== 'object' || Array.isArray(item))
+              throw new FormError('items', 'Invalid sale item.');
+            const value = item as Record<string, unknown>;
+            const quantity = value.quantity;
+            if (
+              typeof quantity !== 'number' &&
+              (typeof quantity !== 'string' || !/^[1-9]\d*$/.test(quantity))
+            )
+              throw new FormError(
+                'items',
+                'Quantity must be a positive whole number.',
+              );
+            return {
+              variantId: id(value.variantId),
+              quantity: Number(quantity),
+            };
+          });
+          const cashTendered = money(form, 'cashTendered')!;
           const result = await sales.completeSale({
             source: 'POS',
             cashierId: principal.id,
@@ -246,7 +267,10 @@ export async function registerPos(
           const json = stringify(result);
           return reply.header('content-type', 'application/json').send(json);
         } catch (error) {
-          const msg = error instanceof Error ? error.message : 'Sale failed';
+          const msg =
+            error instanceof FormError
+              ? error.message
+              : 'Sale failed. Please try again.';
           return reply.code(422).send({ error: msg });
         }
       });
@@ -261,14 +285,8 @@ export async function registerPos(
         });
         const enriched = rawSales.map((s) => ({
           ...s,
-          totalFormatted: new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0,
-          }).format(Number(s.total)),
-          itemCount: 0,
+          totalFormatted: formatIdr(s.total),
           paymentMethod: 'CASH',
-          cashierName: null as string | null,
         }));
         return renderPos(reply, 'history', {
           principal,
@@ -282,12 +300,19 @@ export async function registerPos(
         const principal = request.posPrincipal!;
         const csrf = request.cookies[CSRF_COOKIE] ?? '';
         const params = request.params as { id: string };
-        const sale = await sales.getSale(params.id);
+        let saleId: string;
+        try {
+          saleId = id(params.id);
+        } catch {
+          return reply.callNotFound();
+        }
+        const sale = await sales.getSale(saleId);
         if (!sale) return reply.callNotFound();
         return renderPos(reply, 'sale-detail', {
           principal,
           csrf,
           sale,
+          formatIdr,
         });
       });
     },

@@ -169,8 +169,29 @@ export class LocalCatalogImageStorage implements CatalogImageStorage {
       await this.removeSource(sourceKey, ext);
     }
   }
-  read(key: string, size: ImageSize) {
-    return readFile(this.path(key, size));
+  async read(key: string, size: ImageSize) {
+    // Never serve the private original as a public fallback. A missing
+    // derivative may use another derivative, otherwise a generated placeholder.
+    for (const candidate of [
+      size,
+      ...Object.keys(imageSizes).filter((s) => s !== size),
+    ] as ImageSize[]) {
+      try {
+        return await readFile(this.path(key, candidate));
+      } catch (error) {
+        if (!(
+          error instanceof Error &&
+          'code' in error &&
+          error.code === 'ENOENT'
+        ))
+          throw error;
+      }
+    }
+    return sharp({
+      create: { width: 400, height: 400, channels: 3, background: '#e8e5e1' },
+    })
+      .webp()
+      .toBuffer();
   }
   async readSource(key: string): Promise<Buffer | null> {
     for (const ext of ['jpg', 'png', 'webp']) {

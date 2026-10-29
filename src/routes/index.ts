@@ -79,6 +79,9 @@ export async function registerRoutes(
   app.get('/koleksi', async (_request, reply) =>
     reply.redirect('/id/koleksi', 301),
   );
+  app.get('/id/collections', async (_request, reply) =>
+    reply.redirect('/id/koleksi', 301),
+  );
   app.get('/kategori/:slug', async (request, reply) =>
     reply.redirect(
       `/id/kategori/${(request.params as { slug: string }).slug}`,
