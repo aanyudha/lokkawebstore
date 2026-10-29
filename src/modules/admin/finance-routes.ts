@@ -9,6 +9,7 @@ import {
   type CashFlowPeriod,
 } from '../finance/ledger.js';
 import { FormError, formatIdr, type Form } from '../catalog/validation.js';
+import type { Accounting } from '../finance/accounting.js';
 
 type Page = (
   request: FastifyRequest,
@@ -51,7 +52,29 @@ export function registerFinanceAdmin(
   app: FastifyInstance,
   ledger: ReturnType<typeof createLedger>,
   page: Page,
+  accounting: Accounting,
 ) {
+  app.get('/finance/accounting', async (r, reply) => {
+    let period: CashFlowPeriod;
+    let error: FormError | null = null;
+    try {
+      period = resolvePeriod(r.query as Record<string, unknown>);
+    } catch (failure) {
+      if (!(failure instanceof FormError)) throw failure;
+      error = failure;
+      reply.code(422);
+      period = resolvePeriod({});
+    }
+    return page(r, reply, 'accounting', {
+      report: await accounting.report(period),
+      period,
+      periodLinks: periodLinks(period),
+      error,
+      formatIdr,
+      sourceLabels: SOURCE_LABELS,
+      categoryLabels: CATEGORY_LABELS,
+    });
+  });
   const body = (r: FastifyRequest) => (r.body ?? {}) as Form;
   /** Period can arrive as a query string or as hidden form fields on POST. */
   const periodInput = (r: FastifyRequest) => ({

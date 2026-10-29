@@ -10,6 +10,7 @@ import {
   inventoryMovements,
   transactionCounters,
   adminUsers,
+  directCosts,
 } from '../../db/schema/index.js';
 import { insertSaleIncome } from '../finance/ledger.js';
 
@@ -227,8 +228,33 @@ export function createSalesService(db: Database['db']) {
       throw new Error('POS sale requires a cashier');
 
     return db.transaction(async (tx) => {
-      // Lock relevant variant rows
       const variantIds = input.items.map((i) => i.variantId);
+      const parents = await tx
+        .select({ productId: productVariants.productId })
+        .from(productVariants)
+        .where(
+          sql`${productVariants.id} IN (${sql.join(
+            variantIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})`,
+        );
+      const productIds = [...new Set(parents.map((v) => v.productId))].sort();
+      // Match catalog's product-before-variant lock order. Cost writers also
+      // hold the product lock, so cost capture cannot race their updates.
+      const productSnapshots = productIds.length
+        ? await tx
+            .select({ id: products.id, name: products.name })
+            .from(products)
+            .where(
+              sql`${products.id} IN (${sql.join(
+                productIds.map((id) => sql`${id}`),
+                sql`, `,
+              )})`,
+            )
+            .orderBy(products.id)
+            .for('update')
+        : [];
+      // Lock relevant variant rows
       const variantRows = await tx
         .select({
           id: productVariants.id,
@@ -306,14 +332,30 @@ export function createSalesService(db: Database['db']) {
 
       if (!sale) throw new Error('Failed to create sale');
 
-      // Create sale items with historical snapshots
+      // Cost writers lock the product row too: capture one stable direct-cost
+      // fact per unit, excluding pricing-only Global Overhead assumptions.
+      const costs = await tx
+        .select({
+          productId: directCosts.productId,
+          cost: sql<string>`sum(${directCosts.amountRupiah})::text`,
+        })
+        .from(directCosts)
+        .where(
+          sql`${directCosts.productId} IN (${sql.join(
+            productIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})`,
+        )
+        .groupBy(directCosts.productId);
+      const costMap = new Map(costs.map((c) => [c.productId, BigInt(c.cost)]));
+
+      // Create sale items with historical snapshots. No configured components
+      // means unknown cost, not a claimed zero; an explicit zero component is valid.
       const createdItems: SaleResult['items'] = [];
       for (const item of saleItemData) {
-        const [productRow] = await tx
-          .select({ name: products.name })
-          .from(products)
-          .where(eq(products.id, item.productId))
-          .limit(1);
+        const productRow = productSnapshots.find(
+          (p) => p.id === item.productId,
+        );
 
         const [createdItem] = await tx
           .insert(saleItems)
@@ -327,6 +369,7 @@ export function createSalesService(db: Database['db']) {
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             lineTotal: item.lineTotal,
+            costSnapshot: costMap.get(item.productId) ?? null,
             createdAt: now,
           })
           .returning({ id: saleItems.id });

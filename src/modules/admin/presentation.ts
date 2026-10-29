@@ -50,6 +50,11 @@ export const adminNavigation = [
         area: 'income-expense',
       },
       {
+        label: 'Accounting Lite',
+        href: '/admin/finance/accounting',
+        area: 'accounting',
+      },
+      {
         label: 'Global overhead',
         href: '/admin/finance/overhead',
         area: 'overhead',
@@ -160,6 +165,13 @@ function metadata(page: string, data: Record<string, unknown>) {
         'Manage business-wide costs, allocation and recovery periods.',
       area: 'overhead',
       breadcrumbs: [{ label: 'Finance' }, { label: 'Global overhead' }],
+    },
+    accounting: {
+      title: 'Accounting Lite',
+      description:
+        'Revenue, historical cost of goods sold and actual operating expenses.',
+      area: 'accounting',
+      breadcrumbs: [{ label: 'Finance' }, { label: 'Accounting Lite' }],
     },
     'cash-flow': {
       title: 'Cash Flow',

@@ -107,13 +107,14 @@ describe('admin presentation boundaries', () => {
       '/pos',
       '/admin/finance/cash-flow',
       '/admin/finance/income-expense',
+      '/admin/finance/accounting',
       '/admin/finance/overhead',
       '/admin/settings/fulfillment',
     ])
       expect(nav).toContain(`href="${path}"`);
-    expect(nav.match(/href=/g)).toHaveLength(10);
+    expect(nav.match(/href=/g)).toHaveLength(11);
     expect(nav).not.toMatch(
-      /Orders|Customers|Story|Lookbook|Accounting|Legal|Tax|SMEXPO|Reports|User Management/,
+      /Orders|Customers|Story|Lookbook|Legal|Tax|SMEXPO|Reports|User Management/,
     );
     expect(response.body).toContain('aria-controls="admin-sidebar"');
     expect(response.body).toContain('aria-expanded="false"');

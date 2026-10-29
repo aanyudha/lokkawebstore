@@ -9,6 +9,7 @@ import { FormError, type Form, textField, id } from '../catalog/validation.js';
 import type { CatalogImageStorage, ImageSize } from '../catalog/storage.js';
 import { createFinance } from '../finance/service.js';
 import { createLedger } from '../finance/ledger.js';
+import { createAccounting } from '../finance/accounting.js';
 import { createFulfillment } from '../shipping/service.js';
 import { registerCommercialAdmin } from './commercial-routes.js';
 import { registerFinanceAdmin } from './finance-routes.js';
@@ -193,7 +194,12 @@ export async function registerAdmin(
           createFulfillment(db, catalog),
           page,
         );
-        registerFinanceAdmin(protectedRoutes, createLedger(db), page);
+        registerFinanceAdmin(
+          protectedRoutes,
+          createLedger(db),
+          page,
+          createAccounting(db),
+        );
         protectedRoutes.get<{ Params: { id: string; imageId: string } }>(
           '/products/:id/images/:imageId/preview',
           async (request, reply) => {

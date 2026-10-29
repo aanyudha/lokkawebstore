@@ -629,7 +629,7 @@ describe('finance admin routes', () => {
     expect(page.body).toContain('href="/admin/finance/cash-flow"');
     expect(page.body).toContain('href="/admin/finance/income-expense"');
     expect(page.body).toContain('href="/admin/finance/overhead"');
-    expect(page.body).not.toMatch(/href="\/admin\/finance\/accounting"/);
+    expect(page.body).toContain('href="/admin/finance/accounting"');
   });
 });
 

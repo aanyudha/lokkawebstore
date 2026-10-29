@@ -1,0 +1,58 @@
+<div class="admin-content commercial-page">
+<%- include('../partials/form-error.ejs') %>
+<p>Cash Flow measures money moved; Accounting Lite measures sales profit. Revenue comes from completed sales, HPP from historical direct-cost snapshots, and Operating Expenses from posted actual manual expenses. Opening cash, manual income and Global Overhead planning do not add revenue or profit.</p>
+<nav class="commercial-periods" aria-label="Accounting period"><% for (const link of periodLinks) { %><a href="<%= link.href %>"<%= link.active ? ' aria-current="page"' : '' %>><%= link.label %></a><% } %></nav>
+<form method="get" action="/admin/finance/accounting" class="form-stack">
+<input type="hidden" name="period" value="custom" />
+<label>From<input type="date" name="from" min="2000-01-01" required value="<%= period.fromInput %>" /></label>
+<label>To<input type="date" name="to" min="2000-01-01" required value="<%= period.toInput %>" /></label>
+<button>Apply range</button>
+</form>
+<section class="admin-section">
+<h2><%= period.fromInput %> → <%= period.toInput %> (UTC)</h2>
+<% if (report.cogs === null) { %><p role="status" data-incomplete-cost>Historical cost is incomplete: <%= report.missingItemCount %> sold lines without a cost snapshot and <%= report.missingSaleCount %> sales without items. HPP and profit are unavailable for this period. Current catalog costs are never used to fill historical gaps.</p><% } %>
+<dl class="commercial-totals">
+<dt>Revenue</dt><dd data-accounting-revenue><%= formatIdr(report.revenue) %></dd>
+<dt>COGS / HPP</dt><dd data-accounting-cogs><%= report.cogs === null ? 'Unavailable — missing historical cost' : formatIdr(report.cogs) %></dd>
+<dt>Gross Profit</dt><dd data-accounting-gross><%= report.grossProfit === null ? 'Unavailable — missing historical cost' : formatIdr(report.grossProfit) %></dd>
+<dt>Operating Expenses</dt><dd data-accounting-expenses><%= formatIdr(report.operatingExpenses) %></dd>
+<dt>Net Profit</dt><dd data-accounting-net><%= report.netProfit === null ? 'Unavailable — missing historical cost' : formatIdr(report.netProfit) %></dd>
+</dl>
+<p>Gross Profit = Revenue − HPP. Net Profit = Gross Profit − Operating Expenses. Tax is deferred.</p>
+</section>
+<div class="commercial-grid">
+<section class="admin-section"><h2>Revenue by Source</h2>
+<% if (!report.bySource.length) { %><p>No completed sales in this period.</p><% } %>
+<ul><% for (const row of report.bySource) { %><li data-source="<%= row.key %>"><%= sourceLabels[row.key] ?? row.key %>: <strong><%= formatIdr(row.revenue) %></strong> (<%= row.count %> sales)</li><% } %></ul>
+</section>
+<section class="admin-section"><h2>Operating Expenses by Category</h2>
+<% if (!report.byCategory.length) { %><p>No posted operating expenses in this period.</p><% } %>
+<ul><% for (const row of report.byCategory) { %><li data-category="<%= row.key %>"><%= categoryLabels[row.key] ?? row.key %>: <strong><%= formatIdr(row.total) %></strong></li><% } %></ul>
+<p><a href="/admin/finance/income-expense">Review expense history and void audit</a></p>
+</section>
+</div>
+<section class="admin-section"><h2>COGS summary</h2>
+<p><%= report.itemCount %> sold lines / <%= report.units %> units. Known historical HPP: <%= formatIdr(report.knownCogs) %>. Each line uses quantity × historical direct cost per unit; pricing overhead is excluded.</p>
+</section>
+<section class="admin-section"><h2>Contributing sales (<%= report.saleCount %>)</h2>
+<p>Up to 100 most recent sales shown. Totals cover the entire selected period.</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Contributing sales"><table>
+<thead><tr><th scope="col">Date (UTC)</th><th scope="col">Sale reference</th><th scope="col">Source</th><th scope="col">Revenue</th></tr></thead><tbody>
+<% for (const row of report.recentSales) { %><tr><td><%= row.occurredAt.toISOString().replace('T', ' ').slice(0, 16) %></td><td><%= row.reference %></td><td><%= sourceLabels[row.source] ?? row.source %></td><td><%= formatIdr(row.revenue) %></td></tr><% } %>
+</tbody></table></div>
+</section>
+<section class="admin-section"><h2>Contributing sale items</h2>
+<p>Up to 200 recent sold lines shown. References match the contributing sales above.</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Historical sold-item cost"><table>
+<thead><tr><th scope="col">Sale reference</th><th scope="col">Product / variant</th><th scope="col">SKU</th><th scope="col">Quantity</th><th scope="col">Historical unit HPP</th><th scope="col">Line HPP</th></tr></thead><tbody>
+<% for (const row of report.recentItems) { %><tr><td><%= row.reference %></td><td><%= row.product %> / <%= row.variant %></td><td><%= row.sku %></td><td><%= row.quantity %></td><td><%= row.unitCost === null ? 'Unknown' : formatIdr(row.unitCost) %></td><td><%= row.cogs === null ? 'Unknown' : formatIdr(BigInt(row.cogs)) %></td></tr><% } %>
+</tbody></table></div>
+</section>
+<section class="admin-section"><h2>Contributing operating expenses</h2>
+<p>Up to 100 most recent posted expenses shown. Voided entries are excluded.</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Contributing operating expenses"><table>
+<thead><tr><th scope="col">Date (UTC)</th><th scope="col">Transaction reference</th><th scope="col">Category</th><th scope="col">Description</th><th scope="col">Expense</th></tr></thead><tbody>
+<% for (const row of report.recentExpenses) { %><tr><td><%= row.occurredAt.toISOString().replace('T', ' ').slice(0, 16) %></td><td><%= row.id %></td><td><%= categoryLabels[row.category] ?? row.category %></td><td><%= row.notes ?? 'Manual expense' %></td><td><%= formatIdr(row.total) %></td></tr><% } %>
+</tbody></table></div>
+</section>
+</div>

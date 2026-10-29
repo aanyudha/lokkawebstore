@@ -99,6 +99,7 @@ test('office shell, responsive drawer, keyboard access and public isolation', as
         ['category', `/admin/categories/${category.id}/edit`],
         ['pricing', `/admin/products/${product.id}/pricing`],
         ['overhead', '/admin/finance/overhead'],
+        ['accounting', '/admin/finance/accounting'],
         ['fulfillment', '/admin/settings/fulfillment'],
       ])
         await check(name!, path!, width);
