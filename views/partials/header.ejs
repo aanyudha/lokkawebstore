@@ -1,6 +1,9 @@
 <% const navLocale = locale || 'en'; %>
 <% const navT = typeof t === 'function' ? t : (k) => k; %>
 <% const accountCustomer = typeof customer !== 'undefined' ? customer : null; %>
+<% const accountName = typeof accountCustomer?.name === 'string' ? accountCustomer.name.trim() : ''; %>
+<% const accountLabel = accountCustomer ? accountName || navT('nav.account') : navT('nav.signIn'); %>
+<% const navCategories = typeof navigationCategories === 'undefined' ? [] : navigationCategories; %>
 <% const accountPath = navLocale === 'id' ? '/id/akun' : '/account'; %>
 <% const accountLoginPath = navLocale === 'id' ? '/id/akun/masuk' : '/account/login'; %>
 <% const localePath = (code) => (typeof languagePaths !== 'undefined' && languagePaths && languagePaths[code]) ? languagePaths[code] : null; %>
@@ -17,11 +20,8 @@
     </a>
 
     <nav class="main-nav" aria-label="<%= navT('language.switchLabel') %>">
-      <a href="<%= navLocale === 'id' ? '/id/koleksi' : '/collections' %>"><%= navT('nav.collections') %></a>
-      <% for (const cat of (categories || [])) { %>
-        <% if (!cat.parentId) { %>
+      <% for (const cat of navCategories) { %>
           <a href="<%= navLocale === 'id' ? '/id/kategori/' + cat.slug : '/category/' + cat.slug %>"><%= cat.name %></a>
-        <% } %>
       <% } %>
     </nav>
 
@@ -29,7 +29,8 @@
       <a
         class="header-account"
         href="<%= accountCustomer ? accountPath : accountLoginPath %>"
-      ><%= navT(accountCustomer ? 'nav.account' : 'nav.signIn') %></a>
+        title="<%= accountLabel %>"
+      ><%= accountLabel %></a>
 
       <nav class="lang-switcher" aria-label="<%= navT('language.switchLabel') %>">
         <% for (const loc of (locales || [])) { %>
@@ -58,14 +59,11 @@
 
   <div class="mobile-drawer" id="mobile-drawer" hidden>
     <nav aria-label="Mobile navigation">
-      <a href="<%= navLocale === 'id' ? '/id/koleksi' : '/collections' %>"><%= navT('nav.collections') %></a>
-      <% for (const cat of (categories || [])) { %>
-        <% if (!cat.parentId) { %>
+      <% for (const cat of navCategories) { %>
           <a href="<%= navLocale === 'id' ? '/id/kategori/' + cat.slug : '/category/' + cat.slug %>"><%= cat.name %></a>
-        <% } %>
       <% } %>
       <div class="mobile-lang">
-        <a href="<%= accountCustomer ? accountPath : accountLoginPath %>"><%= navT(accountCustomer ? 'nav.account' : 'nav.signIn') %></a>
+        <a class="header-account" title="<%= accountLabel %>" href="<%= accountCustomer ? accountPath : accountLoginPath %>"><%= accountLabel %></a>
         <% for (const loc of (locales || [])) { %>
           <a
             href="<%= localePath(loc.code) || loc.pathPrefix || '/' %>"

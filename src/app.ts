@@ -18,6 +18,7 @@ import { registerCatalog } from './modules/catalog/routes.js';
 import { registerAdmin } from './modules/admin/routes.js';
 import { renderAdminError } from './modules/admin/presentation.js';
 import { registerCustomer } from './modules/customer/routes.js';
+import { registerStorefrontNavigation } from './modules/storefront/navigation.js';
 import { registerPos } from './modules/pos/routes.js';
 import { renderPosError } from './modules/pos/presentation.js';
 import { getAssets, resetAssets } from './config/assets.js';
@@ -303,6 +304,7 @@ export async function buildApp(
     // Reset asset cache after build
     resetAssets();
     if (database.db) await registerCustomer(app, database.db, env);
+    if (catalog) registerStorefrontNavigation(app, catalog);
     const hero = database.db
       ? createHomepageHero(database.db, storage, () =>
           app.log.warn(

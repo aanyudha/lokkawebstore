@@ -244,6 +244,11 @@
 /* ── Header account link ── */
 
 .header-account {
+  display: block;
+  min-width: 0;
+  max-width: clamp(3rem, 18vw, 14rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;

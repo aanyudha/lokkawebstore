@@ -68,7 +68,7 @@ export async function registerCustomer(
   app.addHook('onRequest', async (request, reply) => {
     const identity = await auth.session(request.cookies[COOKIE]);
     reply.locals = Object.assign({}, reply.locals, {
-      customer: identity?.customer ?? null,
+      customer: identity ? { name: identity.customer.name } : null,
     });
   });
 
