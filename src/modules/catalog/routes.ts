@@ -226,7 +226,7 @@ export async function registerCatalog(
       },
       translation: data.translation,
       variants: data.variants,
-      images: data.images,
+      images: data.images.map((image) => catalog.presentImage(image, 'detail')),
       categories,
       category,
       title: `${data.translation.seoTitle || data.translation.name} | LOKKA`,

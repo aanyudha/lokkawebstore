@@ -7,18 +7,16 @@
     aria-label="<%= item.name %>"
   >
     <div class="product-card__image">
-      <% if (picture && typeof storage !== 'undefined' && storage) { %>
+      <% if (picture) { %>
         <img
-          src="<%= storage.url(picture.storageKey, 'card') %>"
+          src="<%= picture.src %>"
           alt="<%= picture.altText || item.name %>"
           width="<%= picture.width %>"
           height="<%= picture.height %>"
           loading="<%= position > 3 ? 'lazy' : 'eager' %>"
         />
       <% } else { %>
-        <div class="product-placeholder">
-          <span>LOKKA</span>
-        </div>
+        <%- include('product-placeholder.ejs') %>
       <% } %>
     </div>
     <div class="product-card__info">

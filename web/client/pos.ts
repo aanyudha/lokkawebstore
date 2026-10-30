@@ -46,6 +46,7 @@ interface ProductDataRaw {
   categoryId: string | null;
   variants: VariantDataRaw[];
   primaryImage: {
+    src: string;
     storageKey: string;
     width: number;
     height: number;
@@ -189,6 +190,7 @@ function initRegister(register: HTMLElement) {
     categoryId: string | null;
     variants: VariantData[];
     primaryImage: {
+      src: string;
       storageKey: string;
       width: number;
       height: number;
@@ -269,7 +271,7 @@ function initRegister(register: HTMLElement) {
       article.className = 'pos-product-card';
       article.setAttribute('role', 'listitem');
       const img = product.primaryImage
-        ? `<img src="/media/catalog/${product.primaryImage.storageKey}/thumb.webp" alt="" width="80" height="80" loading="lazy" />`
+        ? `<img src="${escHtml(product.primaryImage.src)}" alt="" width="80" height="80" loading="lazy" />`
         : '<div class="pos-product-placeholder">No image</div>';
       const hasVariants = product.variants.length > 1;
       const outOfStock = product.variants.every(

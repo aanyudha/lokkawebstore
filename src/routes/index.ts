@@ -46,7 +46,6 @@ export async function registerRoutes(
       htmlLang: locales.en.htmlLang,
       featuredProducts: products,
       hero: hero ? await hero.publicImage() : null,
-      storage: catalog ? undefined : undefined,
       formatIdr: undefined,
     });
   });
@@ -76,7 +75,6 @@ export async function registerRoutes(
       htmlLang: locales.id.htmlLang,
       featuredProducts: products,
       hero: hero ? await hero.publicImage() : null,
-      storage: catalog ? undefined : undefined,
       formatIdr: undefined,
     });
   });

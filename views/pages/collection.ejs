@@ -17,7 +17,7 @@
   <% } else { %>
     <div class="product-grid">
       <% rows.forEach((item, position) => { %>
-        <% const picture = images.find(i => i.productId === item.id); %>
+        <% const picture = item.picture; %>
         <% const priceVariant = variants.filter(v => v.productId === item.id).sort((a,b) => a.price < b.price ? -1 : a.price > b.price ? 1 : 0)[0]; %>
         <%- include('../partials/product-card.ejs', { item, picture, priceVariant, position, locale: colLocale, t: colT }) %>
       <% }) %>

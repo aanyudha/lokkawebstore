@@ -14,6 +14,7 @@ import {
   formatIdr,
 } from '../catalog/validation.js';
 import type { CatalogImageStorage } from '../catalog/storage.js';
+import { presentProductImage } from '../catalog/presentation.js';
 
 const body = (request: FastifyRequest) => (request.body ?? {}) as Form;
 
@@ -27,7 +28,7 @@ export async function registerPos(
   app: FastifyInstance,
   db: Database['db'],
   env: AppEnv,
-  _storage: CatalogImageStorage, // eslint-disable-line @typescript-eslint/no-unused-vars
+  storage: CatalogImageStorage,
 ) {
   const posAuth = createPosAuth(db);
   const sales = createSalesService(db);
@@ -193,7 +194,21 @@ export async function registerPos(
             ? String((request.query as Record<string, unknown>).q ?? '')
             : '';
         const products = await sales.searchProducts(q || undefined);
-        const json = stringify({ products });
+        const json = stringify({
+          products: products.map((product) => ({
+            ...product,
+            primaryImage: product.primaryImage
+              ? {
+                  ...product.primaryImage,
+                  ...presentProductImage(
+                    storage,
+                    product.primaryImage,
+                    'thumb',
+                  ),
+                }
+              : null,
+          })),
+        });
         return reply.header('content-type', 'application/json').send(json);
       });
 

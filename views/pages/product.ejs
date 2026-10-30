@@ -16,11 +16,11 @@
   <div class="product-detail">
     <div class="gallery">
       <% if (!images.length) { %>
-        <div class="product-placeholder product-placeholder--large"><span><%= pdpT('product.imageComingSoon') %></span></div>
+        <%- include('../partials/product-placeholder.ejs') %>
       <% } %>
       <% images.forEach((picture, index) => { %>
         <img
-          src="<%= storage.url(picture.storageKey, 'detail') %>"
+          src="<%= picture.src %>"
           alt="<%= picture.altText || product.name %>"
           width="<%= picture.width %>"
           height="<%= picture.height %>"

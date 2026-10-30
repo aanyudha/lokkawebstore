@@ -21,6 +21,7 @@ import {
   databaseError,
 } from './validation.js';
 import type { CatalogImageStorage } from './storage.js';
+import { primaryProductImage, presentProductImage } from './presentation.js';
 import { supportedLocaleCodes } from '../../i18n/index.js';
 
 export function createCatalog(
@@ -298,6 +299,13 @@ export function createCatalog(
     return {
       rows: rows.map((r) => ({
         ...r.product,
+        picture: presentProductImage(
+          storage,
+          primaryProductImage(
+            related.images.filter((image) => image.productId === r.product.id),
+          ),
+          'card',
+        ),
         name: r.translation.name,
         slug: r.translation.slug,
         shortDescription: r.translation.shortDescription,
@@ -361,6 +369,10 @@ export function createCatalog(
   // ─── Legacy methods (preserved for backward compat) ─────────
 
   return {
+    presentImage: (
+      image: Parameters<typeof presentProductImage>[1],
+      size: Parameters<typeof presentProductImage>[2],
+    ) => presentProductImage(storage, image, size),
     product,
     categoryList,
     allCategories,

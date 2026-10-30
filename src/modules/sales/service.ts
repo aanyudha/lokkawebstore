@@ -15,6 +15,7 @@ import {
 import { insertSaleIncome } from '../finance/ledger.js';
 import { FormError, id } from '../catalog/validation.js';
 import { MAX_RUPIAH } from '../finance/calculations.js';
+import { primaryProductImage } from '../catalog/presentation.js';
 
 export interface SaleItemInput {
   variantId: string;
@@ -159,6 +160,8 @@ export function createSalesService(db: Database['db']) {
       db
         .select({
           productId: productImages.productId,
+          id: productImages.id,
+          sortOrder: productImages.sortOrder,
           storageKey: productImages.storageKey,
           width: productImages.width,
           height: productImages.height,
@@ -188,20 +191,16 @@ export function createSalesService(db: Database['db']) {
     }
 
     const imageMap = new Map<string, PosProduct['primaryImage']>();
-    for (const img of imagesRows) {
-      if (img.isPrimary) {
-        imageMap.set(img.productId, {
-          storageKey: img.storageKey,
-          width: img.width,
-          height: img.height,
-        });
-      } else if (!imageMap.has(img.productId)) {
-        imageMap.set(img.productId, {
-          storageKey: img.storageKey,
-          width: img.width,
-          height: img.height,
-        });
-      }
+    for (const productId of productIds) {
+      const img = primaryProductImage(
+        imagesRows.filter((image) => image.productId === productId),
+      );
+      imageMap.set(
+        productId,
+        img
+          ? { storageKey: img.storageKey, width: img.width, height: img.height }
+          : null,
+      );
     }
 
     return productsList.map((p) => ({

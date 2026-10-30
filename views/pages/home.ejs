@@ -23,19 +23,8 @@
       <a href="<%= homeLocale === 'id' ? '/id/koleksi' : '/collections' %>" class="text-link"><%= homeT('nav.collections') %> &rarr;</a>
     </div>
     <div class="product-grid product-grid--4">
-      <% featuredProducts.forEach((item, idx) => { %>
-        <article class="product-card">
-          <a href="<%= homeLocale === 'id' ? '/id/produk/' + item.slug : '/product/' + item.slug %>" class="product-card__link">
-            <div class="product-card__image">
-              <div class="product-placeholder" aria-hidden="true">
-                <span>LOKKA</span>
-              </div>
-            </div>
-            <div class="product-card__info">
-              <h3 class="product-card__title"><%= item.name %></h3>
-            </div>
-          </a>
-        </article>
+      <% featuredProducts.forEach((item, position) => { %>
+        <%- include('../partials/product-card.ejs', { item, picture: item.picture, priceVariant: null, position, locale: homeLocale, t: homeT }) %>
       <% }) %>
     </div>
   </section>

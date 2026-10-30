@@ -3,6 +3,19 @@ import './styles/main.css';
 // Asset readiness marker
 document.documentElement.dataset.assets = 'ready';
 
+// Keep the existing logo fallback compatible with the strict CSP.
+document
+  .querySelectorAll<HTMLImageElement>('.site-header .brand-logo, .account-logo')
+  .forEach((brandLogo) => {
+    const fallback = () => {
+      brandLogo.src = '/images/lokka_logo.png';
+      brandLogo.width = 140;
+      brandLogo.height = 70;
+    };
+    if (brandLogo.complete && !brandLogo.naturalWidth) fallback();
+    else brandLogo.addEventListener('error', fallback, { once: true });
+  });
+
 // ─── Mobile menu toggle ──────────────────────
 const toggle = document.querySelector('[data-menu-toggle]');
 if (toggle) {
