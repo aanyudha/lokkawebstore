@@ -67,8 +67,17 @@ export async function registerCustomer(
   // the signed-in state on every storefront page without touching each route.
   app.addHook('onRequest', async (request, reply) => {
     const identity = await auth.session(request.cookies[COOKIE]);
+    request.customerIdentity = identity ?? undefined;
     reply.locals = Object.assign({}, reply.locals, {
       customer: identity ? { name: identity.customer.name } : null,
+      customerCsrf:
+        identity &&
+        tokenMatches(
+          request.cookies[CSRF_COOKIE],
+          identity.session.csrfTokenHash,
+        )
+          ? request.cookies[CSRF_COOKIE]
+          : '',
     });
   });
 

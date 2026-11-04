@@ -1,0 +1,47 @@
+<main id="main" class="catalog-page shop-page">
+  <h1><%= t(review ? 'shop.review' : 'shop.cart') %></h1>
+  <% if (error) { %><p class="account-error" role="alert"><%= t(error) %></p><% } %>
+  <p><%= t('shop.currentPrices') %></p>
+  <% if (!items.length) { %><p><%= t('shop.empty') %></p><% } else { %>
+  <div class="shop-table-wrap" tabindex="0" role="region" aria-label="<%= t('shop.cart') %>">
+    <table class="shop-table">
+      <thead><tr><th scope="col"><%= t('shop.product') %></th><th scope="col"><%= t('shop.unitPrice') %></th><th scope="col"><%= t('shop.quantity') %></th><th scope="col"><%= t('shop.lineTotal') %></th><th scope="col"><%= t('shop.actions') %></th></tr></thead>
+      <tbody><% for (const row of items) { %>
+      <tr>
+        <th scope="row"><%= row.product.name %><br /><small><%= row.variant.name %> · SKU: <%= row.variant.sku %></small>
+          <% if (!row.available) { %><p role="status"><%= t('shop.unavailable') %> (<%= t('shop.stock') %>: <%= row.variant.stockQuantity %>)</p><% } %>
+        </th>
+        <td><%= formatIdr(row.variant.price) %></td>
+        <td><% if (!review) { %>
+          <form method="post" action="<%= paths.cart %>/items/<%= row.item.id %>/update">
+            <input type="hidden" name="csrf" value="<%= csrf %>" />
+            <label class="sr-only" for="qty-<%= row.item.id %>"><%= t('shop.quantity') %>: <%= row.product.name %> / <%= row.variant.name %></label>
+            <input id="qty-<%= row.item.id %>" name="quantity" type="number" min="1" max="<%= Math.max(row.variant.stockQuantity, 1) %>" value="<%= row.item.quantity %>" required />
+            <button class="btn btn-secondary" type="submit"><%= t('shop.update') %></button>
+          </form>
+        <% } else { %><%= row.item.quantity %><% } %></td>
+        <td data-line-total><%= formatIdr(row.lineTotal) %></td>
+        <td><form method="post" action="<%= paths.cart %>/items/<%= row.item.id %>/remove">
+          <input type="hidden" name="csrf" value="<%= csrf %>" />
+          <button class="btn btn-secondary" type="submit"><%= t('shop.remove') %></button>
+        </form></td>
+      </tr><% } %></tbody>
+    </table>
+  </div>
+  <p class="detail-price" data-subtotal><%= t('shop.subtotal') %>: <%= formatIdr(subtotal) %></p>
+  <p><%= t('shop.shippingLater') %></p><p><%= t('shop.noReservation') %></p>
+  <% if (canOrder) { %>
+    <% if (review) { %>
+      <p><%= t('shop.pendingNotice') %></p>
+      <form method="post" action="<%= paths.cart %>/orders">
+        <input type="hidden" name="csrf" value="<%= csrf %>" /><input type="hidden" name="revision" value="<%= cart.revision %>" />
+        <button class="btn btn-primary" type="submit"><%= t('shop.createOrder') %></button>
+      </form>
+    <% } else { %><a class="btn btn-primary" href="<%= paths.cart %>/review"><%= t('shop.review') %></a><% } %>
+  <% } else { %><p role="status"><%= t('shop.error.unavailable') %></p><% } %>
+  <% } %>
+  <div class="account-actions"><a href="<%= paths.shopping %>"><%= t('shop.continueShopping') %></a>
+    <% if (review) { %><a href="<%= paths.cart %>"><%= t('shop.cart') %></a><% } %>
+    <a href="<%= paths.orders %>"><%= t('shop.orders') %></a>
+  </div>
+</main>

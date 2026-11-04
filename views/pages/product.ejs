@@ -1,5 +1,6 @@
 <% const pdpLocale = locale || 'en'; %>
 <% const pdpT = typeof t === 'function' ? t : (k) => k; %>
+<% const selectedVariant = variants.find(v => v.stockQuantity > 0) || variants[0]; %>
 <main id="main" class="catalog-page">
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <a href="<%= pdpLocale === 'id' ? '/id' : '/' %>"><%= pdpT('breadcrumb.home') %></a>
@@ -35,8 +36,8 @@
       <h1 class="product-title"><%= product.name %></h1>
 
       <% if (variants.length) { %>
-        <p class="detail-price" data-variant-price aria-live="polite"><%= formatIdr(variants[0].price) %></p>
-        <del class="product-card__compare" data-variant-compare <%= variants[0].compareAtPrice > variants[0].price ? '' : 'hidden' %>><%= variants[0].compareAtPrice > variants[0].price ? formatIdr(variants[0].compareAtPrice) : '' %></del>
+        <p class="detail-price" data-variant-price aria-live="polite"><%= formatIdr(selectedVariant.price) %></p>
+        <del class="product-card__compare" data-variant-compare <%= selectedVariant.compareAtPrice > selectedVariant.price ? '' : 'hidden' %>><%= selectedVariant.compareAtPrice > selectedVariant.price ? formatIdr(selectedVariant.compareAtPrice) : '' %></del>
       <% } %>
 
       <% if (product.shortDescription) { %>
@@ -44,34 +45,39 @@
       <% } %>
 
       <% if (variants.length) { %>
+        <form method="post" action="<%= pdpLocale === 'id' ? '/id/keranjang/items' : '/cart/items' %>">
+        <input type="hidden" name="csrf" value="<%= typeof customerCsrf === 'undefined' ? '' : customerCsrf %>" />
         <fieldset class="variant-picker">
           <legend><%= pdpT('product.selectVariant') %></legend>
           <% variants.forEach((variant, i) => { %>
             <label class="variant-label">
               <input
                 type="radio"
-                name="variant"
+                name="variantId"
                 value="<%= variant.id %>"
                 data-price="<%= formatIdr(variant.price) %>"
                 data-compare="<%= variant.compareAtPrice > variant.price ? formatIdr(variant.compareAtPrice) : '' %>"
                 data-sku="<%= variant.sku %>"
+                data-quantity="<%= variant.stockQuantity %>"
                 data-stock="<%= variant.stockQuantity > 0 ? pdpT('product.inStock') : pdpT('product.outOfStock') %>"
-                <%= i === 0 ? 'checked' : '' %>
+                <%= i === variants.findIndex(v => v.stockQuantity > 0) ? 'checked' : '' %>
               />
               <span><%= variant.name %></span>
             </label>
           <% }); %>
         </fieldset>
         <p class="variant-info" data-variant-info>
-          <%= pdpT('product.sku') %>: <%= variants[0].sku %> · <%= variants[0].stockQuantity > 0 ? pdpT('product.inStock') : pdpT('product.outOfStock') %>
+          <%= pdpT('product.sku') %>: <%= selectedVariant.sku %> · <%= selectedVariant.stockQuantity > 0 ? pdpT('product.inStock') : pdpT('product.outOfStock') %>
         </p>
+        <label for="product-quantity"><%= pdpT('shop.quantity') %></label>
+        <input id="product-quantity" name="quantity" type="number" min="1" max="<%= variants.find(v => v.stockQuantity > 0)?.stockQuantity || 1 %>" value="1" required />
+        <button class="btn btn-primary" type="submit" data-add-to-cart <%= variants.every(v => v.stockQuantity <= 0) ? 'disabled' : '' %>><%= pdpT('shop.addToCart') %></button>
+        <% if (!customer) { %><p><%= pdpT('shop.loginRequired') %></p><% } %>
+        </form>
       <% } else { %>
         <p class="variant-info"><%= pdpT('product.selectVariant') %></p>
       <% } %>
 
-      <div class="purchase-note">
-        <p><%= pdpT('product.comingSoon') %></p>
-      </div>
 
       <% if (product.description) { %>
         <h2 class="section-heading"><%= pdpT('product.aboutThisWork') %></h2>

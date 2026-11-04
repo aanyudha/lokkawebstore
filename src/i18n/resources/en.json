@@ -160,5 +160,50 @@
     "switchLabel": "Language",
     "en": "EN",
     "id": "ID"
+  },
+  "shop": {
+    "cart": "Cart",
+    "orders": "Orders",
+    "review": "Review order",
+    "addToCart": "Add to cart",
+    "quantity": "Quantity",
+    "remove": "Remove",
+    "update": "Update",
+    "continueShopping": "Continue shopping",
+    "subtotal": "Subtotal",
+    "grandTotal": "Order total (shipping not calculated)",
+    "product": "Product / Variant / SKU",
+    "unitPrice": "Unit price",
+    "lineTotal": "Line total",
+    "actions": "Actions",
+    "empty": "Your cart is empty.",
+    "noOrders": "You have no orders yet.",
+    "stock": "Available stock",
+    "unavailable": "Unavailable. Update or remove this item.",
+    "currentPrices": "Cart prices are current catalog prices and are rechecked when you create an order.",
+    "shippingLater": "Not configured. Shipping will be calculated later.",
+    "noReservation": "Cart items and pending orders do not reserve stock. Availability will be checked again in a later payment phase.",
+    "pendingNotice": "This creates a pending order. Payment is not configured yet.",
+    "createOrder": "Create pending order",
+    "payment": "Payment",
+    "shipping": "Shipping",
+    "paymentPending": "Not configured. No payment recorded.",
+    "cancel": "Cancel order",
+    "loginRequired": "Sign in is required to add items to your cart.",
+    "status": {
+      "PENDING_PAYMENT": "Pending payment",
+      "CANCELLED": "Cancelled",
+      "COMPLETED": "Completed"
+    },
+    "error": {
+      "quantity": "Quantity must be a positive whole number within the supported range.",
+      "unavailable": "An item is unavailable. Update your cart before creating an order.",
+      "stock": "Insufficient stock. Reduce the quantity or remove the item.",
+      "item": "Cart item not found or invalid.",
+      "changed": "Your cart changed. Review it again before creating an order.",
+      "empty": "Cannot create an order from an empty cart.",
+      "total": "The total exceeds the supported Rupiah range.",
+      "cancel": "This order cannot be cancelled."
+    }
   }
 }

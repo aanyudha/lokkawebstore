@@ -22,6 +22,115 @@ const timestamps = () => ({
     .defaultNow()
     .notNull(),
 });
+
+// Webstore intent is independent of completed sales, payments and fulfillment.
+export const carts = pgTable('carts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  customerId: uuid('customer_id')
+    .notNull()
+    .unique()
+    .references(() => customers.id, { onDelete: 'restrict' }),
+  revision: uuid('revision').defaultRandom().notNull(),
+  ...timestamps(),
+});
+export const cartItems = pgTable(
+  'cart_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    cartId: uuid('cart_id')
+      .notNull()
+      .references(() => carts.id, { onDelete: 'cascade' }),
+    variantId: uuid('variant_id')
+      .notNull()
+      .references(() => productVariants.id, { onDelete: 'restrict' }),
+    quantity: integer('quantity').notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    uniqueIndex('cart_variant_unique').on(t.cartId, t.variantId),
+    check('cart_quantity_positive', sql`${t.quantity} > 0`),
+  ],
+);
+export const webOrderStatus = pgEnum('web_order_status', [
+  'PENDING_PAYMENT',
+  'CANCELLED',
+  'COMPLETED',
+]);
+export const orderCounters = pgTable('order_counters', {
+  date: date('date').primaryKey(),
+  nextSequence: integer('next_sequence').notNull(),
+});
+export const orders = pgTable(
+  'orders',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    orderNumber: text('order_number').notNull().unique(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'restrict' }),
+    source: text('source').default('WEBSTORE').notNull(),
+    status: webOrderStatus('status').default('PENDING_PAYMENT').notNull(),
+    idempotencyKey: uuid('idempotency_key').notNull().unique(),
+    currency: text('currency').default('IDR').notNull(),
+    subtotal: bigint('subtotal', { mode: 'bigint' }).notNull(),
+    shippingAmount: bigint('shipping_amount', { mode: 'bigint' })
+      .default(sql`0`)
+      .notNull(),
+    discountAmount: bigint('discount_amount', { mode: 'bigint' })
+      .default(sql`0`)
+      .notNull(),
+    grandTotal: bigint('grand_total', { mode: 'bigint' }).notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    index('orders_customer_created_idx').on(t.customerId, t.createdAt),
+    check(
+      'orders_money_valid',
+      sql`${t.subtotal} >= 0 AND ${t.shippingAmount} >= 0 AND ${t.discountAmount} >= 0 AND ${t.grandTotal} >= 0 AND ${t.grandTotal}::numeric = ${t.subtotal}::numeric + ${t.shippingAmount} - ${t.discountAmount}`,
+    ),
+    check(
+      'orders_webstore_idr',
+      sql`${t.source} = 'WEBSTORE' AND ${t.currency} = 'IDR'`,
+    ),
+  ],
+);
+export const orderItems = pgTable(
+  'order_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orders.id, { onDelete: 'restrict' }),
+    productId: uuid('product_id').references(() => products.id, {
+      onDelete: 'set null',
+    }),
+    variantId: uuid('variant_id').references(() => productVariants.id, {
+      onDelete: 'set null',
+    }),
+    productNameSnapshot: text('product_name_snapshot').notNull(),
+    variantNameSnapshot: text('variant_name_snapshot').notNull(),
+    skuSnapshot: text('sku_snapshot').notNull(),
+    unitPriceSnapshot: bigint('unit_price_snapshot', {
+      mode: 'bigint',
+    }).notNull(),
+    quantity: integer('quantity').notNull(),
+    lineTotalSnapshot: bigint('line_total_snapshot', {
+      mode: 'bigint',
+    }).notNull(),
+    costSnapshot: bigint('cost_snapshot', { mode: 'bigint' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index('order_items_order_idx').on(t.orderId),
+    uniqueIndex('order_variant_unique').on(t.orderId, t.variantId),
+    check(
+      'order_items_facts_valid',
+      sql`${t.quantity} > 0 AND ${t.unitPriceSnapshot} >= 0 AND ${t.lineTotalSnapshot}::numeric = ${t.unitPriceSnapshot}::numeric * ${t.quantity} AND (${t.costSnapshot} IS NULL OR ${t.costSnapshot} >= 0)`,
+    ),
+  ],
+);
 // One independent storefront hero; never a reference to product media.
 export const homepageHero = pgTable(
   'homepage_hero',

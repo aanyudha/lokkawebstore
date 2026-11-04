@@ -1,0 +1,10 @@
+<main id="main" class="catalog-page shop-page">
+  <h1><%= t('shop.orders') %></h1>
+  <% if (!orders.length) { %><p><%= t('shop.noOrders') %></p><% } %>
+  <ul class="shop-orders"><% for (const order of orders) { %>
+    <li><a href="<%= paths.orders %>/<%= order.orderNumber %>"><%= order.orderNumber %></a> ·
+      <time datetime="<%= order.createdAt.toISOString() %>"><%= order.createdAt.toLocaleString(locale === 'id' ? 'id-ID' : 'en-GB', {timeZone: 'Asia/Jakarta'}) %> WIB</time> ·
+      <%= t('shop.status.' + order.status) %> · <%= formatIdr(order.grandTotal) %>
+    </li><% } %></ul>
+  <div class="account-actions"><a href="<%= paths.account %>"><%= t('nav.account') %></a><a href="<%= paths.shopping %>"><%= t('shop.continueShopping') %></a></div>
+</main>

@@ -18,6 +18,7 @@ import { registerCatalog } from './modules/catalog/routes.js';
 import { registerAdmin } from './modules/admin/routes.js';
 import { renderAdminError } from './modules/admin/presentation.js';
 import { registerCustomer } from './modules/customer/routes.js';
+import { registerCart } from './modules/cart/routes.js';
 import { registerStorefrontNavigation } from './modules/storefront/navigation.js';
 import { registerPos } from './modules/pos/routes.js';
 import { renderPosError } from './modules/pos/presentation.js';
@@ -147,6 +148,8 @@ export async function buildApp(
         htmlLang: 'en',
         alternateLinks: '',
         customer: null,
+        customerCsrf: '',
+        cartCount: '0',
         noindex: false,
         languagePaths: undefined,
         t: (key: string) => key,
@@ -304,6 +307,7 @@ export async function buildApp(
     // Reset asset cache after build
     resetAssets();
     if (database.db) await registerCustomer(app, database.db, env);
+    if (database.db) await registerCart(app, database.db, env);
     if (catalog) registerStorefrontNavigation(app, catalog);
     const hero = database.db
       ? createHomepageHero(database.db, storage, () =>

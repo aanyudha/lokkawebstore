@@ -57,10 +57,10 @@ export function confirmPassword(form: Form, password: string): void {
 }
 
 /**
- * Open-redirect protection. Only same-site account paths are approved.
+ * Open-redirect protection. Only same-site account and cart paths are approved.
  *
  * Rejects absolute URLs, scheme-relative URLs (`//evil.test`), backslashes,
- * control characters and any path outside `/account` and `/id/akun`.
+ * control characters and any path outside the approved account/cart prefixes.
  */
 export function safeReturnPath(value: unknown): string | null {
   if (
@@ -78,7 +78,7 @@ export function safeReturnPath(value: unknown): string | null {
   )
     return null;
   const pathname = value.split(/[?#]/)[0] ?? '';
-  const approved = ['/account', '/id/akun'];
+  const approved = ['/account', '/id/akun', '/cart', '/id/keranjang'];
   if (
     !approved.some(
       (prefix) => pathname === prefix || pathname.startsWith(prefix + '/'),

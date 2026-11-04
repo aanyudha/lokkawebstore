@@ -18,7 +18,7 @@ export function registerStorefrontNavigation(
     const path = request.url.split('?')[0]!;
     if (
       !['GET', 'HEAD', 'POST'].includes(request.method) ||
-      !/^\/(?:id\/?|(?:id\/)?(?:collections|koleksi|category|kategori|product|produk|account|akun)(?:\/[^?]*)?)?$/.test(
+      !/^\/(?:id\/?|(?:id\/)?(?:collections|koleksi|category|kategori|product|produk|account|akun|cart|keranjang)(?:\/[^?]*)?)?$/.test(
         path,
       )
     )

@@ -1,6 +1,6 @@
 # LOKKA Webstore
 
-LOKKA is an Indonesian fashion and batik brand. This modular monolith uses Fastify 5, strict TypeScript, PostgreSQL 18, Drizzle/pg, EJS server rendering, Vite and plain CSS. Milestone 2.6 adds bilingual customer identity, authentication and an account foundation on top of the Milestone 2.5 commercial work. Purchasing is not enabled.
+LOKKA is an Indonesian fashion and batik brand. This modular monolith uses Fastify 5, strict TypeScript, PostgreSQL 18, Drizzle/pg, EJS server rendering, Vite and plain CSS. Phase E1 adds customer carts and pending webstore orders alongside the existing customer account, POS and commercial foundations. Webstore payment and shipping are not configured.
 
 ## Requirements and Windows setup
 
@@ -144,7 +144,34 @@ Customers sign in with a distinct cookie and session namespace, fully isolated f
 
 Emails are trimmed and lowercased for a deterministic unique identity; the original casing is kept for display. Passwords are hashed with the same Argon2id parameters as admin passwords and are never stored or logged. Sessions are opaque database rows that last 30 days, are rotated on sign-in, registration and password change, and are complemented by a CSRF cookie.
 
-Account pages are `noindex,nofollow`, served with `Cache-Control: private, no-store`, excluded from the sitemap and disallowed in `robots.txt`. Sign in, registration and password change are rate-limited. `returnTo` accepts only same-site `/account` and `/id/akun` paths, blocking open redirects. Email verification, password reset and rewards are deliberately deferred; see [customer identity ADR](docs/decisions/004-customer-identity-and-rewards.md).
+Account pages are `noindex,nofollow`, served with `Cache-Control: private, no-store`, excluded from the sitemap and disallowed in `robots.txt`. Sign in, registration and password change are rate-limited. `returnTo` accepts only same-site `/account`, `/id/akun`, `/cart` and `/id/keranjang` paths, blocking open redirects. Email verification, password reset and rewards are deliberately deferred; see [customer identity ADR](docs/decisions/004-customer-identity-and-rewards.md).
+
+## Webstore cart and orders (Phase E1)
+
+Customers sign in before adding canonical variants to their one durable cart.
+Open `/cart` or `/id/keranjang` to update quantities, remove items and review an
+order. Prices and stock are rechecked on the server. Creating an order snapshots
+commercial facts, clears the cart and creates a `PENDING_PAYMENT` order with a
+unique `WEB-YYYYMMDD-NNNNNN` number. The cart revision prevents duplicate orders
+from repeated submissions. Order history is at `/account/orders` or
+`/id/akun/pesanan`; customers can cancel their own pending orders.
+
+Carts and pending orders do not reserve stock, deduct inventory, create payment
+records or recognize revenue. Shipping remains unconfigured and is calculated
+later; a zero placeholder never means free shipping. Payment/reservation and
+fulfillment need later contracts before accepting webstore payment.
+
+See the [cart contract](src/modules/cart/README.md),
+[order architecture](src/modules/orders/README.md) and
+[E1 review report](docs/phase-e1-review.md).
+Migration `0010_webstore_orders.sql` must be applied before running the new code;
+verification uses disposable databases and leaves the owner database unmigrated.
+
+Run `node scripts/verify-isolated.mjs unit` for the complete unit/integration
+suite with one worker. After a build, modes `production` and `browser` run the
+production and Playwright suites with disposable database URLs and before/after
+owner table fingerprints. Use `PRODUCTION_TEST_PORT` to select a free test port
+when the production test's default port 3000 is unavailable.
 
 ## Production build and runtime ownership
 
@@ -310,6 +337,6 @@ Use the service manager to stop the confirmed service, or `kill -TERM <PID>` for
 - views, web/client, public: EJS, browser TypeScript/CSS and future owned assets.
 - tests, docs, deploy, .github: verification, architecture decisions, deployment example and CI.
 
-See [architecture](docs/architecture.md), [admin/media ADR](docs/decisions/002-admin-catalog-media.md), [commercial ADR](docs/decisions/003-commercial-pricing-overhead.md), [customer identity ADR](docs/decisions/004-customer-identity-and-rewards.md) and [agent rules](AGENTS.md). Money uses bigint whole rupiah. Assets and design are original; photography must be owned or licensed. No cart, checkout, orders, real DOKU/Biteship integration, marketplace, reviews, wishlist, coupons, Redis or deployment is implemented. Automatic old-slug redirects, large-admin-list pagination, image orphan maintenance and audit-event history are deferred.
+See [architecture](docs/architecture.md), [admin/media ADR](docs/decisions/002-admin-catalog-media.md), [commercial ADR](docs/decisions/003-commercial-pricing-overhead.md), [customer identity ADR](docs/decisions/004-customer-identity-and-rewards.md) and [agent rules](AGENTS.md). Money uses bigint whole rupiah. Assets and design are original; photography must be owned or licensed. Webstore payment completion, stock reservation, real DOKU/Biteship integration, marketplace, reviews, wishlist, coupons, Redis and deployment remain deferred. Automatic old-slug redirects, large-admin-list pagination, image orphan maintenance and audit-event history are deferred.
 
-Next milestone after review: **Cart, Checkout Foundation & Stock Reservation**.
+Phase E1 stops at owner review. Payment integration, shipping providers and Back Office Orders are not implemented.

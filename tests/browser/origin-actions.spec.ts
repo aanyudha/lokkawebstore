@@ -260,13 +260,28 @@ for (const publicOrigin of origins) {
         .click();
       expect((await download).suggestedFilename()).toMatch(/\.(png|jpg)$/);
       await go(`/admin/products/${productId}/edit`);
-      for (const image of images)
+      for (const image of images) {
+        // Scrolling to Delete can start a lazy preview request. Finish those
+        // reads before deleting rows so the test does not race its own images.
+        const previews = page.locator('img[src$="/preview"]');
+        for (const preview of await previews.all()) {
+          await preview.scrollIntoViewIfNeeded();
+          await expect
+            .poll(() =>
+              preview.evaluate((node) => {
+                const image = node as HTMLImageElement;
+                return image.complete && image.naturalWidth > 0;
+              }),
+            )
+            .toBe(true);
+        }
         await page
           .locator(
             `form[action="/admin/products/${productId}/images/${image.id}/delete"]`,
           )
           .getByRole('button', { name: 'Delete image', exact: true })
           .click();
+      }
       await page.reload();
       expect((await catalog.relations([productId])).images).toHaveLength(0);
 

@@ -1,0 +1,25 @@
+<main id="main" class="catalog-page shop-page">
+  <h1><%= order.orderNumber %></h1>
+  <p><time datetime="<%= order.createdAt.toISOString() %>"><%= order.createdAt.toLocaleString(locale === 'id' ? 'id-ID' : 'en-GB', { timeZone: 'Asia/Jakarta' }) %> WIB</time></p>
+  <p data-order-status><%= t('shop.status.' + order.status) %></p>
+  <p><%= t('shop.payment') %>: <%= t('shop.paymentPending') %></p>
+  <p><%= t('shop.shipping') %>: <%= t('shop.shippingLater') %></p>
+  <div class="shop-table-wrap" tabindex="0" role="region" aria-label="<%= t('shop.orders') %>">
+    <table class="shop-table">
+      <thead><tr><th scope="col"><%= t('shop.product') %></th><th scope="col"><%= t('shop.unitPrice') %></th><th scope="col"><%= t('shop.quantity') %></th><th scope="col"><%= t('shop.lineTotal') %></th></tr></thead>
+      <tbody><% for (const item of order.items) { %>
+        <tr><th scope="row"><%= item.productNameSnapshot %><br /><small><%= item.variantNameSnapshot %> · SKU: <%= item.skuSnapshot %></small></th><td><%= formatIdr(item.unitPriceSnapshot) %></td><td><%= item.quantity %></td><td><%= formatIdr(item.lineTotalSnapshot) %></td></tr>
+      <% } %></tbody>
+    </table>
+  </div>
+  <p><%= t('shop.subtotal') %>: <%= formatIdr(order.subtotal) %></p>
+  <p><%= t('shop.shipping') %>: <%= t('shop.shippingLater') %></p>
+  <p class="detail-price"><%= t('shop.grandTotal') %>: <%= formatIdr(order.grandTotal) %></p>
+  <% if (order.status === 'PENDING_PAYMENT') { %>
+    <form method="post" action="<%= paths.orders %>/<%= order.orderNumber %>/cancel">
+      <input type="hidden" name="csrf" value="<%= csrf %>" />
+      <button class="btn btn-secondary" type="submit"><%= t('shop.cancel') %></button>
+    </form>
+  <% } %>
+  <div class="account-actions"><a href="<%= paths.orders %>"><%= t('shop.orders') %></a><a href="<%= paths.shopping %>"><%= t('shop.continueShopping') %></a></div>
+</main>

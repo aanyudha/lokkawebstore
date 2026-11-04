@@ -26,6 +26,7 @@
     </nav>
 
     <div class="header-actions">
+      <a class="header-cart" href="<%= navLocale === 'id' ? '/id/keranjang' : '/cart' %>"><%= navT('shop.cart') %> (<span data-cart-count><%= typeof cartCount === 'undefined' ? '0' : cartCount %></span>)</a>
       <a
         class="header-account"
         href="<%= accountCustomer ? accountPath : accountLoginPath %>"

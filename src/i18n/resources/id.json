@@ -160,5 +160,50 @@
     "switchLabel": "Bahasa",
     "en": "EN",
     "id": "ID"
+  },
+  "shop": {
+    "cart": "Keranjang",
+    "orders": "Pesanan",
+    "review": "Tinjau pesanan",
+    "addToCart": "Tambah ke keranjang",
+    "quantity": "Jumlah",
+    "remove": "Hapus",
+    "update": "Perbarui",
+    "continueShopping": "Lanjut belanja",
+    "subtotal": "Subtotal",
+    "grandTotal": "Total pesanan (ongkir belum dihitung)",
+    "product": "Produk / Varian / SKU",
+    "unitPrice": "Harga satuan",
+    "lineTotal": "Total item",
+    "actions": "Tindakan",
+    "empty": "Keranjang Anda kosong.",
+    "noOrders": "Anda belum memiliki pesanan.",
+    "stock": "Stok tersedia",
+    "unavailable": "Tidak tersedia. Perbarui atau hapus item ini.",
+    "currentPrices": "Harga keranjang mengikuti katalog saat ini dan diperiksa kembali saat pesanan dibuat.",
+    "shippingLater": "Belum dikonfigurasi. Ongkir akan dihitung kemudian.",
+    "noReservation": "Keranjang dan pesanan tertunda tidak mencadangkan stok. Ketersediaan akan diperiksa kembali pada tahap pembayaran berikutnya.",
+    "pendingNotice": "Pesanan akan dibuat dengan status menunggu pembayaran. Pembayaran belum dikonfigurasi.",
+    "createOrder": "Buat pesanan tertunda",
+    "payment": "Pembayaran",
+    "shipping": "Pengiriman",
+    "paymentPending": "Belum dikonfigurasi. Belum ada pembayaran tercatat.",
+    "cancel": "Batalkan pesanan",
+    "loginRequired": "Masuk diperlukan untuk menambahkan item ke keranjang.",
+    "status": {
+      "PENDING_PAYMENT": "Menunggu pembayaran",
+      "CANCELLED": "Dibatalkan",
+      "COMPLETED": "Selesai"
+    },
+    "error": {
+      "quantity": "Jumlah harus berupa bilangan bulat positif dalam rentang yang didukung.",
+      "unavailable": "Item tidak tersedia. Perbarui keranjang sebelum membuat pesanan.",
+      "stock": "Stok tidak cukup. Kurangi jumlah atau hapus item.",
+      "item": "Item keranjang tidak ditemukan atau tidak valid.",
+      "changed": "Keranjang berubah. Tinjau kembali sebelum membuat pesanan.",
+      "empty": "Pesanan tidak dapat dibuat dari keranjang kosong.",
+      "total": "Total melebihi rentang Rupiah yang didukung.",
+      "cancel": "Pesanan ini tidak dapat dibatalkan."
+    }
   }
 }
