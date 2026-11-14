@@ -9,7 +9,7 @@
       <tbody><% for (const row of items) { %>
       <tr>
         <th scope="row"><%= row.product.name %><br /><small><%= row.variant.name %> · SKU: <%= row.variant.sku %></small>
-          <% if (!row.available) { %><p role="status"><%= t('shop.unavailable') %> (<%= t('shop.stock') %>: <%= row.variant.stockQuantity %>)</p><% } %>
+          <% if (!row.available) { %><p role="status"><%= t('shop.unavailable') %> (<%= t('shop.stock') %>: <%= row.variant.stockKnown ? row.variant.stockQuantity : t('shop.unavailable') %>)</p><% } %>
         </th>
         <td><%= formatIdr(row.variant.price) %></td>
         <td><% if (!review) { %>

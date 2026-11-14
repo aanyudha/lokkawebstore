@@ -71,9 +71,14 @@ document
         document.querySelector<HTMLInputElement>('#product-quantity');
       const addButton =
         document.querySelector<HTMLButtonElement>('[data-add-to-cart]');
-      if (quantity && input.dataset.quantity) {
-        quantity.max = String(Math.max(Number(input.dataset.quantity), 1));
-        if (addButton) addButton.disabled = Number(input.dataset.quantity) <= 0;
+      if (quantity) {
+        const stockKnown = input.dataset.stockKnown === 'true';
+        quantity.max = String(
+          Math.max(Number(input.dataset.quantity || '0'), 1),
+        );
+        if (addButton)
+          addButton.disabled =
+            !stockKnown || Number(input.dataset.quantity || '0') <= 0;
       }
       const info = document.querySelector('[data-variant-info]');
       if (price) price.textContent = input.dataset.price ?? '';

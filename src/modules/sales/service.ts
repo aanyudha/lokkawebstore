@@ -63,6 +63,7 @@ export interface PosProduct {
     sku: string;
     price: bigint;
     stockQuantity: number;
+    stockKnown: boolean;
     status: string;
   }[];
   primaryImage: {
@@ -148,6 +149,7 @@ export function createSalesService(db: Database['db']) {
           sku: productVariants.sku,
           price: productVariants.price,
           stockQuantity: productVariants.stockQuantity,
+          stockKnown: productVariants.stockKnown,
           status: productVariants.status,
         })
         .from(productVariants)
@@ -185,6 +187,7 @@ export function createSalesService(db: Database['db']) {
         sku: v.sku,
         price: v.price,
         stockQuantity: v.stockQuantity,
+        stockKnown: v.stockKnown,
         status: v.status,
       });
       variantMap.set(v.productId, list);
@@ -294,6 +297,7 @@ export function createSalesService(db: Database['db']) {
           sku: productVariants.sku,
           price: productVariants.price,
           stockQuantity: productVariants.stockQuantity,
+          stockKnown: productVariants.stockKnown,
           status: productVariants.status,
         })
         .from(productVariants)
@@ -331,6 +335,11 @@ export function createSalesService(db: Database['db']) {
           );
         if (variant.status !== 'active')
           throw new FormError('items', `Variant ${variant.sku} is not active`);
+        if (!variant.stockKnown)
+          throw new FormError(
+            'items',
+            `Stock is unspecified for ${variant.sku}. Confirm inventory first.`,
+          );
         if (variant.stockQuantity < item.quantity)
           throw new FormError(
             'items',
@@ -573,6 +582,7 @@ export function createSalesService(db: Database['db']) {
     const [v] = await db
       .select({
         stockQuantity: productVariants.stockQuantity,
+        stockKnown: productVariants.stockKnown,
         sku: productVariants.sku,
       })
       .from(productVariants)

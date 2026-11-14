@@ -35,6 +35,7 @@ interface VariantDataRaw {
   sku: string;
   price: string;
   stockQuantity: number;
+  stockKnown: boolean;
   status: string;
 }
 
@@ -179,6 +180,7 @@ function initRegister(register: HTMLElement) {
     sku: string;
     price: bigint;
     stockQuantity: number;
+    stockKnown: boolean;
     status: string;
   };
 
@@ -275,7 +277,8 @@ function initRegister(register: HTMLElement) {
         : '<div class="pos-product-placeholder">No image</div>';
       const hasVariants = product.variants.length > 1;
       const outOfStock = product.variants.every(
-        (v: VariantData) => v.stockQuantity <= 0 || v.status !== 'active',
+        (v: VariantData) =>
+          !v.stockKnown || v.stockQuantity <= 0 || v.status !== 'active',
       );
       article.innerHTML = `
         ${img}
@@ -286,7 +289,7 @@ function initRegister(register: HTMLElement) {
               ? `<button type="button" class="pos-btn pos-btn-small pos-variant-select" data-product-id="${product.id}">${product.variants.length} variants</button>`
               : product.variants[0]
                 ? `<span class="pos-product-price">${formatRupiah(toBigInt(product.variants[0].price))}</span>
-                  <span class="pos-product-stock ${product.variants[0].stockQuantity <= 0 ? 'out-of-stock' : ''}">${product.variants[0].stockQuantity <= 0 ? 'OUT OF STOCK' : `Stock: ${product.variants[0].stockQuantity}`}</span>`
+                  <span class="pos-product-stock ${product.variants[0].stockQuantity <= 0 ? 'out-of-stock' : ''}">${!product.variants[0].stockKnown ? 'UNAVAILABLE / NOT ENTERED' : product.variants[0].stockQuantity <= 0 ? 'OUT OF STOCK' : `Stock: ${product.variants[0].stockQuantity}`}</span>`
                 : ''
           }
         </div>
@@ -296,7 +299,11 @@ function initRegister(register: HTMLElement) {
       } else if (hasVariants) {
         const btn = article.querySelector('.pos-variant-select');
         btn?.addEventListener('click', () => openVariantModal(product));
-      } else if (product.variants[0] && product.variants[0].stockQuantity > 0) {
+      } else if (
+        product.variants[0] &&
+        product.variants[0].stockKnown &&
+        product.variants[0].stockQuantity > 0
+      ) {
         const v = product.variants[0];
         article.addEventListener('click', () =>
           addToCart({
@@ -324,14 +331,15 @@ function initRegister(register: HTMLElement) {
       btn.type = 'button';
       btn.className = 'pos-variant-option';
       btn.setAttribute('role', 'option');
-      btn.disabled = v.stockQuantity <= 0 || v.status !== 'active';
+      btn.disabled =
+        !v.stockKnown || v.stockQuantity <= 0 || v.status !== 'active';
       btn.innerHTML = `
         <span class="pos-variant-name">${escHtml(v.name)}</span>
         <span class="pos-variant-sku">${escHtml(v.sku)}</span>
         <span class="pos-variant-price">${formatRupiah(toBigInt(v.price))}</span>
-        <span class="pos-variant-stock ${v.stockQuantity <= 0 ? 'out-of-stock' : ''}">${v.stockQuantity <= 0 ? 'OUT OF STOCK' : `Stock: ${v.stockQuantity}`}</span>
+        <span class="pos-variant-stock ${v.stockQuantity <= 0 ? 'out-of-stock' : ''}">${!v.stockKnown ? 'UNAVAILABLE / NOT ENTERED' : v.stockQuantity <= 0 ? 'OUT OF STOCK' : `Stock: ${v.stockQuantity}`}</span>
       `;
-      if (v.stockQuantity > 0 && v.status === 'active') {
+      if (v.stockKnown && v.stockQuantity > 0 && v.status === 'active') {
         btn.addEventListener('click', () => {
           addToCart({
             variantId: v.id,

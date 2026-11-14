@@ -200,7 +200,7 @@ async function breakdown(
  * it is never a second transaction table. Global Overhead never lands here:
  * only real posted transactions move cash.
  */
-export function createLedger(db: Database['db']) {
+export function createLedger(db: Connection) {
   const posted = eq(financialTransactions.status, 'POSTED');
   const income = eq(financialTransactions.direction, 'INCOME');
   const expense = eq(financialTransactions.direction, 'EXPENSE');

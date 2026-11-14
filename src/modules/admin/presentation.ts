@@ -40,6 +40,11 @@ export const adminNavigation = [
     label: 'Finance',
     items: [
       {
+        label: 'Fixed Assets',
+        href: '/admin/finance/fixed-assets',
+        area: 'fixed-assets',
+      },
+      {
         label: 'Cash Flow',
         href: '/admin/finance/cash-flow',
         area: 'cash-flow',
@@ -58,6 +63,21 @@ export const adminNavigation = [
         label: 'Global overhead',
         href: '/admin/finance/overhead',
         area: 'overhead',
+      },
+    ],
+  },
+  {
+    label: 'Reports',
+    items: [
+      {
+        label: 'Asset Register + Valuation',
+        href: '/admin/reports/assets',
+        area: 'asset-report',
+      },
+      {
+        label: '12-month Plan + Prospective',
+        href: '/admin/reports/12-month-plan',
+        area: 'plan-report',
       },
     ],
   },
@@ -87,6 +107,32 @@ function metadata(page: string, data: Record<string, unknown>) {
       action?: Crumb;
     }
   > = {
+    'fixed-assets': {
+      title: 'Fixed Assets',
+      description:
+        'Maintain acquisition records. No depreciation or book-value calculation.',
+      area: 'fixed-assets',
+      breadcrumbs: [{ label: 'Finance' }, { label: 'Fixed Assets' }],
+    },
+    'asset-report': {
+      title: 'Asset Register + Valuation',
+      description: 'Current inventory and fixed assets at recorded value.',
+      area: 'asset-report',
+      breadcrumbs: [
+        { label: 'Reports' },
+        { label: 'Asset Register + Valuation' },
+      ],
+    },
+    'plan-report': {
+      title: '12-month Plan + Prospective',
+      description:
+        'Factual operating position, priorities and evidence-based outlook.',
+      area: 'plan-report',
+      breadcrumbs: [
+        { label: 'Reports' },
+        { label: '12-month Plan + Prospective' },
+      ],
+    },
     homepage: {
       title: 'Homepage',
       description: 'Manage the storefront hero image.',

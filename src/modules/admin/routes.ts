@@ -12,6 +12,7 @@ import { createLedger } from '../finance/ledger.js';
 import { createAccounting } from '../finance/accounting.js';
 import { createFulfillment } from '../shipping/service.js';
 import { registerCommercialAdmin } from './commercial-routes.js';
+import { registerInvestorAdmin } from './investor-routes.js';
 import { registerFinanceAdmin } from './finance-routes.js';
 import { renderAdmin, renderAdminError } from './presentation.js';
 import { registerHomepageAdmin } from './homepage-routes.js';
@@ -163,6 +164,7 @@ export async function registerAdmin(
             ...data,
           });
         registerHomepageAdmin(protectedRoutes, hero, page);
+        registerInvestorAdmin(protectedRoutes, db, page);
         registerCommercialAdmin(
           protectedRoutes,
           createFinance(db, catalog),
@@ -211,7 +213,9 @@ export async function registerAdmin(
               Categories: categories.length,
               Variants: inventory.length,
               'Low stock': inventory.filter(
-                (r) => r.variant.stockQuantity <= env.lowStockThreshold,
+                (r) =>
+                  r.variant.stockKnown &&
+                  r.variant.stockQuantity <= env.lowStockThreshold,
               ).length,
             },
           });

@@ -32,7 +32,12 @@ import {
   rupiah,
 } from './calculations.js';
 
-export function createFinance(db: Database['db'], catalog: Catalog) {
+export function createFinance(
+  db:
+    | Database['db']
+    | Parameters<Parameters<Database['db']['transaction']>[0]>[0],
+  catalog: Catalog,
+) {
   type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
   // All finance mutations share one transaction lock: master snapshots, recovery and close cannot race.
   async function locked<T>(work: (tx: Tx, vendorId: string) => Promise<T>) {

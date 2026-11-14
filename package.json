@@ -29,7 +29,8 @@
     "docker:down": "docker compose down",
     "admin:create": "tsx src/modules/auth/create-admin.ts",
     "test:browser": "playwright test",
-    "test:production": "node --test tests/production/*.test.mjs"
+    "test:production": "node --test tests/production/*.test.mjs",
+    "owner:import": "tsx src/db/import-owner.ts"
   },
   "dependencies": {
     "@fastify/cookie": "11.1.2",

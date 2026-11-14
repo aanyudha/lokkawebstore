@@ -1,0 +1,32 @@
+<article class="investor-report" data-investor-report="assets">
+<%- include('../partials/admin/report-header.ejs',{reportTitle:'ASSET REGISTER + VALUATION',subtitle:'Daftar Aset dan Valuasi'}) %>
+<% const asset = report.asset; %>
+<section><h3>Executive Summary — Current Position</h3><p>Recorded inventory and owned fixed assets, derived from LOKKA operational records. Retail capacity is a separate commercial indicator.</p>
+<dl class="report-metrics">
+<dt>Known inventory units</dt><dd data-report-units><%= asset.knownUnits %></dd>
+<dt>Inventory value at HPP</dt><dd data-report-hpp><%= formatIdr(asset.hppValue) %></dd>
+<dt>Inventory retail value</dt><dd data-report-retail><%= formatIdr(asset.retailValue) %></dd>
+<dt>Potential inventory gross value</dt><dd data-report-spread><%= formatIdr(asset.grossSpread) %></dd>
+<dt>Active fixed asset acquisition value</dt><dd data-report-fixed><%= formatIdr(asset.fixedValue) %></dd>
+<dt>Combined recorded asset value</dt><dd data-report-combined><%= formatIdr(asset.combinedValue) %></dd>
+</dl></section>
+<section><h3>Current Assets / Inventory</h3>
+<p>Nonarchived products, including draft products and inactive variants awaiting publication details. Archived catalog is excluded.</p>
+<p data-report-incomplete><%= asset.incompleteCount %> incomplete items: <%= asset.unknownStockCount %> with unspecified stock; <%= asset.unknownCostCount %> with unknown HPP. Unavailable / Belum diisi is distinct from confirmed zero.</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Inventory valuation"><table><thead><tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col">Stock Qty</th><th scope="col">Unit</th><th scope="col">HPP / unit</th><th scope="col">Inventory value</th><th scope="col">Selling price / unit</th><th scope="col">Retail value</th></tr></thead><tbody>
+<% for (const row of asset.inventory) { %><tr><th scope="row"><%= row.product.name %></th><td><%= row.variant.sku %></td><td><%= row.variant.stockKnown ? row.variant.stockQuantity : 'Unavailable / Belum diisi' %></td><td><%= row.variant.unit ?? 'Unavailable' %></td><td><%= row.hpp === null ? 'Unavailable' : formatIdr(row.hpp) %></td><td><%= row.inventoryValue === null ? 'Unavailable' : formatIdr(row.inventoryValue) %></td><td><%= formatIdr(row.variant.price) %></td><td><%= row.retailValue === null ? 'Unavailable' : formatIdr(row.retailValue) %></td></tr><% } %>
+</tbody><tfoot><tr><th scope="row" colspan="2">Known totals</th><td><%= asset.knownUnits %></td><td></td><td></td><td><%= formatIdr(asset.hppValue) %></td><td></td><td><%= formatIdr(asset.retailValue) %></td></tr></tfoot></table></div></section>
+<section><h3>Fixed Assets — Acquisition Value / Nilai Perolehan</h3><p>Fixed assets are presented at recorded acquisition value, not depreciated book value.</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Fixed asset valuation"><table><thead><tr><th scope="col">Asset</th><th scope="col">Quantity</th><th scope="col">Unit</th><th scope="col">Acquisition cost / unit</th><th scope="col">Total acquisition value</th><th scope="col">Status</th></tr></thead><tbody>
+<% for (const row of asset.fixed) { %><tr><th scope="row"><%= row.assetName %></th><td><%= row.quantity %></td><td><%= row.unit %></td><td><%= formatIdr(row.acquisitionCostPerUnit) %></td><td><%= formatIdr(row.total) %></td><td><%= row.status %></td></tr><% } %>
+</tbody><tfoot><tr><th scope="row" colspan="4">Active acquisition value</th><td><%= formatIdr(asset.fixedValue) %></td><td>Disposed excluded</td></tr></tfoot></table></div></section>
+<section><h3>Total Assets at Recorded Value</h3><p>Inventory at HPP + active fixed asset acquisition value = <strong><%= formatIdr(asset.combinedValue) %></strong>. Retail value is excluded from this total.</p></section>
+<section><h3>Basis of Valuation / Notes</h3><ul>
+<li>Inventory is valued using recorded current HPP/direct cost; retail value uses current recorded selling price.</li>
+<li>Rows with incomplete quantity or cost data are excluded from relevant valuation totals. Known-unit and retail totals require known quantity; HPP and gross-spread totals also require known HPP.</li>
+<li>Potential gross value compares retail and HPP only for the same complete stock-and-cost cohort. Comparable retail value: <%= formatIdr(asset.comparativeRetail) %>. It is not projected profit.</li>
+<li>Fixed assets follow the owner's register classification. No depreciation/book-value calculation is currently applied. Disposed assets remain visible and are excluded from active totals.</li>
+<li>Source SKUs beginning LOKKA-SYS-OWNER are system-generated. Accessories/apparel categories are operational classifications; workbook product names are preserved.</li>
+<li>Missing weights and media do not invent facts. Draft inventory is included; media may be added through the existing catalog flow.</li>
+</ul></section>
+</article>

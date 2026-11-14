@@ -112,6 +112,7 @@ export function createFulfillment(db: Database['db'], catalog: Catalog) {
         product.status !== 'active' ||
         !variant ||
         variant.status !== 'active' ||
+        !variant.stockKnown ||
         variant.price <= 0n ||
         variant.weightGrams <= 0 ||
         !variant.sku ||

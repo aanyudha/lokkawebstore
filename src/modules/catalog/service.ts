@@ -6,6 +6,7 @@ import {
   productVariants,
   productImages,
   vendors,
+  inventoryMovements,
   productTranslations,
   categoryTranslations,
 } from '../../db/schema/index.js';
@@ -18,6 +19,7 @@ import {
   choice,
   slug,
   variantInput,
+  stockInput,
   databaseError,
 } from './validation.js';
 import type { CatalogImageStorage } from './storage.js';
@@ -25,7 +27,9 @@ import { primaryProductImage, presentProductImage } from './presentation.js';
 import { supportedLocaleCodes } from '../../i18n/index.js';
 
 export function createCatalog(
-  db: Database['db'],
+  db:
+    | Database['db']
+    | Parameters<Parameters<Database['db']['transaction']>[0]>[0],
   storage: CatalogImageStorage,
 ) {
   async function vendorId() {
@@ -651,7 +655,6 @@ export function createCatalog(
     },
     async saveVariant(productId: string, form: Form, variantId?: string) {
       await product(productId);
-      const values = variantInput(form);
       try {
         return await db.transaction(async (tx) => {
           const [parent] = await tx
@@ -659,6 +662,24 @@ export function createCatalog(
             .from(products)
             .where(eq(products.id, productId))
             .for('update');
+          const [previousVariant] = variantId
+            ? await tx
+                .select()
+                .from(productVariants)
+                .where(
+                  and(
+                    eq(productVariants.id, id(variantId)),
+                    eq(productVariants.productId, productId),
+                  ),
+                )
+                .for('update')
+            : [];
+          if (variantId && !previousVariant)
+            throw new FormError('id', 'Varian tidak ditemukan.');
+          const values = variantInput(
+            form,
+            previousVariant?.stockKnown ?? true,
+          );
           if (parent?.status === 'active' && values.status !== 'active') {
             const active = await tx
               .select()
@@ -705,20 +726,45 @@ export function createCatalog(
     },
     async stock(productId: string, variantId: string, form: Form) {
       await product(productId);
-      const [row] = await db
-        .update(productVariants)
-        .set({
-          stockQuantity: integer(form, 'stockQuantity'),
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(productVariants.id, id(variantId)),
-            eq(productVariants.productId, productId),
-          ),
+      await db.transaction(async (tx) => {
+        await tx
+          .select({ id: products.id })
+          .from(products)
+          .where(eq(products.id, productId))
+          .for('update');
+        const [previous] = await tx
+          .select()
+          .from(productVariants)
+          .where(
+            and(
+              eq(productVariants.id, id(variantId)),
+              eq(productVariants.productId, productId),
+            ),
+          )
+          .for('update');
+        if (!previous) throw new FormError('id', 'Varian tidak ditemukan.');
+        const values = stockInput(form, previous.stockKnown);
+        await tx
+          .update(productVariants)
+          .set({ ...values, updatedAt: new Date() })
+          .where(eq(productVariants.id, previous.id));
+        if (
+          values.stockKnown &&
+          (!previous.stockKnown ||
+            values.stockQuantity !== previous.stockQuantity)
         )
-        .returning();
-      if (!row) throw new FormError('id', 'Varian tidak ditemukan.');
+          await tx.insert(inventoryMovements).values({
+            variantId: previous.id,
+            type: 'CORRECTION',
+            quantityChange: values.stockQuantity - previous.stockQuantity,
+            referenceType: 'MANUAL',
+            notes:
+              textField(form, 'stockNote', 2000) ||
+              (previous.stockKnown
+                ? 'Owner stock correction'
+                : 'Owner confirmed previously unspecified stock'),
+          });
+      });
     },
     async addImages(productId: string, inputs: Buffer[], altText: string) {
       await product(productId);

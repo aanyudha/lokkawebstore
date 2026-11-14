@@ -1,0 +1,22 @@
+<div class="admin-content commercial-page">
+<%- include('../partials/form-error.ejs') %>
+<p>Fixed assets are recorded at acquisition value. No depreciation or book value is calculated. Disposed records remain in the register and are excluded from active asset totals.</p>
+<section class="admin-section"><h2><%= assetId ? 'Edit fixed asset' : 'Add fixed asset' %></h2>
+<form method="post" action="/admin/finance/fixed-assets<%= assetId ? '/' + assetId : '' %>" class="form-stack" data-fixed-asset-form>
+<input type="hidden" name="csrf" value="<%= csrf %>" />
+<label>Asset name<input name="assetName" required maxlength="200" value="<%= values.assetName ?? '' %>" /></label>
+<label>Quantity<input name="quantity" type="number" min="1" max="2147483647" required value="<%= values.quantity ?? '' %>" /></label>
+<label>Unit<input name="unit" required maxlength="30" value="<%= values.unit ?? '' %>" /></label>
+<label>Acquisition cost per unit (whole Rupiah)<input name="acquisitionCostPerUnit" inputmode="numeric" pattern="[0-9]+" required value="<%= values.acquisitionCostPerUnit ?? '' %>" /></label>
+<label>Acquisition date (optional)<input name="acquisitionDate" type="date" value="<%= values.acquisitionDate ?? '' %>" /></label>
+<label>Notes (optional)<textarea name="notes" maxlength="2000"><%= values.notes ?? '' %></textarea></label>
+<label>Status<select name="status" aria-label="Status"><option value="ACTIVE" <%= values.status !== 'DISPOSED' ? 'selected' : '' %>>Active</option><option value="DISPOSED" <%= values.status === 'DISPOSED' ? 'selected' : '' %>>Disposed</option></select></label>
+<button>Save fixed asset</button><% if (assetId) { %><a href="/admin/finance/fixed-assets">Cancel edit</a><% } %>
+</form></section>
+<section class="admin-section"><h2>Asset register</h2>
+<p>Active acquisition value: <strong data-fixed-total><%= formatIdr(assets.reduce((total,row)=>total+(row.status === 'ACTIVE' ? BigInt(row.quantity)*row.acquisitionCostPerUnit : 0n),0n)) %></strong></p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Fixed asset register"><table><thead><tr><th scope="col">Asset</th><th scope="col">Quantity</th><th scope="col">Unit</th><th scope="col">Acquisition cost / unit</th><th scope="col">Total acquisition value</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead><tbody>
+<% for (const row of assets) { %><tr><th scope="row"><%= row.assetName %></th><td><%= row.quantity %></td><td><%= row.unit %></td><td><%= formatIdr(row.acquisitionCostPerUnit) %></td><td><%= formatIdr(BigInt(row.quantity)*row.acquisitionCostPerUnit) %></td><td><%= row.status %></td><td><a href="/admin/finance/fixed-assets/<%= row.id %>/edit">Edit <%= row.assetName %></a></td></tr><% } %>
+</tbody></table></div>
+<% if (!assets.length) { %><p>No fixed assets recorded.</p><% } %>
+</section></div>

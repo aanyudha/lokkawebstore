@@ -71,7 +71,14 @@ export async function lockCatalog(tx: Transaction, variantIds: string[]) {
 }
 export function validateVariant(
   product: { status: string } | undefined,
-  variant: { status: string; stockQuantity: number; price: bigint } | undefined,
+  variant:
+    | {
+        status: string;
+        stockQuantity: number;
+        stockKnown: boolean;
+        price: bigint;
+      }
+    | undefined,
   qty: number,
 ) {
   quantity(qty);
@@ -79,7 +86,8 @@ export function validateVariant(
     !product ||
     product.status !== 'active' ||
     !variant ||
-    variant.status !== 'active'
+    variant.status !== 'active' ||
+    !variant.stockKnown
   )
     throw new FormError('items', 'shop.error.unavailable');
   if (variant.stockQuantity < qty)
@@ -113,6 +121,7 @@ export function createCartService(db: Database['db']) {
       available:
         row.product.status === 'active' &&
         row.variant.status === 'active' &&
+        row.variant.stockKnown &&
         row.variant.stockQuantity >= row.item.quantity,
       lineTotal: row.variant.price * BigInt(row.item.quantity),
     }));

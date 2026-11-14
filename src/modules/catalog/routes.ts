@@ -189,7 +189,11 @@ export async function registerCatalog(
         priceCurrency: 'IDR',
         price: v.price.toString(),
         sku: v.sku,
-        availability: `https://schema.org/${v.stockQuantity > 0 ? 'InStock' : 'OutOfStock'}`,
+        ...(v.stockKnown
+          ? {
+              availability: `https://schema.org/${v.stockQuantity > 0 ? 'InStock' : 'OutOfStock'}`,
+            }
+          : {}),
         url: canonical,
       })),
     };

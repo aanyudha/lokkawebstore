@@ -120,3 +120,29 @@ if (financeForm) {
   direction?.addEventListener('change', refreshCategories);
   window.addEventListener('pageshow', refreshCategories);
 }
+
+for (const state of document.querySelectorAll<HTMLSelectElement>(
+  '[data-stock-state]',
+)) {
+  const quantity = state.form?.querySelector<HTMLInputElement>(
+    '[data-stock-quantity]',
+  );
+  if (!quantity) continue;
+  const update = () => {
+    quantity.required = state.value === 'true';
+    if (state.value === 'false') quantity.value = '';
+  };
+  state.addEventListener('change', update);
+  quantity.addEventListener('input', () => {
+    if (quantity.value !== '') {
+      state.value = 'true';
+      quantity.required = true;
+    }
+  });
+  update();
+}
+for (const button of document.querySelectorAll<HTMLButtonElement>(
+  '[data-print-report]',
+)) {
+  button.addEventListener('click', () => window.print());
+}

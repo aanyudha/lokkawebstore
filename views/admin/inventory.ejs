@@ -29,14 +29,16 @@
 </td>
 <td>
 <%- include('../partials/admin/status-badge.ejs', {status:row.variant.status}) %>
-<% if (row.variant.stockQuantity <= threshold) { %>
+<% if (row.variant.stockKnown && row.variant.stockQuantity <= threshold) { %>
 <br />Low stock<% } %>
 </td>
 <td>
 <form method="post" action="/admin/products/<%= row.product.id %>/variants/<%= row.variant.id %>/stock" class="stock-form">
 <input type="hidden" name="csrf" value="<%= csrf %>" />
+<label>Quantity status <%= row.variant.sku %><select name="stockKnown" data-stock-state><option value="true" <%= row.variant.stockKnown ? 'selected' : '' %>>Known quantity</option><option value="false" <%= !row.variant.stockKnown ? 'selected' : '' %>>Unspecified quantity</option></select></label>
+<% if (!row.variant.stockKnown) { %><p>Unavailable / Belum diisi</p><% } %>
 <label>Stock <%= row.variant.sku %>
-<input name="stockQuantity" type="number" min="0" required value="<%= values.id === row.variant.id ? values.stockQuantity : row.variant.stockQuantity %>" />
+<input name="stockQuantity" type="number" min="0" data-stock-quantity value="<%= values.id === row.variant.id ? values.stockQuantity : row.variant.stockKnown ? row.variant.stockQuantity : '' %>" />
 </label>
 <button>Save</button>
 </form>

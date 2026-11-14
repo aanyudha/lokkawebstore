@@ -81,7 +81,26 @@ export function money(
 export function formatIdr(value: bigint, locale = 'id') {
   return `Rp${new Intl.NumberFormat(locale === 'id' ? 'id-ID' : 'en-US', { maximumFractionDigits: 0 }).format(value)}`;
 }
-export function variantInput(form: Form) {
+export function stockInput(form: Form, previousKnown = true) {
+  const stockKnown =
+    form.stockKnown === undefined
+      ? previousKnown
+      : choice(form, 'stockKnown', ['true', 'false']) === 'true';
+  if (!stockKnown) {
+    if (
+      form.stockQuantity !== undefined &&
+      form.stockQuantity !== '' &&
+      form.stockQuantity !== '0'
+    )
+      throw new FormError(
+        'stockQuantity',
+        'Unspecified stock must be blank. Choose Known quantity to enter a count.',
+      );
+    return { stockKnown: false, stockQuantity: 0 };
+  }
+  return { stockKnown: true, stockQuantity: integer(form, 'stockQuantity') };
+}
+export function variantInput(form: Form, previousKnown = true) {
   const status = choice(form, 'status', ['active', 'inactive']);
   const price =
     status === 'inactive' && (!form.price || form.price === '0')
@@ -109,7 +128,10 @@ export function variantInput(form: Form) {
       'weightGrams',
       status === 'active' ? 1 : 0,
     ),
-    stockQuantity: integer(form, 'stockQuantity'),
+    ...stockInput(form, previousKnown),
+    ...(form.unit === undefined
+      ? {}
+      : { unit: textField(form, 'unit', 30) || null }),
     sortOrder: integer({ sortOrder: '0', ...form }, 'sortOrder'),
     status,
   };

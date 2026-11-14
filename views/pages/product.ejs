@@ -1,6 +1,6 @@
 <% const pdpLocale = locale || 'en'; %>
 <% const pdpT = typeof t === 'function' ? t : (k) => k; %>
-<% const selectedVariant = variants.find(v => v.stockQuantity > 0) || variants[0]; %>
+<% const selectedVariant = variants.find(v => v.stockKnown && v.stockQuantity > 0) || variants[0]; %>
 <main id="main" class="catalog-page">
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <a href="<%= pdpLocale === 'id' ? '/id' : '/' %>"><%= pdpT('breadcrumb.home') %></a>
@@ -58,20 +58,21 @@
                 data-price="<%= formatIdr(variant.price) %>"
                 data-compare="<%= variant.compareAtPrice > variant.price ? formatIdr(variant.compareAtPrice) : '' %>"
                 data-sku="<%= variant.sku %>"
-                data-quantity="<%= variant.stockQuantity %>"
-                data-stock="<%= variant.stockQuantity > 0 ? pdpT('product.inStock') : pdpT('product.outOfStock') %>"
-                <%= i === variants.findIndex(v => v.stockQuantity > 0) ? 'checked' : '' %>
+                data-stock-known="<%= variant.stockKnown %>"
+                data-quantity="<%= variant.stockKnown ? variant.stockQuantity : '' %>"
+                data-stock="<%= !variant.stockKnown ? pdpT('shop.unavailable') : variant.stockQuantity > 0 ? pdpT('product.inStock') : pdpT('product.outOfStock') %>"
+                <%= i === variants.findIndex(v => v.stockKnown && v.stockQuantity > 0) ? 'checked' : '' %>
               />
               <span><%= variant.name %></span>
             </label>
           <% }); %>
         </fieldset>
         <p class="variant-info" data-variant-info>
-          <%= pdpT('product.sku') %>: <%= selectedVariant.sku %> · <%= selectedVariant.stockQuantity > 0 ? pdpT('product.inStock') : pdpT('product.outOfStock') %>
+          <%= pdpT('product.sku') %>: <%= selectedVariant.sku %> · <%= !selectedVariant.stockKnown ? pdpT('shop.unavailable') : selectedVariant.stockQuantity > 0 ? pdpT('product.inStock') : pdpT('product.outOfStock') %>
         </p>
         <label for="product-quantity"><%= pdpT('shop.quantity') %></label>
-        <input id="product-quantity" name="quantity" type="number" min="1" max="<%= variants.find(v => v.stockQuantity > 0)?.stockQuantity || 1 %>" value="1" required />
-        <button class="btn btn-primary" type="submit" data-add-to-cart <%= variants.every(v => v.stockQuantity <= 0) ? 'disabled' : '' %>><%= pdpT('shop.addToCart') %></button>
+        <input id="product-quantity" name="quantity" type="number" min="1" max="<%= variants.find(v => v.stockKnown && v.stockQuantity > 0)?.stockQuantity || 1 %>" value="1" required />
+        <button class="btn btn-primary" type="submit" data-add-to-cart <%= variants.every(v => !v.stockKnown || v.stockQuantity <= 0) ? 'disabled' : '' %>><%= pdpT('shop.addToCart') %></button>
         <% if (!customer) { %><p><%= pdpT('shop.loginRequired') %></p><% } %>
         </form>
       <% } else { %>

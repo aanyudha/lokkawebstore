@@ -926,3 +926,140 @@
       color 0.15s ease;
   }
 }
+
+/* Formal management reports retain semantic tables and printable basis notes. */
+.investor-report {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px;
+  background: #fff;
+  color: #152b25;
+  border: 1px solid #d7dfda;
+}
+.report-heading {
+  border-bottom: 3px solid #183e30;
+  padding-bottom: 24px;
+  margin-bottom: 28px;
+}
+.report-heading img {
+  object-fit: contain;
+}
+.report-heading h2 {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  margin: 16px 0;
+}
+.report-eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+}
+.investor-report section {
+  margin: 28px 0;
+}
+.investor-report h3 {
+  font-size: 1.15rem;
+  border-bottom: 1px solid #cbd6cf;
+  padding-bottom: 10px;
+}
+.investor-report p,
+.investor-report li {
+  line-height: 1.65;
+}
+.report-metrics {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+}
+.report-metrics dt,
+.report-metrics dd {
+  margin: 0;
+  padding: 12px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.report-metrics dd {
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.investor-report table {
+  font-size: 0.8rem;
+}
+.investor-report th,
+.investor-report td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.investor-report tfoot {
+  font-weight: 700;
+  border-top: 2px solid #183e30;
+}
+@media (max-width: 600px) {
+  .investor-report {
+    padding: 16px;
+  }
+}
+@page {
+  size: A4 landscape;
+  margin: 14mm;
+}
+@media print {
+  .admin-sidebar,
+  .admin-topbar,
+  .admin-breadcrumb,
+  .admin-page-header,
+  .admin-footer,
+  .drawer-backdrop,
+  .skip-link,
+  .report-screen-only,
+  .admin-ui button {
+    display: none !important;
+  }
+  .admin-shell,
+  .admin-workspace,
+  .admin-main {
+    display: block !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+  .admin-main > nav,
+  .admin-main > header {
+    display: none !important;
+  }
+  .admin-ui {
+    background: #fff;
+    font-size: 10pt;
+  }
+  .investor-report {
+    border: 0;
+    padding: 0;
+    max-width: none;
+  }
+  .investor-report .table-scroll {
+    overflow: visible;
+  }
+  .investor-report table {
+    width: 100%;
+    min-width: 0;
+    font-size: 8pt;
+  }
+  .investor-report thead {
+    display: table-header-group;
+  }
+  .investor-report tr,
+  .report-heading,
+  .report-metrics {
+    break-inside: avoid;
+  }
+  .investor-report h3,
+  .investor-report h4 {
+    break-after: avoid;
+  }
+  .investor-report a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

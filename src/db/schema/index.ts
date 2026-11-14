@@ -246,6 +246,8 @@ export const productVariants = pgTable(
     compareAtPrice: bigint('compare_at_price', { mode: 'bigint' }),
     weightGrams: integer('weight_grams').notNull(),
     stockQuantity: integer('stock_quantity').default(0).notNull(),
+    stockKnown: boolean('stock_known').default(true).notNull(),
+    unit: text('unit'),
     status: variantStatus('status').default('inactive').notNull(),
     sortOrder: integer('sort_order').default(0).notNull(),
     ...timestamps(),
@@ -259,6 +261,92 @@ export const productVariants = pgTable(
     ),
     check('variants_weight_nonnegative', sql`${t.weightGrams} >= 0`),
     check('variants_stock_nonnegative', sql`${t.stockQuantity} >= 0`),
+    check(
+      'variants_unknown_stock_placeholder',
+      sql`${t.stockKnown} OR ${t.stockQuantity} = 0`,
+    ),
+  ],
+);
+// Operational assets, independent of cash movements and historical sale costs.
+export const fixedAssets = pgTable(
+  'fixed_assets',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    vendorId: uuid('vendor_id')
+      .notNull()
+      .references(() => vendors.id),
+    assetName: text('asset_name').notNull(),
+    quantity: integer('quantity').notNull(),
+    unit: text('unit').notNull(),
+    acquisitionCostPerUnit: bigint('acquisition_cost_per_unit', {
+      mode: 'bigint',
+    }).notNull(),
+    acquisitionDate: date('acquisition_date'),
+    notes: text('notes'),
+    status: text('status', { enum: ['ACTIVE', 'DISPOSED'] })
+      .default('ACTIVE')
+      .notNull(),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => adminUsers.id),
+    ...timestamps(),
+  },
+  (t) => [
+    index('fixed_assets_vendor_idx').on(t.vendorId),
+    check(
+      'fixed_assets_valid',
+      sql`${t.quantity} > 0 AND ${t.acquisitionCostPerUnit} >= 0 AND ${t.status} IN ('ACTIVE','DISPOSED')`,
+    ),
+  ],
+);
+export const ownerImports = pgTable(
+  'owner_imports',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    sourceIdentity: text('source_identity').notNull(),
+    workbookHash: text('workbook_hash').notNull(),
+    sheet: text('sheet').notNull(),
+    sourceRow: integer('source_row').notNull(),
+    entityId: uuid('entity_id').notNull(),
+    payloadHash: text('payload_hash').notNull(),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => adminUsers.id),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex('owner_import_source_row_unique').on(
+      t.sourceIdentity,
+      t.sheet,
+      t.sourceRow,
+    ),
+  ],
+);
+// Explicit documentary coverage; no elapsed-time inference or forecasting input UI.
+export const reportingCoverage = pgTable(
+  'reporting_coverage',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    vendorId: uuid('vendor_id')
+      .notNull()
+      .references(() => vendors.id),
+    month: date('month').notNull(),
+    salesComplete: boolean('sales_complete').default(false).notNull(),
+    expensesComplete: boolean('expenses_complete').default(false).notNull(),
+    evidence: text('evidence').notNull(),
+    confirmedBy: uuid('confirmed_by')
+      .notNull()
+      .references(() => adminUsers.id),
+    ...timestamps(),
+  },
+  (t) => [
+    uniqueIndex('reporting_coverage_month_unique').on(t.vendorId, t.month),
+    check(
+      'reporting_coverage_month_start',
+      sql`extract(day from ${t.month}) = 1 AND length(trim(${t.evidence})) > 0`,
+    ),
   ],
 );
 export const directCosts = pgTable(
