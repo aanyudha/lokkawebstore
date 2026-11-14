@@ -1,4 +1,5 @@
 import './styles/admin.css';
+import './styles/investor-report.css';
 
 document.documentElement.dataset.assets = 'ready';
 const sidebar = document.querySelector<HTMLElement>('#admin-sidebar');

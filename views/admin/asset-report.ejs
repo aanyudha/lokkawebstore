@@ -1,32 +1,62 @@
-<article class="investor-report" data-investor-report="assets">
-<%- include('../partials/admin/report-header.ejs',{reportTitle:'ASSET REGISTER + VALUATION',subtitle:'Daftar Aset dan Valuasi'}) %>
+<article class="investor-report executive-report" data-investor-report="assets">
 <% const asset = report.asset; %>
-<section><h3>Executive Summary — Current Position</h3><p>Recorded inventory and owned fixed assets, derived from LOKKA operational records. Retail capacity is a separate commercial indicator.</p>
-<dl class="report-metrics">
-<dt>Known inventory units</dt><dd data-report-units><%= asset.knownUnits %></dd>
-<dt>Inventory value at HPP</dt><dd data-report-hpp><%= formatIdr(asset.hppValue) %></dd>
-<dt>Inventory retail value</dt><dd data-report-retail><%= formatIdr(asset.retailValue) %></dd>
-<dt>Potential inventory gross value</dt><dd data-report-spread><%= formatIdr(asset.grossSpread) %></dd>
-<dt>Active fixed asset acquisition value</dt><dd data-report-fixed><%= formatIdr(asset.fixedValue) %></dd>
-<dt>Combined recorded asset value</dt><dd data-report-combined><%= formatIdr(asset.combinedValue) %></dd>
-</dl></section>
-<section><h3>Current Assets / Inventory</h3>
+<section class="report-primary-page" data-report-primary="asset-snapshot">
+<%- include('../partials/admin/report-header.ejs',{reportTitle:'ASSET REGISTER + VALUATION',subtitle:'Daftar Aset dan Valuasi'}) %>
+<p class="report-section-label">01 / Executive Snapshot</p>
+<h3>Recorded assets, at a glance</h3>
+<p class="report-intro">LOKKA holds inventory valued at recorded HPP and fixed assets valued at acquisition cost. Retail value is a separate commercial indicator and is not included in recorded assets.</p>
+<dl class="report-kpis">
+<div class="report-kpi report-kpi--lead"><dt>Total Recorded Assets</dt><dd data-report-combined><%= formatIdr(asset.combinedValue) %></dd></div>
+<div class="report-kpi"><dt>Inventory at HPP</dt><dd data-report-hpp><%= formatIdr(asset.hppValue) %></dd></div>
+<div class="report-kpi"><dt>Fixed Asset Acquisition Value</dt><dd data-report-fixed><%= formatIdr(asset.fixedValue) %></dd></div>
+<div class="report-kpi"><dt>Inventory Retail Value</dt><dd data-report-retail><%= formatIdr(asset.retailValue) %></dd></div>
+<div class="report-kpi"><dt>Potential Gross Spread</dt><dd data-report-spread><%= formatIdr(asset.grossSpread) %></dd></div>
+<div class="report-kpi"><dt>Known Inventory Units</dt><dd><span data-report-units><%= asset.knownUnits %></span> <small><%= view.unitLabel %></small></dd></div>
+</dl>
+<section class="report-block"><h3>Asset mix</h3>
+<table class="report-summary-table" data-asset-mix><caption>Share of recorded inventory and fixed assets</caption><thead><tr><th scope="col">Asset Class</th><th scope="col">Value</th><th scope="col">Share of Recorded Assets</th></tr></thead><tbody>
+<tr><th scope="row">Inventory at HPP</th><td><%= formatIdr(asset.hppValue) %></td><td><%= view.inventoryShare %></td></tr>
+<tr><th scope="row">Fixed Assets</th><td><%= formatIdr(asset.fixedValue) %></td><td><%= view.fixedShare %></td></tr>
+</tbody><tfoot><tr><th scope="row">Total Recorded Assets</th><td><%= formatIdr(asset.combinedValue) %></td><td><%= view.totalShare %></td></tr></tfoot></table>
+</section>
+</section>
+<section class="report-primary-page" data-report-primary="asset-position">
+<p class="report-section-label">02 / Inventory &amp; Asset Position</p><h3>Inventory supports the commercial opportunity</h3>
+<dl class="report-facts">
+<div><dt>Total products</dt><dd data-product-count><%= view.productCount %></dd></div>
+<div><dt>Known-stock products</dt><dd><%= view.knownStockProducts %></dd></div>
+<div><dt>Products requiring stock confirmation</dt><dd><%= view.unknownStockProducts %></dd></div>
+<div><dt>Known inventory units</dt><dd><%= asset.knownUnits %> <%= view.unitLabel %></dd></div>
+<div><dt>Inventory HPP value</dt><dd><%= formatIdr(asset.hppValue) %></dd></div>
+<div><dt>Inventory retail value</dt><dd><%= formatIdr(asset.retailValue) %></dd></div>
+<div><dt>Potential gross spread</dt><dd><%= formatIdr(asset.grossSpread) %></dd></div>
+</dl>
+<p class="report-takeaway">Retail capacity indicates the value of selling known inventory at current prices. The gross spread is not guaranteed profit; it excludes operating and selling costs.</p>
+<section class="report-block"><h3>Fixed asset base</h3>
+<p class="report-emphasis"><strong><%= formatIdr(asset.fixedValue) %></strong> in active acquisition value across <strong><%= view.activeFixedCount %> active asset records</strong>.</p>
+<p>These are recorded acquisition values, with no depreciation or book-value calculation applied. Disposed assets remain in the detailed register.</p>
+</section>
+<section class="report-block"><h3>Key valuation notes</h3><ul class="report-key-notes">
+<li>Inventory uses recorded HPP/direct cost.</li><li>Fixed assets use recorded acquisition value.</li><li>Retail value is not recorded asset value.</li><li>Unknown stock/cost is excluded where applicable.</li><li>No depreciation or book value is calculated.</li>
+</ul></section>
+<nav class="report-appendix-index" aria-label="Asset report appendices"><h3>Supporting detail</h3><a href="#asset-appendix-a">Appendix A — Detailed Inventory</a><a href="#asset-appendix-b">Appendix B — Fixed Asset Detail</a><a href="#asset-appendix-c">Appendix C — Basis of Valuation</a></nav>
+</section>
+<div class="report-appendices">
+<section class="report-appendix" id="asset-appendix-a" data-report-appendix="A"><p class="report-section-label">Appendix A</p><h3>Detailed Inventory</h3>
 <p>Nonarchived products, including draft products and inactive variants awaiting publication details. Archived catalog is excluded.</p>
 <p data-report-incomplete><%= asset.incompleteCount %> incomplete items: <%= asset.unknownStockCount %> with unspecified stock; <%= asset.unknownCostCount %> with unknown HPP. Unavailable / Belum diisi is distinct from confirmed zero.</p>
 <div class="table-scroll" tabindex="0" role="region" aria-label="Inventory valuation"><table><thead><tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col">Stock Qty</th><th scope="col">Unit</th><th scope="col">HPP / unit</th><th scope="col">Inventory value</th><th scope="col">Selling price / unit</th><th scope="col">Retail value</th></tr></thead><tbody>
 <% for (const row of asset.inventory) { %><tr><th scope="row"><%= row.product.name %></th><td><%= row.variant.sku %></td><td><%= row.variant.stockKnown ? row.variant.stockQuantity : 'Unavailable / Belum diisi' %></td><td><%= row.variant.unit ?? 'Unavailable' %></td><td><%= row.hpp === null ? 'Unavailable' : formatIdr(row.hpp) %></td><td><%= row.inventoryValue === null ? 'Unavailable' : formatIdr(row.inventoryValue) %></td><td><%= formatIdr(row.variant.price) %></td><td><%= row.retailValue === null ? 'Unavailable' : formatIdr(row.retailValue) %></td></tr><% } %>
-</tbody><tfoot><tr><th scope="row" colspan="2">Known totals</th><td><%= asset.knownUnits %></td><td></td><td></td><td><%= formatIdr(asset.hppValue) %></td><td></td><td><%= formatIdr(asset.retailValue) %></td></tr></tfoot></table></div></section>
-<section><h3>Fixed Assets — Acquisition Value / Nilai Perolehan</h3><p>Fixed assets are presented at recorded acquisition value, not depreciated book value.</p>
+</tbody><tfoot><tr><th scope="row" colspan="2">Known totals</th><td><%= asset.knownUnits %></td><td></td><td></td><td><%= formatIdr(asset.hppValue) %></td><td></td><td><%= formatIdr(asset.retailValue) %></td></tr></tfoot></table></div>
+</section>
+<section class="report-appendix report-appendix--new-page" id="asset-appendix-b" data-report-appendix="B"><p class="report-section-label">Appendix B</p><h3>Fixed Asset Detail</h3>
+<p>Acquisition Value / Nilai Perolehan. Fixed assets are presented at recorded acquisition value, not depreciated book value. Disposed rows remain visible and are excluded from active totals.</p>
 <div class="table-scroll" tabindex="0" role="region" aria-label="Fixed asset valuation"><table><thead><tr><th scope="col">Asset</th><th scope="col">Quantity</th><th scope="col">Unit</th><th scope="col">Acquisition cost / unit</th><th scope="col">Total acquisition value</th><th scope="col">Status</th></tr></thead><tbody>
 <% for (const row of asset.fixed) { %><tr><th scope="row"><%= row.assetName %></th><td><%= row.quantity %></td><td><%= row.unit %></td><td><%= formatIdr(row.acquisitionCostPerUnit) %></td><td><%= formatIdr(row.total) %></td><td><%= row.status %></td></tr><% } %>
-</tbody><tfoot><tr><th scope="row" colspan="4">Active acquisition value</th><td><%= formatIdr(asset.fixedValue) %></td><td>Disposed excluded</td></tr></tfoot></table></div></section>
-<section><h3>Total Assets at Recorded Value</h3><p>Inventory at HPP + active fixed asset acquisition value = <strong><%= formatIdr(asset.combinedValue) %></strong>. Retail value is excluded from this total.</p></section>
-<section><h3>Basis of Valuation / Notes</h3><ul>
-<li>Inventory is valued using recorded current HPP/direct cost; retail value uses current recorded selling price.</li>
-<li>Rows with incomplete quantity or cost data are excluded from relevant valuation totals. Known-unit and retail totals require known quantity; HPP and gross-spread totals also require known HPP.</li>
-<li>Potential gross value compares retail and HPP only for the same complete stock-and-cost cohort. Comparable retail value: <%= formatIdr(asset.comparativeRetail) %>. It is not projected profit.</li>
-<li>Fixed assets follow the owner's register classification. No depreciation/book-value calculation is currently applied. Disposed assets remain visible and are excluded from active totals.</li>
-<li>Source SKUs beginning LOKKA-SYS-OWNER are system-generated. Accessories/apparel categories are operational classifications; workbook product names are preserved.</li>
-<li>Missing weights and media do not invent facts. Draft inventory is included; media may be added through the existing catalog flow.</li>
-</ul></section>
+</tbody><tfoot><tr><th scope="row" colspan="4">Active acquisition value</th><td><%= formatIdr(asset.fixedValue) %></td><td>Disposed excluded</td></tr></tfoot></table></div>
+</section>
+<section class="report-appendix report-appendix--new-page" id="asset-appendix-c" data-report-appendix="C"><p class="report-section-label">Appendix C</p><h3>Basis of Valuation</h3>
+<dl class="report-methods"><dt>Inventory value</dt><dd>Confirmed stock × recorded current HPP/direct cost per unit.</dd><dt>Retail value</dt><dd>Confirmed stock × current recorded selling price per unit.</dd><dt>Potential gross spread</dt><dd>Comparable retail value − HPP value for the same complete stock-and-cost cohort. Comparable retail: <%= formatIdr(asset.comparativeRetail) %>.</dd><dt>Fixed acquisition value</dt><dd>Quantity × acquisition cost per unit/pack, using the owner's register classification. Active rows contribute to the active total.</dd><dt>Combined recorded asset value</dt><dd>Known inventory at HPP + active fixed asset acquisition value. Retail value is excluded.</dd></dl>
+<ul class="report-key-notes"><li>Unknown quantities are not factual zero. Quantity-unknown rows are excluded from stock-derived totals; a confirmed zero remains known zero.</li><li>Known-unit and retail totals require known quantity. HPP and comparative gross-spread totals also require known HPP. Missing cost components are unknown; explicitly recorded zero cost is known zero.</li><li>Product counts group canonical product IDs. A product requires stock confirmation if any included variant has unknown quantity. Active fixed asset count refers to register records, not the sum of their quantities.</li><li>Displayed asset shares use recorded asset value as denominator and are rounded to two decimal places; no share is shown for a zero denominator.</li><li>Fixed assets follow the owner's classification. No depreciation, useful life, salvage value or book value is inferred.</li><li>Source SKUs beginning LOKKA-SYS-OWNER are system-generated. Accessories/apparel categories are operational classifications; source product names are preserved.</li><li>Missing weights and media do not invent facts. Nonarchived draft inventory is included; operational details are maintained in Products, Inventory and Fixed Assets.</li></ul>
+</section></div>
 </article>

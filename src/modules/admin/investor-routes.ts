@@ -1,3 +1,4 @@
+import { presentInvestorReport } from './investor-presentation.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Database } from '../../db/client.js';
 import { createFixedAssets } from '../finance/fixed-assets.js';
@@ -63,16 +64,20 @@ export function registerInvestorAdmin(
       }
     });
   }
-  app.get('/reports/assets', async (r, reply) =>
-    page(r, reply, 'asset-report', {
-      report: await reports.report(),
+  app.get('/reports/assets', async (r, reply) => {
+    const report = await reports.report();
+    return page(r, reply, 'asset-report', {
+      report,
+      view: presentInvestorReport(report),
       formatIdr,
-    }),
-  );
-  app.get('/reports/12-month-plan', async (r, reply) =>
-    page(r, reply, 'plan-report', {
-      report: await reports.report(new Date(), true),
+    });
+  });
+  app.get('/reports/12-month-plan', async (r, reply) => {
+    const report = await reports.report(new Date(), true);
+    return page(r, reply, 'plan-report', {
+      report,
+      view: presentInvestorReport(report),
       formatIdr,
-    }),
-  );
+    });
+  });
 }

@@ -3,5 +3,5 @@
 <p class="report-eyebrow">LOKKA / MANAGEMENT REPORT</p>
 <h2><%= reportTitle %></h2><p><%= subtitle %></p>
 <p>As of / generated: <time datetime="<%= report.asOf.toISOString() %>"><%= new Intl.DateTimeFormat('en-GB',{dateStyle:'long',timeStyle:'short',timeZone:'Asia/Jakarta'}).format(report.asOf) %> WIB</time></p>
-<button type="button" class="report-screen-only" data-print-report>Print report</button>
+<button type="button" class="report-screen-only" data-print-report>Print Report</button>
 </header>

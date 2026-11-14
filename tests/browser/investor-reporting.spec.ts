@@ -123,7 +123,7 @@ test('Fixed Assets operations and formal investor reports use canonical values i
       };
     });
     await page
-      .getByRole('button', { name: 'Print report', exact: true })
+      .getByRole('button', { name: 'Print Report', exact: true })
       .click();
     await expect(page.locator('html')).toHaveAttribute(
       'data-print-requested',
@@ -155,7 +155,8 @@ test('Fixed Assets operations and formal investor reports use canonical values i
     await expect(page.locator('[data-plan-revenue]')).toHaveText('Rp0');
     await expect(page.locator('[data-projection-unavailable]')).toBeVisible();
     await expect(page.locator('[data-investor-report] form')).toHaveCount(0);
-    await expect(page.locator('[data-investor-report] h3')).toHaveCount(10);
+    await expect(page.locator('[data-report-primary]')).toHaveCount(3);
+    await expect(page.locator('[data-report-appendix]')).toHaveCount(5);
     await page.screenshot({
       path: 'test-results/investor-plan.png',
       fullPage: true,
