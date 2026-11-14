@@ -1,3 +1,4 @@
+import { canSellInWebstore } from '../catalog/sellability.js';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Database } from '../../db/client.js';
 import { fulfillmentOrigins, vendors } from '../../db/schema/index.js';
@@ -108,16 +109,7 @@ export function createFulfillment(db: Database['db'], catalog: Catalog) {
       const product = await catalog.product(productId);
       const { variants } = await catalog.relations([productId]);
       const variant = variants.find((v) => v.id === id(variantId));
-      if (
-        product.status !== 'active' ||
-        !variant ||
-        variant.status !== 'active' ||
-        !variant.stockKnown ||
-        variant.price <= 0n ||
-        variant.weightGrams <= 0 ||
-        !variant.sku ||
-        variant.stockQuantity < quantity
-      )
+      if (!variant || !canSellInWebstore(product, variant, quantity))
         throw new FormError(
           'variant',
           'Variant is not ready to ship or has insufficient stock.',

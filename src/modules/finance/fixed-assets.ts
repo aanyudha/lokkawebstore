@@ -1,4 +1,5 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { listInput, pagination, searchPattern } from '../catalog/listing.js';
+import { and, asc, count, eq, ilike, or, sql } from 'drizzle-orm';
 import type { Database } from '../../db/client.js';
 import { fixedAssets, vendors, adminUsers } from '../../db/schema/index.js';
 import {
@@ -27,6 +28,48 @@ export function createFixedAssets(db: Connection) {
       .from(fixedAssets)
       .where(eq(fixedAssets.vendorId, await owner()))
       .orderBy(asc(fixedAssets.assetName), asc(fixedAssets.id));
+  }
+  async function listPage(query: Record<string, unknown> = {}) {
+    const input = listInput(query);
+    const vendorId = await owner();
+    const pattern = searchPattern(input.q);
+    const condition = and(
+      eq(fixedAssets.vendorId, vendorId),
+      input.q
+        ? or(
+            ilike(fixedAssets.assetName, pattern),
+            ilike(fixedAssets.unit, pattern),
+            ilike(fixedAssets.status, pattern),
+          )
+        : undefined,
+    );
+    const assets = await db
+      .select()
+      .from(fixedAssets)
+      .where(condition)
+      .orderBy(asc(fixedAssets.assetName), asc(fixedAssets.id))
+      .limit(input.limit)
+      .offset(input.offset);
+    const [total] = await db
+      .select({ value: count() })
+      .from(fixedAssets)
+      .where(condition);
+    const [active] = await db
+      .select({
+        value: sql<string>`coalesce(sum(${fixedAssets.quantity}::numeric * ${fixedAssets.acquisitionCostPerUnit}),0)::text`,
+      })
+      .from(fixedAssets)
+      .where(
+        and(
+          eq(fixedAssets.vendorId, vendorId),
+          eq(fixedAssets.status, 'ACTIVE'),
+        ),
+      );
+    return {
+      assets,
+      activeTotal: BigInt(active!.value),
+      listing: pagination(total!.value, input, '/admin/finance/fixed-assets'),
+    };
   }
   async function get(assetId: string) {
     const [row] = await db
@@ -80,5 +123,5 @@ export function createFixedAssets(db: Connection) {
     if (!row) throw new FormError('id', 'Fixed asset not found.');
     return row;
   }
-  return { list, get, save };
+  return { list, listPage, get, save };
 }

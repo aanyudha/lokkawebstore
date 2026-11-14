@@ -1,3 +1,5 @@
+import { searchPattern } from '../catalog/listing.js';
+import { canSellInPos, canSellInWebstore } from '../catalog/sellability.js';
 import { eq, and, sql, desc, getTableColumns } from 'drizzle-orm';
 import type { Database } from '../../db/client.js';
 import {
@@ -64,6 +66,7 @@ export interface PosProduct {
     price: bigint;
     stockQuantity: number;
     stockKnown: boolean;
+    posReady: boolean;
     status: string;
   }[];
   primaryImage: {
@@ -99,7 +102,7 @@ export function createSalesService(db: Database['db']) {
 
     let productIdsToShow: string[] | null = null;
     if (query && query.trim()) {
-      const pattern = `%${query.trim()}%`;
+      const pattern = searchPattern(query.trim());
       // Find matching product IDs by name OR by variant SKU
       const nameMatches = await db
         .select({ id: products.id })
@@ -150,6 +153,7 @@ export function createSalesService(db: Database['db']) {
           price: productVariants.price,
           stockQuantity: productVariants.stockQuantity,
           stockKnown: productVariants.stockKnown,
+          weightGrams: productVariants.weightGrams,
           status: productVariants.status,
         })
         .from(productVariants)
@@ -188,6 +192,10 @@ export function createSalesService(db: Database['db']) {
         price: v.price,
         stockQuantity: v.stockQuantity,
         stockKnown: v.stockKnown,
+        posReady: canSellInPos(
+          productsList.find((p) => p.id === v.productId),
+          v,
+        ),
         status: v.status,
       });
       variantMap.set(v.productId, list);
@@ -276,6 +284,7 @@ export function createSalesService(db: Database['db']) {
             .select({
               id: products.id,
               name: products.name,
+              slug: products.slug,
               status: products.status,
             })
             .from(products)
@@ -298,6 +307,7 @@ export function createSalesService(db: Database['db']) {
           price: productVariants.price,
           stockQuantity: productVariants.stockQuantity,
           stockKnown: productVariants.stockKnown,
+          weightGrams: productVariants.weightGrams,
           status: productVariants.status,
         })
         .from(productVariants)
@@ -346,6 +356,18 @@ export function createSalesService(db: Database['db']) {
             `Insufficient stock for ${variant.sku}: available ${variant.stockQuantity}, requested ${item.quantity}`,
           );
 
+        const parent = productSnapshots.find((p) => p.id === variant.productId);
+        if (
+          !(input.source === 'WEBSTORE'
+            ? canSellInWebstore(parent, variant, item.quantity)
+            : canSellInPos(parent, variant, item.quantity))
+        )
+          throw new FormError(
+            'items',
+            input.source === 'WEBSTORE'
+              ? 'Variant is not ready for Webstore selling. Confirm weight and catalog details.'
+              : 'Variant is not ready for POS selling.',
+          );
         const lineTotal = variant.price * BigInt(item.quantity);
         subtotal += lineTotal;
         saleItemData.push({
@@ -546,11 +568,16 @@ export function createSalesService(db: Database['db']) {
       limit?: number;
       offset?: number;
       source?: string;
+      q?: string;
     } = {},
   ) {
     const limit = opts.limit ?? 50;
     const offset = opts.offset ?? 0;
     const conditions = [];
+    if (opts.q?.trim())
+      conditions.push(
+        sql`${sales.transactionNumber} ILIKE ${searchPattern(opts.q.trim())}`,
+      );
     if (opts.source)
       conditions.push(eq(sales.source, opts.source as 'POS' | 'WEBSTORE'));
 
@@ -566,7 +593,7 @@ export function createSalesService(db: Database['db']) {
         .from(sales)
         .leftJoin(adminUsers, eq(sales.cashierId, adminUsers.id))
         .where(where)
-        .orderBy(desc(sales.createdAt))
+        .orderBy(desc(sales.createdAt), desc(sales.id))
         .limit(limit)
         .offset(offset),
       db

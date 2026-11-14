@@ -1,0 +1,1 @@
+<% if (bulkResult) { %><div role="status" class="bulk-result"><p><strong><%= bulkResult.updated %> updated · <%= bulkResult.skipped %> skipped · <%= bulkResult.failed %> failed</strong></p><ul><% for (const row of bulkResult.rows) { %><li><%= row.name %>: <%= row.result %> — <%= row.reason %></li><% } %></ul></div><% } %>

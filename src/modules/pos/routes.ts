@@ -1,3 +1,4 @@
+import { listInput, pagination } from '../catalog/listing.js';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Database } from '../../db/client.js';
 import type { AppEnv } from '../../config/env.js';
@@ -272,9 +273,18 @@ export async function registerPos(
       pos.get('/history', async (request, reply) => {
         const principal = request.posPrincipal!;
         const csrf = request.cookies[CSRF_COOKIE] ?? '';
-        const { items: rawSales } = await sales.listSales({
-          limit: 100,
+        let input;
+        try {
+          input = listInput(request.query as Record<string, unknown>);
+        } catch (error) {
+          if (!(error instanceof FormError)) throw error;
+          return reply.code(422).send(error.message);
+        }
+        const { items: rawSales, total } = await sales.listSales({
+          limit: input.limit,
+          offset: input.offset,
           source: 'POS',
+          q: input.q,
         });
         const enriched = rawSales.map((s) => ({
           ...s,
@@ -285,6 +295,7 @@ export async function registerPos(
           principal,
           csrf,
           sales: enriched,
+          listing: pagination(total, input, '/pos/history'),
         });
       });
 

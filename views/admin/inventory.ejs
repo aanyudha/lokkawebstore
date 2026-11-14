@@ -1,6 +1,16 @@
 
-<div class="admin-content">
-<% if (!inventory.length) { %><%- include('../partials/admin/empty-state.ejs', {heading:'No variants yet',message:'Add variants in the product editor to manage their stock.'}) %><% } %>
+<div class="admin-content" data-bulk-scope>
+<%- include('../partials/admin/list-search.ejs',{searchPath:'/admin/inventory',searchLabel:'Search inventory',searchPlaceholder:'Search inventory...'}) %>
+<%- include('../partials/admin/bulk-result.ejs') %>
+<p>Stock only. Create or edit products, variants, prices, HPP, categories and optional weight in Products.</p>
+<form method="post" action="/admin/inventory/bulk<%= listQuery %>" id="bulk-inventory" data-bulk-stock>
+<input type="hidden" name="csrf" value="<%= csrf %>" />
+<button name="action" value="save" data-bulk-save hidden>Save Selected quantities</button>
+<button name="action" value="unknown">Mark selected stock unknown</button>
+<p>Save Selected uses the quantities entered in the table. Mark unknown cannot discard a positive recorded count.</p>
+<noscript><p>Use the individual Save buttons to confirm quantities without JavaScript.</p></noscript>
+</form>
+<% if (!inventory.length) { %><%- include('../partials/admin/empty-state.ejs', {heading:'No inventory matches this search',message:'Try another search, or add variants in Products.'}) %><% } %>
 
 <p>Low stock: <%= threshold %> or less.</p>
 <%- include('../partials/form-error.ejs') %>
@@ -8,7 +18,7 @@
 <table>
 <thead>
 <tr>
-<th>Product / Variant</th>
+<th><input type="checkbox" data-select-all aria-label="Select all inventory on this page" /></th><th>Product / Variant</th>
 <th>SKU</th>
 <th>Status</th>
 <th>Stock</th>
@@ -16,7 +26,8 @@
 </thead>
 <tbody>
 <% for (const row of inventory) { %>
-<tr>
+<tr data-stock-row="<%= row.variant.id %>">
+<td><input type="checkbox" form="bulk-inventory" name="selected" value="<%= row.variant.id %>" aria-label="Select <%= row.variant.sku %>" /></td>
 <td>
 <a href="/admin/products/<%= row.product.id %>/edit">
 <%= row.product.name %>
@@ -29,11 +40,13 @@
 </td>
 <td>
 <%- include('../partials/admin/status-badge.ejs', {status:row.variant.status}) %>
+<small>Product: <%= row.product.status %></small>
+<% for (const badge of row.readiness) { %><span class="readiness-badge"><%= badge %></span><% } %>
 <% if (row.variant.stockKnown && row.variant.stockQuantity <= threshold) { %>
 <br />Low stock<% } %>
 </td>
 <td>
-<form method="post" action="/admin/products/<%= row.product.id %>/variants/<%= row.variant.id %>/stock" class="stock-form">
+<form method="post" action="/admin/products/<%= row.product.id %>/variants/<%= row.variant.id %>/stock<%= listQuery %>" class="stock-form">
 <input type="hidden" name="csrf" value="<%= csrf %>" />
 <label>Quantity status <%= row.variant.sku %><select name="stockKnown" data-stock-state><option value="true" <%= row.variant.stockKnown ? 'selected' : '' %>>Known quantity</option><option value="false" <%= !row.variant.stockKnown ? 'selected' : '' %>>Unspecified quantity</option></select></label>
 <% if (!row.variant.stockKnown) { %><p>Unavailable / Belum diisi</p><% } %>
@@ -48,4 +61,5 @@
 </tbody>
 </table>
 </div>
+<%- include('../partials/admin/list-pagination.ejs') %>
 </div>

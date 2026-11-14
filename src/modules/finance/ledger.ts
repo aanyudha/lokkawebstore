@@ -1,4 +1,17 @@
-import { and, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm';
+import { listInput, pagination, searchPattern } from '../catalog/listing.js';
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  inArray,
+  lt,
+  lte,
+  sql,
+  or,
+  ilike,
+  count,
+} from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { Database } from '../../db/client.js';
 import { financialTransactions, sales } from '../../db/schema/index.js';
@@ -286,48 +299,70 @@ export function createLedger(db: Connection) {
   }
 
   /** Manual history plus read-only automated POS context. */
-  async function history() {
-    const [manual, automated] = await Promise.all([
-      db
-        .select({
-          id: financialTransactions.id,
-          direction: financialTransactions.direction,
-          source: financialTransactions.source,
-          type: financialTransactions.type,
-          category: financialTransactions.category,
-          amountRupiah: financialTransactions.amountRupiah,
-          occurredAt: financialTransactions.occurredAt,
-          status: financialTransactions.status,
-          voidReason: financialTransactions.voidReason,
-          notes: financialTransactions.notes,
-          transactionNumber: sales.transactionNumber,
-        })
-        .from(financialTransactions)
-        .leftJoin(sales, eq(financialTransactions.saleId, sales.id))
-        .where(
-          inArray(financialTransactions.type, ['MANUAL', 'OPENING_BALANCE']),
-        )
-        .orderBy(desc(financialTransactions.occurredAt))
-        .limit(100),
-      db
-        .select({
-          id: financialTransactions.id,
-          direction: financialTransactions.direction,
-          source: financialTransactions.source,
-          category: financialTransactions.category,
-          amountRupiah: financialTransactions.amountRupiah,
-          occurredAt: financialTransactions.occurredAt,
-          status: financialTransactions.status,
-          notes: financialTransactions.notes,
-          transactionNumber: sales.transactionNumber,
-        })
-        .from(financialTransactions)
-        .leftJoin(sales, eq(financialTransactions.saleId, sales.id))
-        .where(eq(financialTransactions.type, 'REVENUE'))
-        .orderBy(desc(financialTransactions.occurredAt))
-        .limit(20),
-    ]);
-    return { manual, automated };
+  async function history(query: Record<string, unknown> = {}) {
+    const input = listInput(query);
+    const pattern = searchPattern(input.q);
+    const categoryKeys = Object.entries(CATEGORY_LABELS)
+      .filter(
+        ([key, label]) =>
+          key.toLowerCase().includes(input.q.toLowerCase()) ||
+          label.toLowerCase().includes(input.q.toLowerCase()),
+      )
+      .map(([key]) => key);
+    const condition = and(
+      inArray(financialTransactions.type, [
+        'MANUAL',
+        'OPENING_BALANCE',
+        'REVENUE',
+      ]),
+      input.q
+        ? or(
+            ilike(financialTransactions.notes, pattern),
+            ilike(sales.transactionNumber, pattern),
+            sql`${financialTransactions.id}::text ILIKE ${pattern}`,
+            sql`${financialTransactions.category}::text ILIKE ${pattern}`,
+            categoryKeys.length
+              ? sql`${financialTransactions.category}::text IN (${sql.join(
+                  categoryKeys.map((key) => sql`${key}`),
+                  sql`, `,
+                )})`
+              : undefined,
+          )
+        : undefined,
+    );
+    const rows = await db
+      .select({
+        id: financialTransactions.id,
+        direction: financialTransactions.direction,
+        source: financialTransactions.source,
+        type: financialTransactions.type,
+        category: financialTransactions.category,
+        amountRupiah: financialTransactions.amountRupiah,
+        occurredAt: financialTransactions.occurredAt,
+        status: financialTransactions.status,
+        voidReason: financialTransactions.voidReason,
+        notes: financialTransactions.notes,
+        transactionNumber: sales.transactionNumber,
+      })
+      .from(financialTransactions)
+      .leftJoin(sales, eq(financialTransactions.saleId, sales.id))
+      .where(condition)
+      .orderBy(
+        desc(financialTransactions.occurredAt),
+        desc(financialTransactions.id),
+      )
+      .limit(input.limit)
+      .offset(input.offset);
+    const [total] = await db
+      .select({ value: count() })
+      .from(financialTransactions)
+      .leftJoin(sales, eq(financialTransactions.saleId, sales.id))
+      .where(condition);
+    return {
+      manual: rows.filter((row) => row.type !== 'REVENUE'),
+      automated: rows.filter((row) => row.type === 'REVENUE'),
+      listing: pagination(total!.value, input, '/admin/finance/income-expense'),
+    };
   }
 
   async function recordManual(form: Form, adminId: string) {

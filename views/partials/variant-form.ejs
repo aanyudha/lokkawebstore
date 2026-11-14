@@ -9,8 +9,8 @@
 </label>
 <label>Compare-at price<input name="compareAtPrice" inputmode="numeric" pattern="[0-9]*" value="<%= variant.compareAtPrice ?? '' %>" />
 </label>
-<label>Weight (grams)<input name="weightGrams" type="number" min="0" value="<%= variant.weightGrams ?? '' %>" />
-</label>
+<label>Weight (gram)<input name="weightGrams" aria-label="Weight (gram)" aria-describedby="weight-help-<%= variant.id || 'new' %>" type="number" min="1" value="<%= variant.weightGrams && variant.weightGrams !== '0' ? variant.weightGrams : '' %>" />
+<small id="weight-help-<%= variant.id || 'new' %>">Optional. Leave blank if unconfirmed. Required for Webstore selling, never for POS.</small></label>
 <label>Unit<input name="unit" maxlength="30" value="<%= variant.unit ?? '' %>" /></label>
 <label>Quantity status<select name="stockKnown" data-stock-state><option value="true" <%= knownStock ? 'selected' : '' %>>Known quantity</option><option value="false" <%= !knownStock ? 'selected' : '' %>>Unspecified quantity</option></select></label>
 <label>Stock<input name="stockQuantity" type="number" min="0" data-stock-quantity value="<%= !knownStock ? '' : variant.stockQuantity ?? 0 %>" />

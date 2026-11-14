@@ -1,3 +1,4 @@
+import { canSellInWebstore } from './sellability.js';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { Catalog } from './service.js';
 import type { AppEnv } from '../../config/env.js';
@@ -184,18 +185,20 @@ export async function registerCatalog(
       ),
       brand: { '@type': 'Brand', name: 'LOKKA' },
       sku: data.variants[0]?.sku,
-      offers: data.variants.map((v) => ({
-        '@type': 'Offer',
-        priceCurrency: 'IDR',
-        price: v.price.toString(),
-        sku: v.sku,
-        ...(v.stockKnown
-          ? {
-              availability: `https://schema.org/${v.stockQuantity > 0 ? 'InStock' : 'OutOfStock'}`,
-            }
-          : {}),
-        url: canonical,
-      })),
+      offers: data.variants
+        .filter((v) => canSellInWebstore(data.product, v))
+        .map((v) => ({
+          '@type': 'Offer',
+          priceCurrency: 'IDR',
+          price: v.price.toString(),
+          sku: v.sku,
+          ...(v.stockKnown
+            ? {
+                availability: `https://schema.org/${v.stockQuantity > 0 ? 'InStock' : 'OutOfStock'}`,
+              }
+            : {}),
+          url: canonical,
+        })),
     };
     const jsonLd = JSON.stringify(schema)
       .replace(/</g, '\\u003c')
@@ -220,6 +223,8 @@ export async function registerCatalog(
       .join('\n    ');
 
     return reply.viewAsync('pages/product.ejs', {
+      webstoreReady: (variant: Parameters<typeof canSellInWebstore>[1]) =>
+        canSellInWebstore(data.product, variant),
       product: {
         ...data.product,
         name: data.translation.name,

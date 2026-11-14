@@ -135,7 +135,7 @@ export function registerFinanceAdmin(
     error: FormError | null = null,
   ) =>
     page(r, reply, 'income-expense', {
-      history: await ledger.history(),
+      history: await ledger.history(r.query as Record<string, unknown>),
       categoryOptionsByDirection: Object.fromEntries(
         Object.entries(MANUAL_CATEGORIES_BY_DIRECTION).map(
           ([direction, categories]) => [direction, options(categories)],

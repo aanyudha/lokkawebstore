@@ -72,13 +72,11 @@ document
       const addButton =
         document.querySelector<HTMLButtonElement>('[data-add-to-cart]');
       if (quantity) {
-        const stockKnown = input.dataset.stockKnown === 'true';
+        const webstoreReady = input.dataset.webstoreReady === 'true';
         quantity.max = String(
           Math.max(Number(input.dataset.quantity || '0'), 1),
         );
-        if (addButton)
-          addButton.disabled =
-            !stockKnown || Number(input.dataset.quantity || '0') <= 0;
+        if (addButton) addButton.disabled = !webstoreReady;
       }
       const info = document.querySelector('[data-variant-info]');
       if (price) price.textContent = input.dataset.price ?? '';

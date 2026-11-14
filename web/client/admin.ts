@@ -146,3 +146,48 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
 )) {
   button.addEventListener('click', () => window.print());
 }
+
+for (const scope of document.querySelectorAll<HTMLElement>(
+  '[data-bulk-scope]',
+)) {
+  scope
+    .querySelector<HTMLInputElement>('[data-select-all]')
+    ?.addEventListener('change', (event) => {
+      const selected = (event.currentTarget as HTMLInputElement).checked;
+      for (const checkbox of scope.querySelectorAll<HTMLInputElement>(
+        'input[name="selected"]',
+      ))
+        checkbox.checked = selected;
+    });
+  const form = scope.querySelector<HTMLFormElement>('[data-bulk-stock]');
+  if (form) {
+    const save = form.querySelector<HTMLButtonElement>('[data-bulk-save]');
+    if (save) save.hidden = false;
+    form.addEventListener('submit', () => {
+      for (const old of form.querySelectorAll('[data-bulk-value]'))
+        old.remove();
+      for (const selected of scope.querySelectorAll<HTMLInputElement>(
+        'input[name="selected"]:checked',
+      )) {
+        const row = scope.querySelector<HTMLElement>(
+          `[data-stock-row="${selected.value}"]`,
+        );
+        for (const [name, selector] of [
+          ['stockKnown', '[data-stock-state]'],
+          ['stockQuantity', '[data-stock-quantity]'],
+        ]) {
+          const control = row?.querySelector<
+            HTMLInputElement | HTMLSelectElement
+          >(selector!);
+          if (!control) continue;
+          const hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.name = `${name}_${selected.value}`;
+          hidden.value = control.value;
+          hidden.dataset.bulkValue = '';
+          form.append(hidden);
+        }
+      }
+    });
+  }
+}

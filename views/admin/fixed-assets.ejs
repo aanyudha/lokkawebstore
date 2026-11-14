@@ -14,9 +14,11 @@
 <button>Save fixed asset</button><% if (assetId) { %><a href="/admin/finance/fixed-assets">Cancel edit</a><% } %>
 </form></section>
 <section class="admin-section"><h2>Asset register</h2>
-<p>Active acquisition value: <strong data-fixed-total><%= formatIdr(assets.reduce((total,row)=>total+(row.status === 'ACTIVE' ? BigInt(row.quantity)*row.acquisitionCostPerUnit : 0n),0n)) %></strong></p>
+<%- include('../partials/admin/list-search.ejs',{searchPath:'/admin/finance/fixed-assets',searchLabel:'Search assets',searchPlaceholder:'Search assets...'}) %>
+<p>Active acquisition value (entire register): <strong data-fixed-total><%= formatIdr(activeTotal) %></strong></p>
 <div class="table-scroll" tabindex="0" role="region" aria-label="Fixed asset register"><table><thead><tr><th scope="col">Asset</th><th scope="col">Quantity</th><th scope="col">Unit</th><th scope="col">Acquisition cost / unit</th><th scope="col">Total acquisition value</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead><tbody>
 <% for (const row of assets) { %><tr><th scope="row"><%= row.assetName %></th><td><%= row.quantity %></td><td><%= row.unit %></td><td><%= formatIdr(row.acquisitionCostPerUnit) %></td><td><%= formatIdr(BigInt(row.quantity)*row.acquisitionCostPerUnit) %></td><td><%= row.status %></td><td><a href="/admin/finance/fixed-assets/<%= row.id %>/edit">Edit <%= row.assetName %></a></td></tr><% } %>
 </tbody></table></div>
-<% if (!assets.length) { %><p>No fixed assets recorded.</p><% } %>
+<% if (!assets.length) { %><p>No fixed assets match this search.</p><% } %>
+<%- include('../partials/admin/list-pagination.ejs') %>
 </section></div>

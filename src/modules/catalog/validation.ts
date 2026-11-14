@@ -100,6 +100,11 @@ export function stockInput(form: Form, previousKnown = true) {
   }
   return { stockKnown: true, stockQuantity: integer(form, 'stockQuantity') };
 }
+function optionalWeight(form: Form) {
+  const raw =
+    form.weightGrams === null ? '' : textField(form, 'weightGrams', 10);
+  return raw ? integer({ weightGrams: raw }, 'weightGrams', 0) : 0;
+}
 export function variantInput(form: Form, previousKnown = true) {
   const status = choice(form, 'status', ['active', 'inactive']);
   const price =
@@ -123,11 +128,7 @@ export function variantInput(form: Form, previousKnown = true) {
     sku,
     price,
     compareAtPrice,
-    weightGrams: integer(
-      { ...form, weightGrams: form.weightGrams || '0' },
-      'weightGrams',
-      status === 'active' ? 1 : 0,
-    ),
+    weightGrams: optionalWeight(form),
     ...stockInput(form, previousKnown),
     ...(form.unit === undefined
       ? {}

@@ -1,3 +1,4 @@
+import { isOperationalVariant } from './sellability.js';
 import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Database } from '../../db/client.js';
 import {
@@ -567,18 +568,10 @@ export function createCatalog(
                   .where(eq(productVariants.productId, productId))
               : [];
             const active = variants.filter((v) => v.status === 'active');
-            if (
-              !active.length ||
-              active.some(
-                (v) =>
-                  v.price <= 0n ||
-                  v.weightGrams <= 0 ||
-                  !/^[A-Za-z0-9._-]+$/.test(v.sku),
-              )
-            )
+            if (!active.length || active.some((v) => !isOperationalVariant(v)))
               throw new FormError(
                 'status',
-                'Save a draft and add a usable active variant with SKU, positive price and gram weight before publishing.',
+                'Save a draft and add a usable active variant with SKU and positive price before activating. Weight is required for Webstore readiness only.',
               );
           }
           const [row] = productId
@@ -691,13 +684,11 @@ export function createCatalog(
                 ),
               );
             if (
-              !active.some(
-                (v) => v.id !== variantId && v.price > 0n && v.weightGrams > 0,
-              )
+              !active.some((v) => v.id !== variantId && isOperationalVariant(v))
             )
               throw new FormError(
                 'status',
-                'A published product must retain a usable active variant.',
+                'An active product must retain a usable active variant.',
               );
           }
           if (variantId) {

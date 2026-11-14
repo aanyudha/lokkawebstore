@@ -1,0 +1,5 @@
+<form method="get" action="<%= searchPath %>" class="list-search" role="search" aria-label="<%= searchLabel %>">
+<label><%= searchLabel %><input type="search" name="q" value="<%= listing.q %>" placeholder="<%= searchPlaceholder %>" maxlength="200" /></label>
+<% if (typeof stockFilter !== 'undefined') { %><label>Stock filter<select name="stock" aria-label="Stock filter"><option value="">All stock states</option><option value="unknown" <%= stockFilter === 'unknown' ? 'selected' : '' %>>Stock unknown</option><option value="out" <%= stockFilter === 'out' ? 'selected' : '' %>>Out of stock</option><option value="in" <%= stockFilter === 'in' ? 'selected' : '' %>>In stock</option></select></label><% } %>
+<button>Search</button><a href="<%= searchPath %>">Clear search</a>
+</form>

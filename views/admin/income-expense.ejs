@@ -44,7 +44,9 @@
 
 <section class="admin-section">
 <h2>Manual transaction history</h2>
-<% if (!history.manual.length) { %><p>No manual transactions yet.</p><% } else { %>
+<%- include('../partials/admin/list-search.ejs',{listing:history.listing,searchPath:'/admin/finance/income-expense',searchLabel:'Search transactions',searchPlaceholder:'Search transactions...'}) %>
+<p>Manual entries and read-only automated sale entries share the current search and page. Cash Flow and Accounting totals are not filtered by this search.</p>
+<% if (!history.manual.length) { %><p>No manual transactions match this page/search.</p><% } else { %>
 <div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable manual transaction table">
 <table>
 <thead>
@@ -80,7 +82,7 @@
 
 <section class="admin-section">
 <h2>POS income — system generated, read-only</h2>
-<% if (!history.automated.length) { %><p>No completed POS sales yet.</p><% } else { %>
+<% if (!history.automated.length) { %><p>No automated sale entries match this page/search.</p><% } else { %>
 <div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable POS income table">
 <table>
 <thead>
@@ -102,4 +104,5 @@
 <% } %>
 <p>One sale posts income exactly once. Correct a wrong POS income by fixing the sale, never by editing the ledger.</p>
 </section>
+<%- include('../partials/admin/list-pagination.ejs',{listing:history.listing}) %>
 </div>

@@ -1,34 +1,16 @@
-
-<div class="admin-content">
-<% if (!products.length) { %><%- include('../partials/admin/empty-state.ejs', {heading:'No products yet',message:'Add a product to begin building your catalog.'}) %><% } %>
-
-
-<div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable data table">
-<table>
-<thead>
-<tr>
-<th>Product</th>
-<th>Status</th>
-<th>Slug</th>
-</tr>
-</thead>
-<tbody>
-<% for (const product of products) { %>
-<tr>
-<td>
-<a href="/admin/products/<%= product.id %>/edit">
-<%= product.name %>
-</a>
-</td>
-<td>
-<%- include('../partials/admin/status-badge.ejs', {status:product.status}) %>
-</td>
-<td>
-<%= product.slug %>
-</td>
-</tr>
-<% } %>
-</tbody>
-</table>
-</div>
+<div class="admin-content" data-bulk-scope>
+<%- include('../partials/form-error.ejs') %>
+<%- include('../partials/admin/list-search.ejs',{searchPath:'/admin/products',searchLabel:'Search products',searchPlaceholder:'Search products...'}) %>
+<%- include('../partials/admin/bulk-result.ejs') %>
+<p>Products is the master for variants, SKU, price, HPP, category, weight and media. Active means operationally enabled; Webstore readiness is derived separately.</p>
+<form method="post" action="/admin/products/bulk<%= listQuery %>" id="bulk-products">
+<input type="hidden" name="csrf" value="<%= csrf %>" />
+<label>Bulk product action<select name="action" aria-label="Bulk product action"><option value="activate">Activate selected for operations</option><option value="deactivate">Deactivate selected (Draft)</option><option value="archive">Archive selected</option></select></label><button>Apply to selected products</button>
+<p>Activation enables only eligible known-stock variants with positive quantity, SKU and price. It does not imply Webstore readiness. No hard delete.</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable data table"><table><thead><tr><th scope="col"><input type="checkbox" data-select-all aria-label="Select all products on this page" /></th><th scope="col">Product</th><th scope="col">Status</th><th scope="col">Readiness</th><th scope="col">Slug</th></tr></thead><tbody>
+<% for (const product of products) { %><tr><td><input type="checkbox" name="selected" value="<%= product.id %>" aria-label="Select <%= product.name %>" /></td><th scope="row"><a href="/admin/products/<%= product.id %>/edit"><%= product.name %></a></th><td><%- include('../partials/admin/status-badge.ejs',{status:product.status}) %></td><td><% for (const badge of product.readiness) { %><span class="readiness-badge"><%= badge %></span><% } %></td><td><%= product.slug %></td></tr><% } %>
+</tbody></table></div>
+</form>
+<% if (!products.length) { %><p>No products match this search.</p><% } %>
+<%- include('../partials/admin/list-pagination.ejs') %>
 </div>

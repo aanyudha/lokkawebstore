@@ -1,0 +1,5 @@
+<nav class="list-pagination" aria-label="<%= typeof paginationLabel === 'undefined' ? 'List pages' : paginationLabel %>">
+<p><%= listing.total %> results · Page <%= listing.page %> of <%= listing.pages %></p>
+<% if (listing.previous) { %><a href="<%= listing.previous %>" rel="prev">Previous page</a><% } %>
+<% if (listing.next) { %><a href="<%= listing.next %>" rel="next">Next page</a><% } %>
+</nav>

@@ -73,6 +73,13 @@ test('Fixed Assets operations and formal investor reports use canonical values i
     await form.getByRole('button', { name: 'Save fixed asset' }).click();
     await expect(page.locator('[data-fixed-total]')).toHaveText('Rp40.000');
     await nav.getByRole('link', { name: 'Inventory', exact: true }).click();
+    await page
+      .getByRole('searchbox', { name: 'Search inventory', exact: true })
+      .fill('LOKKA-SYS-OWNER-034');
+    await page
+      .getByRole('search', { name: 'Search inventory', exact: true })
+      .getByRole('button', { name: 'Search', exact: true })
+      .click();
     const row = page.locator('tr').filter({ hasText: 'LOKKA-SYS-OWNER-034' });
     await expect(row).toContainText('Belum diisi');
     await expect(row.locator('[data-stock-quantity]')).toHaveValue('');

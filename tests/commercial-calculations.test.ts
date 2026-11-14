@@ -196,10 +196,15 @@ describe('variant commercial validation', () => {
   it.each(['695000', '694999'])('rejects compare-at %s', (compareAtPrice) =>
     expect(() => variantInput({ ...variant, compareAtPrice })).toThrow(),
   );
-  it.each(['0', '', '1.5', '450 gram', '0.45kg'])(
+  it.each(['-1', '1.5', '450 gram', '0.45kg', false, []])(
     'rejects active gram weight %s',
     (weightGrams) =>
       expect(() => variantInput({ ...variant, weightGrams })).toThrow(),
+  );
+  it.each(['0', '', undefined, null])(
+    'allows optional active weight %s as the unset placeholder',
+    (weightGrams) =>
+      expect(variantInput({ ...variant, weightGrams }).weightGrams).toBe(0),
   );
   it('permits incomplete inactive draft pricing and weight', () =>
     expect(

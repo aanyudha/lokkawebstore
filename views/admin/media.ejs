@@ -1,12 +1,13 @@
 <div class="admin-content">
+<%- include('../partials/admin/list-search.ejs',{searchPath:'/admin/media',searchLabel:'Search products',searchPlaceholder:'Search products...'}) %>
 <% if (!images.length) { %>
 <div class="empty-state">
-<h2>No product images yet</h2>
-<p>Upload JPEG or PNG images from a product editor. Validated originals are retained privately and optimized WebP derivatives are generated for storefront delivery.</p>
+<h2>No images on this product page</h2>
+<p>Search for a product or use the page links. Upload JPEG or PNG images from a product editor. Validated originals are retained privately and optimized WebP derivatives are generated for storefront delivery.</p>
 <p><a href="/admin/products" class="button">Go to Products</a></p>
 </div>
 <% } else { %>
-<p class="media-summary"><%= images.length %> product image<%= images.length === 1 ? '' : 's' %> across <%= products.length %> product<%= products.length === 1 ? '' : 's' %>.</p>
+<p class="media-summary">Current page: <%= images.length %> product image<%= images.length === 1 ? '' : 's' %> across <%= products.length %> product<%= products.length === 1 ? '' : 's' %>.</p>
 <div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable media table">
 <table class="media-table" aria-label="Product images">
 <thead>
@@ -72,4 +73,5 @@
 </table>
 </div>
 <% } %>
+<%- include('../partials/admin/list-pagination.ejs') %>
 </div>

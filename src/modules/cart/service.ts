@@ -1,3 +1,8 @@
+import {
+  canSellInWebstore,
+  type ProductState,
+  type VariantState,
+} from '../catalog/sellability.js';
 import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { Database } from '../../db/client.js';
@@ -70,28 +75,18 @@ export async function lockCatalog(tx: Transaction, variantIds: string[]) {
   return { productRows, variantRows, productIds };
 }
 export function validateVariant(
-  product: { status: string } | undefined,
-  variant:
-    | {
-        status: string;
-        stockQuantity: number;
-        stockKnown: boolean;
-        price: bigint;
-      }
-    | undefined,
+  product: ProductState | undefined,
+  variant: VariantState | undefined,
   qty: number,
 ) {
   quantity(qty);
-  if (
-    !product ||
-    product.status !== 'active' ||
-    !variant ||
-    variant.status !== 'active' ||
-    !variant.stockKnown
-  )
-    throw new FormError('items', 'shop.error.unavailable');
-  if (variant.stockQuantity < qty)
-    throw new FormError('items', 'shop.error.stock');
+  if (!canSellInWebstore(product, variant, qty))
+    throw new FormError(
+      'items',
+      variant?.stockKnown && variant.stockQuantity < qty
+        ? 'shop.error.stock'
+        : 'shop.error.unavailable',
+    );
 }
 
 export function createCartService(db: Database['db']) {
@@ -118,11 +113,7 @@ export function createCartService(db: Database['db']) {
       : [];
     const items = rows.map((row) => ({
       ...row,
-      available:
-        row.product.status === 'active' &&
-        row.variant.status === 'active' &&
-        row.variant.stockKnown &&
-        row.variant.stockQuantity >= row.item.quantity,
+      available: canSellInWebstore(row.product, row.variant, row.item.quantity),
       lineTotal: row.variant.price * BigInt(row.item.quantity),
     }));
     const subtotal = items.reduce((sum, row) => sum + row.lineTotal, 0n);

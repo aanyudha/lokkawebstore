@@ -24,7 +24,7 @@ export function registerInvestorAdmin(
     error: FormError | null = null,
   ) =>
     page(request, reply, 'fixed-assets', {
-      assets: await fixed.list(),
+      ...(await fixed.listPage(request.query as Record<string, unknown>)),
       values,
       assetId,
       error,

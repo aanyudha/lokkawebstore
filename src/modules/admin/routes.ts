@@ -1,3 +1,10 @@
+import { createCatalogOperations } from '../catalog/operations.js';
+import {
+  listInput,
+  listingQuery,
+  type BulkResult,
+} from '../catalog/listing.js';
+import { readinessBadges } from '../catalog/sellability.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { eq } from 'drizzle-orm';
 import type { Database } from '../../db/client.js';
@@ -27,6 +34,7 @@ export async function registerAdmin(
   hero: HomepageHero,
 ) {
   const auth = createAuth(db);
+  const operations = createCatalogOperations(db, storage);
   const cookies = {
     httpOnly: true,
     sameSite: 'lax' as const,
@@ -199,25 +207,8 @@ export async function registerAdmin(
           return reply.redirect('/admin/login', 303);
         });
         protectedRoutes.get('', async (request, reply) => {
-          const [products, categories, inventory] = await Promise.all([
-            catalog.adminProducts(),
-            catalog.categoryList(),
-            catalog.inventory(),
-          ]);
           return page(request, reply, 'dashboard', {
-            metrics: {
-              'Active products': products.filter((p) => p.status === 'active')
-                .length,
-              'Draft products': products.filter((p) => p.status === 'draft')
-                .length,
-              Categories: categories.length,
-              Variants: inventory.length,
-              'Low stock': inventory.filter(
-                (r) =>
-                  r.variant.stockKnown &&
-                  r.variant.stockQuantity <= env.lowStockThreshold,
-              ).length,
-            },
+            metrics: await operations.metrics(env.lowStockThreshold),
           });
         });
         protectedRoutes.get('/categories', async (request, reply) =>
@@ -262,17 +253,44 @@ export async function registerAdmin(
               }
             },
           );
-        protectedRoutes.get('/products', async (request, reply) =>
-          page(request, reply, 'products', {
-            products: await catalog.adminProducts(),
-          }),
-        );
+        const renderProducts = async (
+          request: FastifyRequest,
+          reply: FastifyReply,
+          error: FormError | null = null,
+          bulkResult: BulkResult | null = null,
+        ) => {
+          const data = await operations.productList(
+            request.query as Record<string, unknown>,
+          );
+          return page(request, reply, 'products', {
+            ...data,
+            error,
+            bulkResult,
+            listQuery: listingQuery(data.listing),
+          });
+        };
+        protectedRoutes.get('/products', renderProducts);
+        protectedRoutes.post('/products/bulk', async (r, reply) => {
+          try {
+            listInput(r.query as Record<string, unknown>);
+            return renderProducts(
+              r,
+              reply,
+              null,
+              await operations.bulkProducts(body(r)),
+            );
+          } catch (error) {
+            if (!(error instanceof FormError)) throw error;
+            return renderProducts(r, reply.code(422), error);
+          }
+        });
         protectedRoutes.get('/products/new', async (request, reply) =>
           page(request, reply, 'product-form', {
             categories: await catalog.categoryList(),
             values: { status: 'draft' },
             variants: [],
             images: [],
+            readiness: [],
           }),
         );
         const productPage = async (
@@ -289,6 +307,7 @@ export async function registerAdmin(
             categories: await catalog.categoryList(),
             values: values ?? product,
             ...related,
+            readiness: readinessBadges(product, related.variants),
             error,
             variantValues,
           });
@@ -327,6 +346,7 @@ export async function registerAdmin(
                   error,
                   variants: [],
                   images: [],
+                  readiness: [],
                 });
               }
             },
@@ -368,38 +388,78 @@ export async function registerAdmin(
               }
             },
           );
-        protectedRoutes.get('/inventory', async (request, reply) =>
-          page(request, reply, 'inventory', {
-            inventory: await catalog.inventory(),
+        const renderInventory = async (
+          request: FastifyRequest,
+          reply: FastifyReply,
+          error: FormError | null = null,
+          bulkResult: BulkResult | null = null,
+          values: Form = {},
+        ) => {
+          const data = await operations.inventoryList(
+            request.query as Record<string, unknown>,
+          );
+          return page(request, reply, 'inventory', {
+            ...data,
+            error,
+            bulkResult,
+            values,
             threshold: env.lowStockThreshold,
-          }),
-        );
+            listQuery: listingQuery(data.listing, data.stockFilter),
+          });
+        };
+        protectedRoutes.get('/inventory', renderInventory);
+        protectedRoutes.post('/inventory/bulk', async (r, reply) => {
+          try {
+            const q = r.query as Record<string, unknown>;
+            listInput(q);
+            if (
+              q.stock !== undefined &&
+              !(['', 'unknown', 'in', 'out'] as unknown[]).includes(q.stock)
+            )
+              throw new FormError('stock', 'Choose a valid stock filter.');
+            return renderInventory(
+              r,
+              reply,
+              null,
+              await operations.bulkInventory(body(r)),
+            );
+          } catch (error) {
+            if (!(error instanceof FormError)) throw error;
+            return renderInventory(r, reply.code(422), error);
+          }
+        });
         protectedRoutes.post<{ Params: { id: string; variantId: string } }>(
           '/products/:id/variants/:variantId/stock',
           async (request, reply) => {
             try {
+              const input = listInput(request.query as Record<string, unknown>);
               await catalog.stock(
                 request.params.id,
                 request.params.variantId,
                 body(request),
               );
-              return reply.redirect('/admin/inventory', 303);
+              const filter = (request.query as { stock?: string }).stock ?? '';
+              return reply.redirect(
+                '/admin/inventory' + listingQuery(input, filter),
+                303,
+              );
             } catch (error) {
               if (!(error instanceof FormError)) throw error;
-              return page(request, reply.code(422), 'inventory', {
-                inventory: await catalog.inventory(),
-                threshold: env.lowStockThreshold,
-                error,
-                values: { ...body(request), id: request.params.variantId },
+              return renderInventory(request, reply.code(422), error, null, {
+                ...body(request),
+                id: request.params.variantId,
               });
             }
           },
         );
         protectedRoutes.get('/media', async (request, reply) => {
-          const products = await catalog.adminProducts();
+          const data = await operations.productList(
+            request.query as Record<string, unknown>,
+            '/admin/media',
+          );
           return page(request, reply, 'media', {
-            products,
-            ...(await catalog.relations(products.map((p) => p.id))),
+            ...data,
+            ...(await catalog.relations(data.products.map((p) => p.id))),
           });
         });
         protectedRoutes.get<{ Params: { imageId: string } }>(
