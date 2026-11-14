@@ -1,8 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   CATEGORY_LABELS,
-  EXPENSE_CATEGORIES,
-  INCOME_CATEGORIES,
+  MANUAL_CATEGORIES_BY_DIRECTION,
   SOURCE_LABELS,
   createLedger,
   resolvePeriod,
@@ -112,8 +111,6 @@ export function registerFinanceAdmin(
       period,
       periodLinks: periodLinks(period),
       openingBalances: await ledger.openingBalances(),
-      incomeOptions: options(INCOME_CATEGORIES),
-      expenseOptions: options(EXPENSE_CATEGORIES),
       sourceLabels: SOURCE_LABELS,
       categoryLabels: CATEGORY_LABELS,
       formatIdr,
@@ -139,8 +136,11 @@ export function registerFinanceAdmin(
   ) =>
     page(r, reply, 'income-expense', {
       history: await ledger.history(),
-      incomeOptions: options(INCOME_CATEGORIES),
-      expenseOptions: options(EXPENSE_CATEGORIES),
+      categoryOptionsByDirection: Object.fromEntries(
+        Object.entries(MANUAL_CATEGORIES_BY_DIRECTION).map(
+          ([direction, categories]) => [direction, options(categories)],
+        ),
+      ),
       categoryLabels: CATEGORY_LABELS,
       sourceLabels: SOURCE_LABELS,
       formatIdr,

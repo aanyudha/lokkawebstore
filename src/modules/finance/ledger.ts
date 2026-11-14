@@ -12,18 +12,22 @@ import {
 } from '../catalog/validation.js';
 
 // Structured categories: no free-text category strings ever reach the ledger.
-export const INCOME_CATEGORIES = ['PRODUCT_SALES', 'OTHER_INCOME'] as const;
-export const EXPENSE_CATEGORIES = [
-  'PACKAGING',
-  'SUPPLIES',
-  'UTILITIES',
-  'RENT',
-  'SALARIES',
-  'MARKETING',
-  'TRANSPORT',
-  'MAINTENANCE',
-  'OTHER_EXPENSE',
-] as const;
+export const MANUAL_CATEGORIES_BY_DIRECTION = {
+  INCOME: ['PRODUCT_SALES', 'OTHER_INCOME'],
+  EXPENSE: [
+    'PACKAGING',
+    'SUPPLIES',
+    'UTILITIES',
+    'RENT',
+    'SALARIES',
+    'MARKETING',
+    'TRANSPORT',
+    'MAINTENANCE',
+    'OTHER_EXPENSE',
+  ],
+} as const;
+export const INCOME_CATEGORIES = MANUAL_CATEGORIES_BY_DIRECTION.INCOME;
+export const EXPENSE_CATEGORIES = MANUAL_CATEGORIES_BY_DIRECTION.EXPENSE;
 export const CATEGORY_LABELS: Record<string, string> = {
   PRODUCT_SALES: 'Product sales',
   OTHER_INCOME: 'Other income',
@@ -328,11 +332,15 @@ export function createLedger(db: Database['db']) {
 
   async function recordManual(form: Form, adminId: string) {
     const direction = choice(form, 'direction', ['INCOME', 'EXPENSE']);
-    const category = choice(
-      form,
-      'category',
-      direction === 'INCOME' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES,
+    const requestedCategory = textField(form, 'category');
+    const category = MANUAL_CATEGORIES_BY_DIRECTION[direction].find(
+      (value) => value === requestedCategory,
     );
+    if (!category)
+      throw new FormError(
+        'category',
+        'Pilihan tidak valid. Pilih kategori yang sesuai dengan tipe transaksi (Income/Expense).',
+      );
     const amountRupiah = money(form, 'amountRupiah')!;
     const occurredAt = dateTimeInput(form, 'occurredAt');
     const notes = textField(form, 'notes', 2000) || null;

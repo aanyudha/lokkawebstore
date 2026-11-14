@@ -7,19 +7,19 @@
 
 <section class="admin-section" id="add-transaction">
 <h2>Add transaction</h2>
-<% const form = action === '/admin/finance/income-expense' ? values : {}; %>
-<form method="post" action="/admin/finance/income-expense" class="form-stack">
+<% const form = action === '/admin/finance/income-expense' ? values : {}; const direction = form.direction === 'EXPENSE' ? 'EXPENSE' : 'INCOME'; %>
+<form method="post" action="/admin/finance/income-expense" class="form-stack" data-finance-transaction>
 <input type="hidden" name="csrf" value="<%= csrf %>" />
 <label>Type
 <select name="direction" required>
-<option value="INCOME" <%= form.direction === 'INCOME' ? 'selected' : '' %>>Income</option>
-<option value="EXPENSE" <%= form.direction === 'EXPENSE' ? 'selected' : '' %>>Expense</option>
+<option value="INCOME" <%= direction === 'INCOME' ? 'selected' : '' %>>Income</option>
+<option value="EXPENSE" <%= direction === 'EXPENSE' ? 'selected' : '' %>>Expense</option>
 </select>
 </label>
 <label>Category
 <select name="category" required>
-<optgroup label="Income"><% for (const [value, label] of incomeOptions) { %><option value="<%= value %>" <%= form.category === value ? 'selected' : '' %>><%= label %></option><% } %></optgroup>
-<optgroup label="Expense"><% for (const [value, label] of expenseOptions) { %><option value="<%= value %>" <%= form.category === value ? 'selected' : '' %>><%= label %></option><% } %></optgroup>
+<option value="">Select category</option>
+<% for (const [value, label] of categoryOptionsByDirection[direction]) { %><option value="<%= value %>" <%= form.category === value ? 'selected' : '' %>><%= label %></option><% } %>
 </select>
 </label>
 <label>Amount (whole Rupiah)
@@ -33,6 +33,13 @@
 </label>
 <button>Save transaction</button>
 </form>
+<% for (const [direction, options] of Object.entries(categoryOptionsByDirection)) { %>
+<template data-finance-categories="<%= direction %>">
+<option value="">Select category</option>
+<% for (const [value, label] of options) { %><option value="<%= value %>"><%= label %></option><% } %>
+</template>
+<% } %>
+<noscript><p>Changing Type requires JavaScript to refresh categories. The server rejects categories that do not match the selected Type.</p></noscript>
 </section>
 
 <section class="admin-section">

@@ -9,6 +9,7 @@ import {
   productVariants,
   vendors,
   adminUsers,
+  financialTransactions,
 } from '../../src/db/schema/index.js';
 import { hashPassword } from '../../src/modules/auth/service.js';
 import { buildApp } from '../../src/app.js';
@@ -87,6 +88,11 @@ test('admin cash flow and income & expense flow', async ({ page }) => {
     logger: false,
   });
   const pageErrors: string[] = [];
+  const unexpectedResponses: string[] = [];
+  page.on('response', (response) => {
+    if (response.status() >= 400)
+      unexpectedResponses.push(`${response.status()} ${response.url()}`);
+  });
   page.on('pageerror', (error) => pageErrors.push(error.message));
   try {
     await app.listen({ host: '127.0.0.1', port: 3017 });
@@ -127,8 +133,42 @@ test('admin cash flow and income & expense flow', async ({ page }) => {
       .getByRole('link', { name: 'Income & Expense', exact: true })
       .click();
     await expect(page).toHaveURL(`${env.appUrl}/admin/finance/income-expense`);
-    await page.locator('select[name="direction"]').selectOption('EXPENSE');
-    await page.locator('select[name="category"]').selectOption('PACKAGING');
+    const direction = page.getByRole('combobox', { name: /^Type/ });
+    const category = page.getByRole('combobox', { name: /^Category/ });
+    const optionValues = () =>
+      category
+        .locator('option')
+        .evaluateAll((options) =>
+          options
+            .map((option) => (option as HTMLOptionElement).value)
+            .filter(Boolean),
+        );
+    await expect(direction).toHaveValue('INCOME');
+    expect(await optionValues()).toEqual(['PRODUCT_SALES', 'OTHER_INCOME']);
+    await category.selectOption('OTHER_INCOME');
+    // Native selects remain keyboard operable; change events refresh the category immediately.
+    await direction.focus();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Tab');
+    await expect(direction).toHaveValue('EXPENSE');
+    await expect(category).toHaveValue('');
+    expect(await optionValues()).toEqual([
+      'PACKAGING',
+      'SUPPLIES',
+      'UTILITIES',
+      'RENT',
+      'SALARIES',
+      'MARKETING',
+      'TRANSPORT',
+      'MAINTENANCE',
+      'OTHER_EXPENSE',
+    ]);
+    await category.selectOption('SALARIES');
+    await direction.selectOption('INCOME');
+    await expect(category).toHaveValue('');
+    expect(await optionValues()).toEqual(['PRODUCT_SALES', 'OTHER_INCOME']);
+    await direction.selectOption('EXPENSE');
+    await category.selectOption('PACKAGING');
     await page
       .getByLabel('Amount (whole Rupiah)', { exact: true })
       .fill('50000');
@@ -187,6 +227,59 @@ test('admin cash flow and income & expense flow', async ({ page }) => {
         .locator('tr[data-manual-status="POSTED"]')
         .filter({ hasText: 'Packaging' }),
     ).toHaveCount(1);
+    // Valid income saves too, while neither manual income category creates accounting revenue.
+    await direction.selectOption('INCOME');
+    await category.selectOption('OTHER_INCOME');
+    await page
+      .getByLabel('Amount (whole Rupiah)', { exact: true })
+      .fill('25000');
+    await page
+      .getByLabel('Description / notes', { exact: true })
+      .fill('Manual income regression');
+    await page.getByRole('button', { name: 'Save transaction' }).click();
+    await expect(
+      page
+        .locator('tr[data-manual-status="POSTED"]')
+        .filter({ hasText: 'Manual income regression' }),
+    ).toHaveCount(1);
+    const before = await db
+      .select({ id: financialTransactions.id })
+      .from(financialTransactions);
+    const csrf = await page
+      .locator('[data-finance-transaction] input[name="csrf"]')
+      .inputValue();
+    for (const [invalidDirection, invalidCategory] of [
+      ['INCOME', 'SALARIES'],
+      ['INCOME', 'PACKAGING'],
+      ['EXPENSE', 'PRODUCT_SALES'],
+      ['EXPENSE', 'OTHER_INCOME'],
+    ]) {
+      const response = await page.request.post(
+        `${env.appUrl}/admin/finance/income-expense`,
+        {
+          headers: { origin: env.appUrl },
+          form: {
+            csrf,
+            direction: invalidDirection!,
+            category: invalidCategory!,
+            amountRupiah: '1000',
+            occurredAt: new Date().toISOString().slice(0, 16),
+          },
+        },
+      );
+      expect(response.status()).toBe(422);
+      expect(await response.text()).toContain('role="alert"');
+    }
+    expect(
+      await db
+        .select({ id: financialTransactions.id })
+        .from(financialTransactions),
+    ).toHaveLength(before.length);
+    await sidebar.getByRole('link', { name: 'Cash Flow', exact: true }).click();
+    await expect(page.locator('[data-cash-income]')).toHaveText('Rp820.000');
+    await expect(page.locator('[data-cash-expenses]')).toHaveText('Rp50.000');
+    await expect(page.locator('[data-cash-ending]')).toHaveText('Rp1.770.000');
+    expect(unexpectedResponses).toEqual([]);
     expect(pageErrors).toEqual([]);
   } finally {
     await app.close();

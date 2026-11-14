@@ -5,6 +5,7 @@ import { createCatalog } from '../src/modules/catalog/service.js';
 import { LocalCatalogImageStorage } from '../src/modules/catalog/storage.js';
 import { createFinance } from '../src/modules/finance/service.js';
 import {
+  MANUAL_CATEGORIES_BY_DIRECTION,
   createLedger,
   resolvePeriod,
   insertSaleIncome,
@@ -565,6 +566,54 @@ describe('finance admin routes', () => {
     });
     expect(blocked.statusCode).toBe(403);
     expect(blocked.body).toContain('Access denied');
+  });
+
+  it('renders only categories for the selected direction and rejects every incompatible pair without a write', async () => {
+    const count = async () => {
+      const [row] = await fixture.database.db
+        .select({ count: sql<string>`count(*)::text` })
+        .from(financialTransactions);
+      return row!.count;
+    };
+    const before = await count();
+    const initial = await app.inject({
+      url: '/admin/finance/income-expense',
+      headers: { cookie },
+    });
+    const categories = (html: string) =>
+      [
+        ...html.matchAll(
+          /<select name="category" required>([\s\S]*?)<\/select>/g,
+        ),
+      ][0]![1]!;
+    const optionValues = (html: string) =>
+      [...categories(html).matchAll(/<option value="([^"]+)"/g)].map(
+        (match) => match[1],
+      );
+    expect(optionValues(initial.body)).toEqual(
+      MANUAL_CATEGORIES_BY_DIRECTION.INCOME,
+    );
+    for (const direction of ['INCOME', 'EXPENSE'] as const) {
+      const incompatible =
+        MANUAL_CATEGORIES_BY_DIRECTION[
+          direction === 'INCOME' ? 'EXPENSE' : 'INCOME'
+        ];
+      for (const category of incompatible) {
+        const response = await post('/admin/finance/income-expense', {
+          direction,
+          category,
+          amountRupiah: '1000',
+          occurredAt: '2026-02-11T09:00',
+        });
+        expect(response.statusCode, `${direction} + ${category}`).toBe(422);
+        expect(response.body).toContain('role="alert"');
+        expect(optionValues(response.body)).toEqual(
+          MANUAL_CATEGORIES_BY_DIRECTION[direction],
+        );
+        expect(categories(response.body)).not.toContain('selected');
+      }
+    }
+    expect(await count()).toBe(before);
   });
 
   it('adds a manual expense through the admin form and reflects it in Cash Flow', async () => {

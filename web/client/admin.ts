@@ -95,3 +95,28 @@ if (login && submit && progress) {
     progress.hidden = true;
   });
 }
+
+const financeForm = document.querySelector<HTMLFormElement>(
+  '[data-finance-transaction]',
+);
+if (financeForm) {
+  const direction =
+    financeForm.querySelector<HTMLSelectElement>('[name="direction"]');
+  const category =
+    financeForm.querySelector<HTMLSelectElement>('[name="category"]');
+  const refreshCategories = () => {
+    const template = document.querySelector<HTMLTemplateElement>(
+      `template[data-finance-categories="${direction?.value}"]`,
+    );
+    if (!category || !template) return;
+    const previous = category.value;
+    category.replaceChildren(template.content.cloneNode(true));
+    category.value = [...category.options].some(
+      (option) => option.value === previous,
+    )
+      ? previous
+      : '';
+  };
+  direction?.addEventListener('change', refreshCategories);
+  window.addEventListener('pageshow', refreshCategories);
+}
