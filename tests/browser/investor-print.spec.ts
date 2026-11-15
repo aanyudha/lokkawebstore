@@ -25,7 +25,7 @@ async function verifySameRenderedReport(
   const previousCount = Number(
     (await page.locator('html').getAttribute('data-print-count')) ?? '0',
   );
-  await page.getByRole('button', { name: 'Print Report', exact: true }).click();
+  await page.locator('[data-print-report]').click();
   await expect(page.locator('html')).toHaveAttribute(
     'data-print-count',
     String(previousCount + 1),
@@ -34,6 +34,7 @@ async function verifySameRenderedReport(
   await expect(page.locator('#admin-sidebar')).toBeHidden();
   await expect(page.locator('.admin-topbar')).toBeHidden();
   await expect(page.locator('[data-print-report]')).toBeHidden();
+  await expect(page.locator('.report-language-selector')).toBeHidden();
   await expect(report.locator('.report-heading img')).toBeVisible();
   await expect(report.locator('time')).toBeVisible();
   await expect(report.locator('[data-report-primary]')).toHaveCount(
@@ -72,6 +73,89 @@ async function verifySameRenderedReport(
   ).toBe('table-header-group');
   await page.emulateMedia({ media: 'screen' });
   expect(await report.innerHTML()).toBe(before);
+}
+
+async function verifyIndonesianReport(page: Page, kind: 'assets' | 'plan') {
+  const report = page.locator('[data-investor-report]');
+  const englishPdf = await page.pdf({
+    path: `test-results/investor-${kind}-en.pdf`,
+    printBackground: true,
+    preferCSSPageSize: true,
+  });
+  expect(englishPdf.subarray(0, 5).toString()).toBe('%PDF-');
+  const values = await report.locator('dd').allTextContents();
+  const money = (await report.innerText()).match(/Rp[\d.]+/g);
+  const numbers = await report.locator('td').allTextContents();
+  const numericCells = (cells: string[]) =>
+    cells.filter((cell) => /^(?:Rp[\d.]+|\d+(?:\.\d+%)?|—)$/.test(cell));
+  const language = page.getByRole('navigation', {
+    name: 'Report language',
+    exact: true,
+  });
+  await expect(
+    language.getByRole('link', { name: 'English', exact: true }),
+  ).toHaveAttribute('aria-current', 'true');
+  await language
+    .getByRole('link', { name: 'Bahasa Indonesia', exact: true })
+    .click();
+  await expect(page).toHaveURL(/lang=id/);
+  await expect(report).toHaveAttribute('lang', 'id');
+  await expect(report.locator('h2')).toHaveText(
+    kind === 'assets'
+      ? 'DAFTAR ASET + VALUASI'
+      : 'RENCANA 12 BULAN + PROSPEKTIF',
+  );
+  await expect(page).toHaveTitle(
+    kind === 'assets'
+      ? 'LOKKA — Daftar Aset + Valuasi'
+      : 'LOKKA — Rencana 12 Bulan + Prospektif',
+  );
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Bahasa laporan', exact: true })
+      .getByRole('link', { name: 'Bahasa Indonesia', exact: true }),
+  ).toHaveAttribute('aria-current', 'true');
+  expect((await report.innerText()).match(/Rp[\d.]+/g)).toEqual(money);
+  expect(numericCells(await report.locator('td').allTextContents())).toEqual(
+    numericCells(numbers),
+  );
+  const monetaryKpis = (cells: string[]) =>
+    cells.filter((value) => /^Rp[\d.]+$/.test(value));
+  expect(monetaryKpis(await report.locator('dd').allTextContents())).toEqual(
+    monetaryKpis(values),
+  );
+  if (kind === 'plan') {
+    await expect(page.locator('[data-projection-unavailable]')).toHaveText(
+      'Proyeksi keuangan 12 bulan belum disajikan karena data historis operasional belum cukup lengkap dan andal untuk menghasilkan proyeksi yang dapat dipertanggungjawabkan.',
+    );
+    await expect(report).toContainText('Rencana Operasional 12 Bulan');
+    await expect(report).toContainText('Risiko & Asumsi');
+    await expect(report).toContainText('TAHAP AWAL');
+    await expect(report).toContainText('BELUM LENGKAP');
+  }
+  const url = page.url();
+  await report
+    .locator('[data-report-primary]')
+    .first()
+    .screenshot({
+      path: `test-results/investor-${kind}-id.png`,
+    });
+  await verifySameRenderedReport(
+    page,
+    kind === 'assets' ? 2 : 3,
+    kind === 'assets' ? 3 : 5,
+  );
+  expect(page.url()).toBe(url);
+  const pdf = await page.pdf({
+    path: `test-results/investor-${kind}-id.pdf`,
+    printBackground: true,
+    preferCSSPageSize: true,
+  });
+  expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
+  await expect(report).toHaveAttribute('lang', 'id');
+  await page.getByRole('link', { name: 'English', exact: true }).click();
+  await expect(page).toHaveURL(/lang=en/);
+  expect((await report.innerText()).match(/Rp[\d.]+/g)).toEqual(money);
 }
 test('executive reports retain identical canonical figures, appendices and dates in screen and print media', async ({
   page,
@@ -148,6 +232,7 @@ test('executive reports retain identical canonical figures, appendices and dates
     const assetRequestCount = reportRequests.length;
     await verifySameRenderedReport(page, 2, 3);
     expect(reportRequests).toHaveLength(assetRequestCount);
+    await verifyIndonesianReport(page, 'assets');
     await page.setViewportSize({ width: 1100, height: 1000 });
     await page.locator('[data-report-primary]').first().screenshot({
       path: 'test-results/investor-executive-assets.png',
@@ -171,6 +256,7 @@ test('executive reports retain identical canonical figures, appendices and dates
     const planRequestCount = reportRequests.length;
     await verifySameRenderedReport(page, 3, 5);
     expect(reportRequests).toHaveLength(planRequestCount);
+    await verifyIndonesianReport(page, 'plan');
     await page.locator('[data-report-primary]').first().screenshot({
       path: 'test-results/investor-executive-plan.png',
     });

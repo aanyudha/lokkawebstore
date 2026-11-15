@@ -1,4 +1,5 @@
 import { presentInvestorReport } from './investor-presentation.js';
+import { reportLanguage } from './report-copy.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Database } from '../../db/client.js';
 import { createFixedAssets } from '../finance/fixed-assets.js';
@@ -66,17 +67,33 @@ export function registerInvestorAdmin(
   }
   app.get('/reports/assets', async (r, reply) => {
     const report = await reports.report();
+    const view = presentInvestorReport(
+      report,
+      reportLanguage((r.query as Record<string, unknown>).lang),
+      r.url,
+    );
     return page(r, reply, 'asset-report', {
       report,
-      view: presentInvestorReport(report),
+      view,
+      reportDocumentTitle: `LOKKA — ${view.t('Asset Register + Valuation')}`,
+      pageTitle: view.t('Asset Register + Valuation'),
+      pageDescription: '',
       formatIdr,
     });
   });
   app.get('/reports/12-month-plan', async (r, reply) => {
     const report = await reports.report(new Date(), true);
+    const view = presentInvestorReport(
+      report,
+      reportLanguage((r.query as Record<string, unknown>).lang),
+      r.url,
+    );
     return page(r, reply, 'plan-report', {
       report,
-      view: presentInvestorReport(report),
+      view,
+      reportDocumentTitle: `LOKKA — ${view.t('12-Month Plan + Prospective')}`,
+      pageTitle: view.t('12-Month Plan + Prospective'),
+      pageDescription: '',
       formatIdr,
     });
   });

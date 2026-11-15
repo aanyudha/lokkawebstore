@@ -91,6 +91,37 @@ afterAll(async () => {
   await f?.cleanup();
 }, 60000);
 describe('owner import and investor valuation', () => {
+  it('localizes authenticated report routes and document titles without changing monetary figures', async () => {
+    for (const [path, enTitle, idTitle] of [
+      ['assets', 'Asset Register + Valuation', 'Daftar Aset + Valuasi'],
+      [
+        '12-month-plan',
+        '12-Month Plan + Prospective',
+        'Rencana 12 Bulan + Prospektif',
+      ],
+    ]) {
+      const get = (query: string) =>
+        app.inject({
+          url: `/admin/reports/${path}${query}`,
+          headers: { cookie },
+        });
+      const en = await get('?lang=en');
+      const id = await get('?lang=id');
+      expect(en.statusCode).toBe(200);
+      expect(id.statusCode).toBe(200);
+      expect(en.body).toContain(`<title>LOKKA — ${enTitle}</title>`);
+      expect(id.body).toContain(`<title>LOKKA — ${idTitle}</title>`);
+      expect(id.body.match(/Rp[\d.]+/g)).toEqual(en.body.match(/Rp[\d.]+/g));
+      for (const query of ['', '?lang=fr', '?lang=ID']) {
+        const fallback = await get(query);
+        expect(fallback.body).toContain(`<title>LOKKA — ${enTitle}</title>`);
+        expect(fallback.body).toContain('<article lang="en"');
+      }
+      expect(
+        (await app.inject(`/admin/reports/${path}?lang=id`)).statusCode,
+      ).toBe(303);
+    }
+  });
   it('validates all 34/20 rows, preserves blank quantities, and rejects changed HPP/duplicate identity', () => {
     const payload = parseOwnerPayload(f.payload);
     expect(payload.products).toHaveLength(34);

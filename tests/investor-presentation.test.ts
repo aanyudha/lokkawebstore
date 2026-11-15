@@ -10,6 +10,11 @@ import {
   recordedAssetShare,
 } from '../src/modules/admin/investor-presentation.js';
 import { formatIdr } from '../src/modules/catalog/validation.js';
+import {
+  reportCopy,
+  reportLanguage,
+  reportLanguageLinks,
+} from '../src/modules/admin/report-copy.js';
 import { sales, vendors, reportingCoverage } from '../src/db/schema/index.js';
 let f: Awaited<ReturnType<typeof investorFixture>>;
 beforeAll(async () => {
@@ -70,6 +75,80 @@ it('formats display-only asset shares with bigint rounding and an explicit zero-
     '100.00%',
   );
   expect(recordedAssetShare(0n, 0n)).toBe('—');
+});
+it('defaults unsupported language values to English and preserves report query context', () => {
+  for (const value of [undefined, '', 'en', 'ID', 'fr', ['id'], { lang: 'id' }])
+    expect(reportLanguage(value)).toBe('en');
+  expect(reportLanguage('id')).toBe('id');
+  expect(
+    reportLanguageLinks(
+      '/admin/reports/12-month-plan?period=month&lang=fr&tag=a&tag=b',
+    ),
+  ).toEqual({
+    en: '/admin/reports/12-month-plan?period=month&lang=en&tag=a&tag=b',
+    id: '/admin/reports/12-month-plan?period=month&lang=id&tag=a&tag=b',
+  });
+});
+it('renders EN and ID from one immutable report with identical figures, detail rows and timestamps', async () => {
+  const report = await createInvestorReports(f.db).report(
+    new Date('2026-11-15T10:00:00Z'),
+    true,
+  );
+  const before = structuredClone(report);
+  for (const [template, title, primary, appendices] of [
+    ['asset-report', 'Daftar Aset + Valuasi', 2, 3],
+    ['plan-report', 'Rencana 12 Bulan + Prospektif', 3, 5],
+  ] as const) {
+    const render = async (language: 'en' | 'id') => {
+      const view = presentInvestorReport(report, language);
+      const translate = view.t;
+      view.t = (key) => {
+        // Fail on untranslated presentation copy, including accessible names.
+        expect(reportCopy.id, key).toHaveProperty(key);
+        return translate(key);
+      };
+      return ejs.renderFile(`views/admin/${template}.ejs`, {
+        report,
+        view,
+        formatIdr,
+      });
+    };
+    const en = await render('en');
+    const id = await render('id');
+    expect(id).toContain(title.toUpperCase());
+    expect(id).toContain('lang="id"');
+    expect(en).toContain('lang="en"');
+    expect(id.match(/Rp[\d.]+/g)).toEqual(en.match(/Rp[\d.]+/g));
+    expect(id.match(/<t[dh][^>]*>\d+(?:\.\d+%|)<\/t[dh]>/g)).toEqual(
+      en.match(/<t[dh][^>]*>\d+(?:\.\d+%|)<\/t[dh]>/g),
+    );
+    expect(id.match(/datetime="[^"]+"/g)).toEqual(
+      en.match(/datetime="[^"]+"/g),
+    );
+    expect(id.match(/data-report-primary=/g)).toHaveLength(primary);
+    expect(id.match(/data-report-appendix=/g)).toHaveLength(appendices);
+    for (const row of report.asset.inventory) {
+      if (template === 'asset-report') {
+        expect(id).toContain(row.product.name);
+        expect(id).toContain(row.variant.sku);
+      }
+    }
+    if (template === 'asset-report') {
+      expect(id).toContain('Nilai Persediaan Berdasarkan HPP');
+      expect(id).toContain('Nilai Perolehan Aktiva Tetap');
+      expect(id).toContain('Stok Belum Diisi');
+      for (const row of report.asset.fixed) expect(id).toContain(row.assetName);
+    } else {
+      expect(id).toContain('Rencana Operasional 12 Bulan');
+      expect(id).toContain(
+        'belum cukup lengkap dan andal untuk menghasilkan proyeksi yang dapat dipertanggungjawabkan',
+      );
+      expect(id).toContain(
+        'Potensi Selisih Kotor bukan merupakan laba yang dijamin.',
+      );
+    }
+  }
+  expect(report).toEqual(before);
 });
 it('renders all inventory and asset detail after the executive sections and uses canonical data for every KPI', async () => {
   const report = await createInvestorReports(f.db).report(new Date(), true);
@@ -145,6 +224,15 @@ it('continues to present qualifying canonical run rates instead of replacing the
     expect(html).toContain('data-projection-available');
     expect(html).not.toContain('data-projection-unavailable');
     expect(html).toContain(formatIdr(report.plan!.projection!.revenue));
+    const id = await ejs.renderFile('views/admin/plan-report.ejs', {
+      report,
+      view: presentInvestorReport(report, 'id'),
+      formatIdr,
+    });
+    expect(id).toContain('data-projection-available');
+    expect(id).not.toContain('data-projection-unavailable');
+    expect(id).toContain('Proyeksi laju pendapatan');
+    expect(id.match(/Rp[\d.]+/g)).toEqual(html.match(/Rp[\d.]+/g));
     expect(report).toEqual(before);
   } finally {
     await a.cleanup();

@@ -279,7 +279,9 @@ export function renderAdmin(
       breadcrumbs: meta.breadcrumbs,
       pageAction: meta.action ?? null,
       ...data,
-      title: `${page === 'login' ? 'Internal sign in' : meta.title} | LOKKA`,
+      title:
+        data.reportDocumentTitle ??
+        `${page === 'login' ? 'Internal sign in' : meta.title} | LOKKA`,
     },
     {
       layout:

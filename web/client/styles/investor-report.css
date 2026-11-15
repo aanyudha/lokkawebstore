@@ -1,4 +1,24 @@
 /* One server-rendered report; these rules change presentation only. */
+.report-language-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.report-language-selector a {
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+.report-language-selector a[aria-current] {
+  background: #172c24;
+  color: #fff;
+  font-weight: 700;
+}
+.report-language-selector a:focus-visible {
+  outline: 3px solid #916322;
+  outline-offset: 3px;
+}
 .executive-report {
   max-width: 1100px;
   padding: 40px;

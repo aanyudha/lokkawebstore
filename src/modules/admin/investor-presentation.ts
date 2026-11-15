@@ -1,5 +1,10 @@
 import type { createInvestorReports } from '../finance/investor-reports.js';
 import { CATEGORY_LABELS, SOURCE_LABELS } from '../finance/ledger.js';
+import {
+  reportTranslator,
+  reportLanguageLinks,
+  type ReportLanguage,
+} from './report-copy.js';
 type Report = Awaited<
   ReturnType<ReturnType<typeof createInvestorReports>['report']>
 >;
@@ -10,7 +15,12 @@ export function recordedAssetShare(value: bigint, total: bigint): string {
   return `${hundredths / 100n}.${String(hundredths % 100n).padStart(2, '0')}%`;
 }
 /** Read-only presentation metadata. All financial figures remain on the original report. */
-export function presentInvestorReport(report: Report) {
+export function presentInvestorReport(
+  report: Report,
+  language: ReportLanguage = 'en',
+  requestUrl = '/admin/reports/assets',
+) {
+  const t = reportTranslator(language);
   const products = new Map<
     string,
     { unknown: boolean; missingWeight: boolean }
@@ -30,6 +40,9 @@ export function presentInvestorReport(report: Report) {
   const soleUnit = units.size === 1 ? [...units][0] : null;
   const plan = report.plan;
   return {
+    language,
+    t,
+    languageLinks: reportLanguageLinks(requestUrl),
     productCount: products.size,
     knownStockProducts: products.size - unknownProducts,
     unknownStockProducts: unknownProducts,
@@ -39,7 +52,7 @@ export function presentInvestorReport(report: Report) {
     activeFixedCount: report.asset.fixed.filter(
       (row) => row.status === 'ACTIVE',
     ).length,
-    unitLabel: soleUnit || 'recorded units',
+    unitLabel: soleUnit || t('recorded units'),
     inventoryShare: recordedAssetShare(
       report.asset.hppValue,
       report.asset.combinedValue,
@@ -67,7 +80,11 @@ export function presentInvestorReport(report: Report) {
     projectionStatus: plan?.projection
       ? 'RUN RATE AVAILABLE'
       : 'NOT YET RELIABLE',
-    sourceLabels: SOURCE_LABELS,
-    categoryLabels: CATEGORY_LABELS,
+    sourceLabels: Object.fromEntries(
+      Object.entries(SOURCE_LABELS).map(([key, label]) => [key, t(label)]),
+    ),
+    categoryLabels: Object.fromEntries(
+      Object.entries(CATEGORY_LABELS).map(([key, label]) => [key, t(label)]),
+    ),
   };
 }
