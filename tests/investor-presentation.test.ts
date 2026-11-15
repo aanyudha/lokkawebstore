@@ -167,7 +167,7 @@ it('renders EN and ID from one immutable report with identical figures, detail r
           ),
         ).toHaveLength(2);
         const main = html.split('<div class="report-appendices">')[0]!;
-        expect(main).not.toMatch(
+        expect(main.replace(/<[^>]*>/g, ' ')).not.toMatch(
           /denominator|two decimal places|listed variants|number of individual units|penyebut|cakupan nilai jual|salah satu variannya|dua angka desimal|jumlah unit fisik/i,
         );
         for (const key of [
@@ -188,11 +188,36 @@ it('renders EN and ID from one immutable report with identical figures, detail r
     } else {
       expect(id).toContain('Rencana Operasional 12 Bulan');
       expect(id).toContain(
-        'belum memadai untuk menghasilkan proyeksi yang dapat dipertanggungjawabkan',
+        'belum cukup lengkap untuk menghasilkan proyeksi yang dapat dipertanggungjawabkan',
       );
       expect(id).toContain(
-        'Potensi Selisih Kotor bukan merupakan laba yang dijamin.',
+        'Angka ini bukan laba bersih atau pendapatan yang dijamin.',
       );
+      for (const [html, language] of [
+        [en, 'en'],
+        [id, 'id'],
+      ] as const) {
+        const view = presentInvestorReport(report, language);
+        const main = html.split('<div class="report-appendices">')[0]!;
+        for (const heading of [
+          'Current Position',
+          'Commercial Opportunity',
+          'Data Readiness',
+          '12-Month Outlook',
+          'Inventory Sales Opportunity',
+        ])
+          expect(main).toContain(view.t(heading));
+        expect(main.replace(/<[^>]*>/g, ' ')).not.toMatch(
+          /qualifying complete months|complete months \/|complete days|30 complete days|consecutive calendar months|itemless|cost snapshots|source row|canonical entry|editable forecast|system-generated SKU|30 hari lengkap|bulan kalender berturut-turut|bulan lengkap \/|hari lengkap/i,
+        );
+        expect(main).toContain(
+          view.t(
+            'There are no historical sales to assess product costs or profit.',
+          ),
+        );
+        expect(main).not.toContain('data-hpp-limitation');
+        expect(main).not.toContain('data-legacy-summary');
+      }
     }
   }
   expect(report).toEqual(before);
@@ -282,6 +307,16 @@ it('explains legacy revenue without attributing mixed sales totals to demo trans
     expect(view.legacySalesExplanation).toContain('Rp495.000');
     expect(view.legacySalesExplanation).toContain('1');
     expect(view.legacySalesExplanation).not.toContain('Rp6.450.000');
+    const html = await ejs.renderFile('views/admin/plan-report.ejs', {
+      report,
+      view,
+      formatIdr,
+    });
+    expect(html).toContain(
+      view.t(
+        'Recorded historical revenue comes from past sales using legacy demo products, retained to preserve financial records. These sales are not the sales history of the newly imported owner catalog.',
+      ),
+    );
   }
   report.plan!.accounting.saleCount = 2n;
   report.plan!.accounting.revenue = 900000n;
@@ -291,6 +326,34 @@ it('explains legacy revenue without attributing mixed sales totals to demo trans
   expect(presentInvestorReport(report, 'id').legacySalesExplanation).toContain(
     'bukan hanya transaksi lama tersebut',
   );
+  report.plan!.accounting.cogs = null;
+  const beforeRender = structuredClone(report);
+  for (const language of ['en', 'id'] as const) {
+    const view = presentInvestorReport(report, language);
+    const html = await ejs.renderFile('views/admin/plan-report.ejs', {
+      report,
+      view,
+      formatIdr,
+    });
+    const main = html.split('<div class="report-appendices">')[0]!;
+    expect(main).toContain(
+      view.t(
+        'Some recorded sales used legacy demo products and are retained to preserve financial records. Those transactions are not the sales history of the newly imported owner catalog; total revenue also includes other completed sales.',
+      ),
+    );
+    expect(main).toContain(
+      view.t(
+        'Recorded sales history is still at an early stage. The available data is not yet long enough to establish a normal sales pattern or a reliable growth trend.',
+      ),
+    );
+    expect(main.match(/data-hpp-limitation/g)).toHaveLength(1);
+    expect(main).toContain(
+      view.t(
+        'Some past sales are missing item details or the cost of each item at the time of sale. Historical gross profit and net profit are not presented for periods with incomplete cost data.',
+      ),
+    );
+  }
+  expect(report).toEqual(beforeRender);
   report.plan!.legacySales = 0n;
   expect(presentInvestorReport(report).legacySalesExplanation).toBe(
     'No legacy demo-product sales are included in this report period.',
@@ -373,6 +436,11 @@ it('continues to present qualifying canonical run rates instead of replacing the
     expect(view.projectionStatus).toBe('RUN RATE AVAILABLE');
     expect(html).toContain('data-projection-available');
     expect(html).not.toContain('data-projection-unavailable');
+    expect(html).not.toContain('Recorded sales history is still limited');
+    expect(html).toContain('Item costs are recorded for all completed sales');
+    expect(html.split('<div class="report-appendices">')[0]).not.toMatch(
+      /complete months|complete days|30 complete days/,
+    );
     expect(html).toContain(formatIdr(report.plan!.projection!.revenue));
     const id = await ejs.renderFile('views/admin/plan-report.ejs', {
       report,

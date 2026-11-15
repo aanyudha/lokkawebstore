@@ -212,12 +212,28 @@ async function verifyIndonesianReport(page: Page, kind: 'assets' | 'plan') {
   );
   if (kind === 'plan') {
     await expect(page.locator('[data-projection-unavailable]')).toHaveText(
-      'Proyeksi keuangan 12 bulan belum ditampilkan karena riwayat operasional, HPP historis, dan bukti kelengkapan data belum memadai untuk menghasilkan proyeksi yang dapat dipertanggungjawabkan.',
+      'Proyeksi keuangan 12 bulan belum disajikan karena riwayat penjualan, HPP historis, dan data biaya belum cukup lengkap untuk menghasilkan proyeksi yang dapat dipertanggungjawabkan. LOKKA akan mulai menampilkan proyeksi setelah tersedia periode operasi yang cukup panjang dan data biaya yang memadai.',
     );
     await expect(report).toContainText('Rencana Operasional 12 Bulan');
     await expect(report).toContainText('Risiko dan Asumsi');
     await expect(report).toContainText('Tahap Awal');
     await expect(report).toContainText('BELUM LENGKAP');
+    await expect(report.locator('[data-report-primary]').first()).toContainText(
+      'Prospek 12 Bulan',
+    );
+    await expect(report.locator('[data-report-primary]').first()).toContainText(
+      'Peluang Komersial',
+    );
+    await expect(report.locator('[data-legacy-summary]')).toContainText(
+      'produk demo lama',
+    );
+    expect(
+      (await report.locator('[data-report-primary]').allTextContents()).join(
+        ' ',
+      ),
+    ).not.toMatch(
+      /canonical entry|itemless|source row|editable forecast|system-generated SKU|30 hari lengkap|bulan kalender berturut-turut|bulan lengkap \/|hari lengkap/i,
+    );
   }
   const url = page.url();
   await report

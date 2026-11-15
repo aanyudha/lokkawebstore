@@ -1,6 +1,7 @@
 /** UTF-8 report presentation copy. Never translate stored business data. */
 export const reportCopy: Record<'en' | 'id', Record<string, string>> = {
   en: {
+    'Current position, before projections': 'Current Business Position',
     'RUN RATE AVAILABLE': 'Annualized View Available',
     'Revenue run rate': 'Annualized revenue',
     'COGS run rate': 'Annualized cost of sales',
@@ -22,6 +23,104 @@ export const reportCopy: Record<'en' | 'id', Record<string, string>> = {
     '9–12 months': '9–12 Months',
   },
   id: {
+    'Annualized historical results describe past performance and do not guarantee future growth.':
+      'Kinerja historis yang disetahunkan menggambarkan kinerja masa lalu dan tidak menjamin pertumbuhan di masa depan.',
+    'Recorded sales history is still limited and does not establish a normal sales pattern for the current catalog.':
+      'Riwayat penjualan tercatat masih terbatas dan belum menunjukkan pola penjualan normal untuk katalog saat ini.',
+    'Future growth, revenue, and profit are not assumed without supporting evidence.':
+      'Pertumbuhan, pendapatan, dan laba masa depan tidak diasumsikan tanpa bukti pendukung.',
+    'Product stock, weights, and photographs affect readiness for Webstore selling and shipping. Missing weights do not change inventory value at recorded cost.':
+      'Stok, berat, dan foto produk memengaruhi kesiapan penjualan dan pengiriman Webstore. Berat yang belum lengkap tidak mengubah nilai persediaan berdasarkan HPP.',
+    'LOKKA currently has a recorded asset and inventory base, supported by operational systems for sales, inventory, cash flow, and reporting.':
+      'LOKKA saat ini memiliki basis aset dan persediaan yang sudah tercatat, serta sistem operasional untuk penjualan, persediaan, arus kas, dan pelaporan.',
+    'This report separates recorded performance and annualized historical results from commercial opportunity and the 12-month operating plan.':
+      'Laporan ini memisahkan kinerja tercatat dan kinerja historis yang disetahunkan dari peluang komersial dan rencana operasional 12 bulan.',
+    'Recorded sales history is still limited, so this report separates actual recorded performance from commercial opportunity and the 12-month plan.':
+      'Riwayat penjualan aktual masih terbatas, sehingga laporan ini memisahkan fakta yang sudah tercatat dari potensi dan rencana pengembangan 12 bulan.',
+    'Current Position': 'Posisi Saat Ini',
+    'Commercial Opportunity': 'Peluang Komersial',
+    'Data Readiness': 'Kelengkapan Data',
+    '12-Month Outlook': 'Prospek 12 Bulan',
+    'Cash balance based on transactions recorded in LOKKA. This is not a bank-reconciled balance.':
+      'Saldo kas berdasarkan transaksi yang tercatat di LOKKA. Angka ini bukan hasil rekonsiliasi rekening bank.',
+    'Recorded sales history is still at an early stage. The available data is not yet long enough to establish a normal sales pattern or a reliable growth trend.':
+      'Riwayat penjualan masih berada pada tahap awal. Data yang tersedia belum cukup panjang untuk menunjukkan pola penjualan normal atau tren pertumbuhan yang stabil.',
+    'Recorded history supports an annualized view of past performance. It does not guarantee future sales or growth.':
+      'Riwayat tercatat mendukung gambaran kinerja masa lalu yang disetahunkan. Angka ini tidak menjamin penjualan atau pertumbuhan di masa depan.',
+    'Room for gross margin if inventory sells at current prices, before operating and selling costs. This is not net profit or guaranteed revenue.':
+      'Ruang margin kotor jika persediaan terjual pada harga saat ini, sebelum biaya operasional dan penjualan. Angka ini bukan laba bersih atau pendapatan yang dijamin.',
+    'Some past sales are missing item details or the cost of each item at the time of sale. Historical gross profit and net profit are not presented for periods with incomplete cost data.':
+      'HPP historis belum lengkap karena sebagian transaksi lama tidak memiliki rincian barang atau rekaman biaya per barang pada saat penjualan terjadi. Karena itu, laba kotor dan laba bersih historis tidak ditampilkan untuk periode yang datanya belum lengkap.',
+    'There are no historical sales to assess product costs or profit.':
+      'Belum ada penjualan historis untuk menilai HPP atau laba.',
+    'Item costs are recorded for all completed sales in this report period, allowing historical gross profit and net profit to be shown.':
+      'Biaya barang telah tercatat untuk seluruh penjualan selesai dalam periode laporan ini, sehingga laba kotor dan laba bersih historis dapat ditampilkan.',
+    'Annualized past performance is available. The operating plan describes the next business priorities.':
+      'Kinerja masa lalu yang disetahunkan sudah tersedia. Rencana operasional menjelaskan prioritas usaha berikutnya.',
+    'The focus is on sales readiness and a stronger operating record. A financial forecast will follow when sales and cost records are sufficient.':
+      'Fokus saat ini adalah kesiapan penjualan dan penguatan rekam jejak operasional. Proyeksi keuangan akan disajikan setelah catatan penjualan dan biaya memadai.',
+    'Recorded historical revenue comes from past sales using legacy demo products, retained to preserve financial records. These sales are not the sales history of the newly imported owner catalog.':
+      'Pendapatan historis yang tercatat berasal dari transaksi lama yang tetap dipertahankan untuk menjaga integritas catatan keuangan. Transaksi tersebut menggunakan produk demo lama dan tidak dianggap sebagai riwayat penjualan dari katalog produk pemilik yang baru diimpor.',
+    'Some recorded sales used legacy demo products and are retained to preserve financial records. Those transactions are not the sales history of the newly imported owner catalog; total revenue also includes other completed sales.':
+      'Sebagian penjualan tercatat menggunakan produk demo lama dan tetap dipertahankan untuk menjaga integritas catatan keuangan. Transaksi tersebut bukan riwayat penjualan dari katalog produk pemilik yang baru diimpor; total pendapatan juga mencakup penjualan selesai lainnya.',
+    'Already Operating': 'Sudah Berjalan',
+    'Direct sales through POS': 'Penjualan langsung melalui POS',
+    'Stock and product cost records': 'Pencatatan stok dan HPP',
+    'Cash flow records': 'Pencatatan arus kas',
+    'Basic financial reporting': 'Pelaporan keuangan dasar',
+    'Webstore cart and initial unpaid orders':
+      'Keranjang dan fondasi pesanan Webstore yang belum dibayar',
+    'recorded catalog products': 'produk tercatat dalam katalog',
+    'current inventory retail value': 'nilai jual persediaan saat ini',
+    'Review product photographs before online selling.':
+      'Tinjau kelengkapan foto produk sebelum penjualan daring.',
+    'Unconfirmed stock limits sales readiness. Missing weights affect Webstore shipping readiness, but do not change inventory value at recorded cost. Photos help customers assess products before buying.':
+      'Stok yang belum dikonfirmasi membatasi kesiapan penjualan. Berat yang belum lengkap memengaruhi kesiapan pengiriman Webstore, tetapi tidak mengubah nilai persediaan berdasarkan HPP. Foto membantu pelanggan menilai produk sebelum membeli.',
+    'These phases set business priorities and indicative timing, not guaranteed results. Webstore carts and unpaid orders are available today; completed online purchases, payments, and shipping remain planned.':
+      'Tahapan ini menetapkan prioritas usaha dan perkiraan waktu, bukan hasil yang dijamin. Keranjang Webstore dan pesanan belum dibayar sudah tersedia; penyelesaian pembelian daring, pembayaran, dan pengiriman masih direncanakan.',
+    'Confirm all stock quantities.': 'Pastikan seluruh stok terkonfirmasi.',
+    'Complete product weights and photographs.':
+      'Lengkapi berat dan foto produk.',
+    'Prepare products for POS and Webstore selling as their sales information becomes complete.':
+      'Pastikan produk siap dijual melalui POS dan Webstore sesuai kelengkapan informasi penjualannya.',
+    'Review product information, prices, and product costs.':
+      'Rapikan data produk, harga, dan HPP.',
+    'Enable the full online purchase journey':
+      'Aktifkan Penjualan Daring dari Awal hingga Selesai',
+    'Complete the Webstore checkout.': 'Selesaikan alur pembelian Webstore.',
+    'Connect online payments.': 'Integrasikan pembayaran daring.',
+    'Connect shipping services.': 'Integrasikan pengiriman.',
+    'Provide customer order history.': 'Sediakan riwayat pesanan pelanggan.',
+    'Monitor fast- and slow-selling products.':
+      'Pantau produk yang cepat dan lambat terjual.',
+    'Encourage repeat customer purchases.':
+      'Tingkatkan pembelian ulang pelanggan.',
+    'Evaluate the most effective sales channels.':
+      'Evaluasi kanal penjualan yang paling efektif.',
+    'Maintain consistent monthly reporting.':
+      'Jaga konsistensi laporan bulanan.',
+    'Optimize the product mix.': 'Optimalkan bauran produk.',
+    'Expand sales channels with proven results.':
+      'Perluas kanal yang terbukti efektif.',
+    'Build a more consistent revenue, margin, and cash flow history.':
+      'Bangun riwayat pendapatan, margin, dan arus kas yang lebih konsisten.',
+    'Prepare stronger performance reports for investors.':
+      'Siapkan laporan kinerja yang lebih kuat untuk investor.',
+    'Inventory Sales Opportunity': 'Peluang Nilai Persediaan',
+    'Recorded inventory has a current retail value of {retail} and a recorded cost value of {hpp}. The potential gross spread of {spread} shows theoretical room for gross margin if the inventory included in the comparison sells at current prices.':
+      'Persediaan yang tercatat memiliki nilai jual saat ini sebesar {retail} dengan nilai HPP sebesar {hpp}. Potensi selisih kotor sebesar {spread} menunjukkan ruang margin kotor secara teoritis apabila persediaan yang diperhitungkan terjual pada harga saat ini.',
+    'This is not net profit or guaranteed revenue.':
+      'Angka ini bukan laba bersih atau pendapatan yang dijamin.',
+    'Potential Gross Spread is the difference between inventory retail value and inventory at recorded cost for stock with confirmed quantities and costs. It excludes operating expenses, discounts, payment fees, shipping, returns, tax, and the risk of unsold goods.':
+      'Potensi Selisih Kotor adalah selisih antara nilai jual persediaan dan nilai persediaan berdasarkan HPP untuk stok dan biaya yang sudah dikonfirmasi. Nilai ini belum memperhitungkan biaya operasional, diskon, biaya pembayaran, pengiriman, retur, pajak, maupun risiko barang tidak terjual.',
+    'A 12-month financial projection is not yet presented because sales history, historical product costs, and expense records are not complete enough to support a defensible forecast. LOKKA will begin presenting projections when it has a sufficiently long operating record and adequate cost data.':
+      'Proyeksi keuangan 12 bulan belum disajikan karena riwayat penjualan, HPP historis, dan data biaya belum cukup lengkap untuk menghasilkan proyeksi yang dapat dipertanggungjawabkan. LOKKA akan mulai menampilkan proyeksi setelah tersedia periode operasi yang cukup panjang dan data biaya yang memadai.',
+    'Annualized historical results, not a guaranteed forecast. Included period:':
+      'Kinerja historis yang disetahunkan, bukan prakiraan yang dijamin. Periode yang digunakan:',
+    'Annualized expenses and net profit are unavailable until expense records are confirmed complete.':
+      'Biaya dan laba bersih yang disetahunkan belum tersedia hingga kelengkapan catatan biaya dikonfirmasi.',
+    'Appendix D explains the historical records used and how annualized figures are calculated.':
+      'Lampiran D menjelaskan catatan historis yang digunakan dan cara menghitung angka tahunan.',
     'Data and Valuation Notes': 'Catatan Data dan Penilaian',
     'This report uses inventory and asset data recorded in the LOKKA system as of the report date.':
       'Laporan ini menggunakan data persediaan dan aset yang telah tercatat di sistem LOKKA pada tanggal laporan.',
@@ -66,7 +165,7 @@ export const reportCopy: Record<'en' | 'id', Record<string, string>> = {
     'Fixed Asset Acquisition Value': 'Nilai Perolehan Aktiva Tetap',
     'Inventory Retail Value': 'Nilai Jual Persediaan',
     'Potential Gross Spread': 'Potensi Selisih Kotor',
-    'Known Inventory Units': 'Jumlah Persediaan Diketahui',
+    'Known Inventory Units': 'Unit Persediaan Diketahui',
     'Asset mix': 'Komposisi Aset',
     'Share of recorded inventory and fixed assets':
       'Proporsi persediaan dan aktiva tetap tercatat',
@@ -389,7 +488,7 @@ export const reportCopy: Record<'en' | 'id', Record<string, string>> = {
     'completed sales lack item records. Either gap prevents reliable total cost of sales, gross profit and net profit. The recorded item-cost subtotal covers only available costs; a zero subtotal does not mean all costs are zero.':
       'penjualan selesai belum memiliki rincian item. Salah satu kekurangan ini membuat total HPP penjualan, laba kotor, dan laba bersih belum dapat disajikan secara andal. Subtotal biaya item tercatat hanya mencakup biaya yang tersedia; subtotal nol tidak berarti seluruh biaya bernilai nol.',
     'Revenue includes completed POS and Webstore sales only. Manual income affects cash, not sales revenue. Historical profit uses costs recorded at the time of sale; current costs do not replace missing past costs. Operating expenses include recorded manual operating expenses, not opening balances, sale receipts or cancelled entries. Planned overhead is not automatically deducted from profit.':
-      'Pendapatan hanya mencakup penjualan POS dan Webstore yang selesai. Pemasukan manual memengaruhi kas, bukan pendapatan penjualan. Laba historis menggunakan biaya yang dicatat saat penjualan; biaya saat ini tidak menggantikan biaya masa lalu yang belum tersedia. Biaya operasional mencakup biaya operasional manual yang dibukukan, bukan saldo awal, penerimaan penjualan, atau entri yang dibatalkan. Rencana biaya overhead tidak otomatis mengurangi laba.',
+      'Pendapatan hanya mencakup penjualan POS dan Webstore yang selesai. Pemasukan manual memengaruhi kas, bukan pendapatan penjualan. Laba historis menggunakan biaya yang dicatat saat penjualan; biaya saat ini tidak menggantikan biaya masa lalu yang belum tersedia. Biaya operasional mencakup biaya operasional manual yang dibukukan, bukan saldo awal, penerimaan penjualan, atau entri yang dibatalkan. Rencana biaya operasional tambahan tidak otomatis mengurangi laba.',
     'Detailed eligibility: sales records must be documented as complete for consecutive calendar months immediately before the current UTC month, covering at least 30 complete days. Every completed sale must have item records and complete historical item costs. Time since the first sale alone is not evidence of reliable coverage.':
       'Syarat terperinci: kelengkapan penjualan harus didokumentasikan untuk bulan kalender berturut-turut tepat sebelum bulan UTC berjalan, dengan cakupan sedikitnya 30 hari lengkap. Setiap penjualan selesai harus memiliki rincian item dan biaya historis item yang lengkap. Lamanya waktu sejak penjualan pertama saja bukan bukti kelengkapan data yang andal.',
     'Annualized amount = actual total for eligible months × 12 ÷ number of complete months, truncated toward zero to whole Rupiah. Expense and net-profit projections also require confirmed expense records for every included month. One-day or incomplete history is not annualized.':
@@ -402,8 +501,8 @@ export const reportCopy: Record<'en' | 'id', Record<string, string>> = {
       'Nilai jual persediaan bukan pendapatan yang dijamin. Potensi selisih kotor bukan laba bersih: biaya operasional, diskon, risiko persediaan tidak terjual, biaya pembayaran dan pengiriman, retur, serta pajak belum diperhitungkan.',
     'The operating plan is indicative. Existing POS, inventory and financial records support current operations; completed Webstore checkout and payment and shipping integration are still planned.':
       'Rencana operasional bersifat indikatif. POS, pencatatan persediaan, dan catatan keuangan yang tersedia mendukung operasional saat ini; penyelesaian pembelian melalui Webstore serta integrasi pembayaran dan pengiriman masih direncanakan.',
-    'This report covers recorded inventory and active fixed assets at acquisition cost, without depreciation. It is not a complete balance sheet or market valuation. No future sales growth, funding or profit is assumed without evidence.':
-      'Laporan ini mencakup persediaan tercatat dan aktiva tetap aktif berdasarkan harga perolehan, tanpa penyusutan. Laporan ini bukan neraca lengkap atau penilaian pasar. Pertumbuhan penjualan, pendanaan, dan laba masa depan tidak diasumsikan tanpa bukti.',
+    'This report covers recorded inventory and active fixed assets at acquisition cost, without depreciation. It is not a complete balance sheet or market valuation.':
+      'Laporan ini mencakup persediaan tercatat dan aktiva tetap aktif berdasarkan harga perolehan, tanpa penyusutan. Laporan ini bukan neraca lengkap atau penilaian pasar.',
     'Recorded asset value combines inventory at recorded HPP and active fixed assets at acquisition cost.':
       'Total aset tercatat merupakan gabungan nilai persediaan berdasarkan HPP dan nilai perolehan aktiva tetap yang masih aktif.',
     'Capital represented by available inventory, based on the recorded cost per unit (HPP).':
