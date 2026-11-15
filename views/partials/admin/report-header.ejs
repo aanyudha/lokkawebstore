@@ -1,7 +1,7 @@
 <header class="report-heading">
 <img src="/images/brand/lokka-logo.webp" alt="LOKKA" width="150" height="75" />
 <p class="report-eyebrow"><%= view.t('LOKKA / MANAGEMENT REPORT') %></p>
-<h2><%= view.t(reportTitle) %></h2><p><%= view.t('Management report') %></p>
+<h2><%= view.t(reportTitle) %></h2>
 <p><%= view.t('As of / generated:') %> <time datetime="<%= report.asOf.toISOString() %>"><%= new Intl.DateTimeFormat(view.language === 'id' ? 'id-ID' : 'en-GB',{dateStyle:'long',timeStyle:'short',timeZone:'Asia/Jakarta'}).format(report.asOf) %> WIB</time></p>
 <nav class="report-language-selector report-screen-only" aria-label="<%= view.t('Report language') %>">
 <a href="<%= view.languageLinks.en %>" lang="en" hreflang="en" <%- view.language === 'en' ? 'aria-current="true"' : '' %>>English</a>

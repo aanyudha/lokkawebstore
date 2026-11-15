@@ -109,6 +109,12 @@ describe('owner import and investor valuation', () => {
       const id = await get('?lang=id');
       expect(en.statusCode).toBe(200);
       expect(id.statusCode).toBe(200);
+      for (const response of [en, id]) {
+        expect(response.headers['content-type']).toContain('charset=utf-8');
+        expect(
+          new TextDecoder('utf-8', { fatal: true }).decode(response.rawPayload),
+        ).not.toMatch(/[\u00e2\u00c3\u00c2\ufffd]/u);
+      }
       expect(en.body).toContain(`<title>LOKKA — ${enTitle}</title>`);
       expect(id.body).toContain(`<title>LOKKA — ${idTitle}</title>`);
       expect(id.body.match(/Rp[\d.]+/g)).toEqual(en.body.match(/Rp[\d.]+/g));

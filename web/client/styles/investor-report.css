@@ -125,6 +125,12 @@
   font-size: 0.8rem;
   font-weight: 400;
 }
+.report-kpi dd.report-kpi-note {
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.45;
+  margin-top: 10px;
+}
 .executive-report .report-block {
   margin: 24px 0;
 }
@@ -214,6 +220,8 @@
   font-weight: 650;
 }
 .report-status-grid small {
+  display: block;
+  margin-top: 6px;
   font-size: 0.74rem;
 }
 .report-position-grid {
@@ -299,6 +307,55 @@
 .executive-report .report-appendix td {
   padding: 10px 8px;
 }
+/* Override the admin shell's more-specific nowrap/uppercase heading rules. */
+.admin-ui .executive-report thead th {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: 1.35;
+  vertical-align: bottom;
+}
+.admin-ui .executive-report td.report-money {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.admin-ui .executive-report .report-inventory-table thead th:nth-child(n + 5),
+.admin-ui .executive-report .report-fixed-table thead th:nth-child(4),
+.admin-ui .executive-report .report-fixed-table thead th:nth-child(5) {
+  text-align: right;
+}
+.executive-report .report-inventory-table,
+.executive-report .report-fixed-table {
+  table-layout: fixed;
+}
+.report-col-6 {
+  width: 6%;
+}
+.report-col-8 {
+  width: 8%;
+}
+.report-col-12 {
+  width: 12%;
+}
+.report-col-13 {
+  width: 13%;
+}
+.report-col-15 {
+  width: 15%;
+}
+.report-col-19 {
+  width: 19%;
+}
+.report-col-20 {
+  width: 20%;
+}
+.report-col-23 {
+  width: 23%;
+}
+.report-col-30 {
+  width: 30%;
+}
 .executive-report .table-scroll {
   max-width: 100%;
   margin: 16px 0;
@@ -358,7 +415,16 @@
   size: A4 portrait;
   margin: 14mm;
 }
+@page lokka-investor-detail {
+  size: A4 landscape;
+  margin: 14mm;
+}
 @media print {
+  .executive-report [data-report-wide] {
+    page: lokka-investor-detail;
+    break-before: page;
+    break-after: page;
+  }
   .executive-report {
     page: lokka-investor;
     padding: 0;
@@ -386,8 +452,8 @@
     padding-bottom: 12px;
   }
   .executive-report .report-heading img {
-    width: 120px;
-    height: 60px;
+    width: 100px;
+    height: 50px;
     margin-bottom: 10px;
   }
   .executive-report .report-heading h2 {
@@ -421,6 +487,34 @@
   }
   .report-kpi dd {
     font-size: 23pt;
+  }
+  .report-kpi dd.report-kpi-note {
+    font-size: 8pt;
+    line-height: 1.35;
+    margin-top: 6px;
+  }
+  .executive-report [data-report-primary='plan-snapshot'] .report-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px 16px;
+    margin: 12px 0;
+  }
+  .executive-report [data-report-primary='plan-snapshot'] .report-kpi {
+    padding: 8px 0;
+  }
+  .executive-report
+    [data-report-primary='plan-snapshot']
+    .report-kpi
+    > dd:not(.report-kpi-note) {
+    font-size: 19pt;
+  }
+  .executive-report [data-report-primary='plan-snapshot'] .report-status-grid {
+    margin: 12px 0;
+  }
+  .executive-report
+    [data-report-primary='plan-snapshot']
+    .report-status-grid
+    > div {
+    padding: 8px 0;
   }
   .report-kpis--three {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -460,6 +554,10 @@
   .executive-report .report-appendix + .report-appendix {
     padding-top: 16px;
   }
+  .executive-report .report-appendix:not([data-report-wide]),
+  .executive-report .report-detail-block {
+    break-inside: avoid;
+  }
   .executive-report .table-scroll {
     overflow: visible;
     width: auto;
@@ -469,7 +567,14 @@
     min-width: 0;
     width: 100%;
     table-layout: fixed;
-    font-size: 7.5pt;
+    font-size: 8.5pt;
+  }
+  .executive-report .report-appendix th,
+  .executive-report .report-appendix td {
+    padding: 7px 5px;
+  }
+  .admin-ui .executive-report thead th {
+    font-size: 8.5pt;
   }
   .executive-report .report-appendix .report-summary-table {
     table-layout: auto;

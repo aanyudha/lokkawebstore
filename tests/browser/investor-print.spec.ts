@@ -12,6 +12,7 @@ async function verifySameRenderedReport(
   appendixCount: number,
 ) {
   const report = page.locator('[data-investor-report]');
+  await expect(report).not.toContainText(/[\u00e2\u00c3\u00c2\ufffd]/u);
   const before = await report.innerHTML();
   const tableText = await report.locator('table').allTextContents();
   const date = await report.locator('time').getAttribute('datetime');
@@ -31,6 +32,48 @@ async function verifySameRenderedReport(
     String(previousCount + 1),
   );
   await page.emulateMedia({ media: 'print' });
+  await expect(report).not.toContainText(/[\u00e2\u00c3\u00c2\ufffd]/u);
+  const collisions = await report.locator('thead th').evaluateAll((cells) => {
+    const failures: string[] = [];
+    for (const cell of cells) {
+      const box = cell.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(cell);
+      for (const rect of range.getClientRects())
+        if (
+          rect.left < box.left - 1 ||
+          rect.right > box.right + 1 ||
+          rect.bottom > box.bottom + 1
+        )
+          failures.push(cell.textContent ?? '');
+      if (getComputedStyle(cell).whiteSpace === 'nowrap')
+        failures.push(cell.textContent ?? '');
+    }
+    return failures;
+  });
+  expect(collisions).toEqual([]);
+  expect(
+    await report
+      .locator('td.report-money')
+      .evaluateAll((cells) =>
+        cells
+          .filter((cell) => getComputedStyle(cell).textAlign !== 'right')
+          .map((cell) => cell.textContent),
+      ),
+  ).toEqual([]);
+  expect(
+    await report
+      .locator('td')
+      .evaluateAll((cells) =>
+        cells
+          .filter(
+            (cell) =>
+              /^-?Rp[\d.]+$/.test(cell.textContent?.trim() ?? '') &&
+              getComputedStyle(cell).textAlign !== 'right',
+          )
+          .map((cell) => cell.textContent),
+      ),
+  ).toEqual([]);
   await expect(page.locator('#admin-sidebar')).toBeHidden();
   await expect(page.locator('.admin-topbar')).toBeHidden();
   await expect(page.locator('[data-print-report]')).toBeHidden();
@@ -75,14 +118,27 @@ async function verifySameRenderedReport(
   expect(await report.innerHTML()).toBe(before);
 }
 
-async function verifyIndonesianReport(page: Page, kind: 'assets' | 'plan') {
-  const report = page.locator('[data-investor-report]');
-  const englishPdf = await page.pdf({
-    path: `test-results/investor-${kind}-en.pdf`,
+async function savePrintPdf(
+  page: Page,
+  kind: 'assets' | 'plan',
+  language: 'en' | 'id',
+) {
+  // page.pdf honors a forced screen emulation; export with actual print CSS.
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.locator('.admin-topbar')).toBeHidden();
+  await expect(page.locator('.report-language-selector')).toBeHidden();
+  const pdf = await page.pdf({
+    path: `test-results/investor-${kind}-${language}.pdf`,
     printBackground: true,
     preferCSSPageSize: true,
   });
-  expect(englishPdf.subarray(0, 5).toString()).toBe('%PDF-');
+  expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
+  await page.emulateMedia({ media: 'screen' });
+}
+
+async function verifyIndonesianReport(page: Page, kind: 'assets' | 'plan') {
+  const report = page.locator('[data-investor-report]');
+  await savePrintPdf(page, kind, 'en');
   const values = await report.locator('dd').allTextContents();
   const money = (await report.innerText()).match(/Rp[\d.]+/g);
   const numbers = await report.locator('td').allTextContents();
@@ -100,6 +156,10 @@ async function verifyIndonesianReport(page: Page, kind: 'assets' | 'plan') {
     .click();
   await expect(page).toHaveURL(/lang=id/);
   await expect(report).toHaveAttribute('lang', 'id');
+  await expect(report).not.toContainText(/[\u00e2\u00c3\u00c2\ufffd]/u);
+  await expect(report).not.toContainText(
+    /Appendix|Historical Performance Detail|Cash Flow Detail|Projection Methodology|months/,
+  );
   await expect(report.locator('h2')).toHaveText(
     kind === 'assets'
       ? 'DAFTAR ASET + VALUASI'
@@ -126,11 +186,11 @@ async function verifyIndonesianReport(page: Page, kind: 'assets' | 'plan') {
   );
   if (kind === 'plan') {
     await expect(page.locator('[data-projection-unavailable]')).toHaveText(
-      'Proyeksi keuangan 12 bulan belum disajikan karena data historis operasional belum cukup lengkap dan andal untuk menghasilkan proyeksi yang dapat dipertanggungjawabkan.',
+      'Proyeksi keuangan 12 bulan belum ditampilkan karena riwayat operasional, HPP historis, dan bukti kelengkapan data belum memadai untuk menghasilkan proyeksi yang dapat dipertanggungjawabkan.',
     );
     await expect(report).toContainText('Rencana Operasional 12 Bulan');
-    await expect(report).toContainText('Risiko & Asumsi');
-    await expect(report).toContainText('TAHAP AWAL');
+    await expect(report).toContainText('Risiko dan Asumsi');
+    await expect(report).toContainText('Tahap Awal');
     await expect(report).toContainText('BELUM LENGKAP');
   }
   const url = page.url();
@@ -146,12 +206,7 @@ async function verifyIndonesianReport(page: Page, kind: 'assets' | 'plan') {
     kind === 'assets' ? 3 : 5,
   );
   expect(page.url()).toBe(url);
-  const pdf = await page.pdf({
-    path: `test-results/investor-${kind}-id.pdf`,
-    printBackground: true,
-    preferCSSPageSize: true,
-  });
-  expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
+  await savePrintPdf(page, kind, 'id');
   await expect(report).toHaveAttribute('lang', 'id');
   await page.getByRole('link', { name: 'English', exact: true }).click();
   await expect(page).toHaveURL(/lang=en/);
@@ -251,7 +306,7 @@ test('executive reports retain identical canonical figures, appendices and dates
       page.locator('[data-report-primary] .table-scroll'),
     ).toHaveCount(0);
     await expect(page.locator('[data-legacy-disclosure]')).toContainText(
-      '1 completed sales',
+      'Rp495.000 comes from 1 completed legacy demo-product transaction',
     );
     const planRequestCount = reportRequests.length;
     await verifySameRenderedReport(page, 3, 5);

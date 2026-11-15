@@ -1,5 +1,6 @@
 import type { createInvestorReports } from '../finance/investor-reports.js';
 import { CATEGORY_LABELS, SOURCE_LABELS } from '../finance/ledger.js';
+import { formatIdr } from '../catalog/validation.js';
 import {
   reportTranslator,
   reportLanguageLinks,
@@ -40,6 +41,31 @@ export function presentInvestorReport(
   const soleUnit = units.size === 1 ? [...units][0] : null;
   const plan = report.plan;
   return {
+    transactionNotes: (row: {
+      notes: string | null;
+      transactionNumber: string | null;
+      source: string;
+    }) =>
+      (row.source === 'POS' || row.source === 'WEBSTORE') &&
+      row.transactionNumber &&
+      row.notes === `Sale ${row.transactionNumber}`
+        ? `${t('Sale')} ${row.transactionNumber}`
+        : (row.notes ?? ''),
+    legacySalesExplanation:
+      !plan || plan.legacySales === 0n
+        ? t('No legacy demo-product sales are included in this report period.')
+        : t(
+            plan.legacySales === plan.accounting.saleCount
+              ? 'Recorded revenue of {revenue} comes from {count} completed legacy demo-product {transactions} retained as accounting history. These transactions are not presented as sales history of the newly imported owner catalog.'
+              : 'The report includes {count} completed legacy demo-product {transactions} retained as accounting history. They are not sales history of the newly imported owner catalog. Total recorded revenue of {revenue} covers all completed sales in the report period, not only those legacy transactions.',
+            {
+              revenue: formatIdr(plan.accounting.revenue),
+              count: plan.legacySales,
+              transactions: t(
+                plan.legacySales === 1n ? 'transaction' : 'transactions',
+              ),
+            },
+          ),
     language,
     t,
     languageLinks: reportLanguageLinks(requestUrl),

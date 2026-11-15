@@ -1,6 +1,7 @@
 import { beforeAll, afterAll, it, expect } from 'vitest';
 import { eq } from 'drizzle-orm';
 import ejs from 'ejs';
+import { readFile, readdir } from 'node:fs/promises';
 import { investorFixture } from './helpers/investor-fixture.js';
 import { accountingFixture } from './helpers/accounting-fixture.js';
 import { importOwnerData } from '../src/modules/finance/owner-import.js';
@@ -102,10 +103,10 @@ it('renders EN and ID from one immutable report with identical figures, detail r
     const render = async (language: 'en' | 'id') => {
       const view = presentInvestorReport(report, language);
       const translate = view.t;
-      view.t = (key) => {
+      view.t = (key, values) => {
         // Fail on untranslated presentation copy, including accessible names.
         expect(reportCopy.id, key).toHaveProperty(key);
-        return translate(key);
+        return translate(key, values);
       };
       return ejs.renderFile(`views/admin/${template}.ejs`, {
         report,
@@ -115,6 +116,19 @@ it('renders EN and ID from one immutable report with identical figures, detail r
     };
     const en = await render('en');
     const id = await render('id');
+    for (const html of [en, id]) {
+      expect(html).not.toMatch(/[\u00e2\u00c3\u00c2\ufffd]/u);
+      expect(html).not.toMatch(/\{(?:retail|hpp|spread|count|revenue)\}/);
+      expect(html).not.toMatch(
+        /canonical|backend|editable forecasting UI|system-generated SKU|complete stock-and-cost cohort/i,
+      );
+    }
+    expect(en).not.toMatch(
+      /Lampiran|Belum tersedia|Rencana Operasional|Persediaan dinilai/,
+    );
+    expect(id).not.toMatch(
+      /Appendix|Historical Performance Detail|Cash Flow Detail|Projection Methodology|Risks and Assumptions|months/,
+    );
     expect(id).toContain(title.toUpperCase());
     expect(id).toContain('lang="id"');
     expect(en).toContain('lang="en"');
@@ -141,7 +155,7 @@ it('renders EN and ID from one immutable report with identical figures, detail r
     } else {
       expect(id).toContain('Rencana Operasional 12 Bulan');
       expect(id).toContain(
-        'belum cukup lengkap dan andal untuk menghasilkan proyeksi yang dapat dipertanggungjawabkan',
+        'belum memadai untuk menghasilkan proyeksi yang dapat dipertanggungjawabkan',
       );
       expect(id).toContain(
         'Potensi Selisih Kotor bukan merupakan laba yang dijamin.',
@@ -149,6 +163,76 @@ it('renders EN and ID from one immutable report with identical figures, detail r
     }
   }
   expect(report).toEqual(before);
+});
+it('keeps the entire report presentation path and tests valid UTF-8 without saved mojibake', async () => {
+  const files = [
+    'src/modules/admin/report-copy.ts',
+    'src/modules/admin/investor-presentation.ts',
+    'src/modules/admin/investor-routes.ts',
+    'views/admin/asset-report.ejs',
+    'views/admin/plan-report.ejs',
+    'views/partials/admin/report-header.ejs',
+    'web/client/styles/investor-report.css',
+    ...(await readdir('tests', { recursive: true }))
+      .filter((name) => /\.(ts|mjs)$/.test(name))
+      .map((name) => `tests/${name}`),
+  ];
+  for (const path of files) {
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(
+      await readFile(path),
+    );
+    expect(text, path).not.toMatch(/[\u00e2\u00c3\u00c2\ufffd]/u);
+  }
+});
+it('explains legacy revenue without attributing mixed sales totals to demo transactions', async () => {
+  const report = await createInvestorReports(f.db).report(new Date(), true);
+  const original = structuredClone(report);
+  const note = {
+    notes: 'Sale POS-REF-001',
+    transactionNumber: 'POS-REF-001',
+    source: 'POS',
+  };
+  expect(presentInvestorReport(report).transactionNotes(note)).toBe(note.notes);
+  expect(presentInvestorReport(report, 'id').transactionNotes(note)).toBe(
+    'Penjualan POS-REF-001',
+  );
+  expect(
+    presentInvestorReport(report, 'id').transactionNotes({
+      ...note,
+      source: 'MANUAL',
+    }),
+  ).toBe(note.notes);
+  expect(
+    presentInvestorReport(report, 'id').transactionNotes({
+      ...note,
+      notes: 'Owner supplied description',
+    }),
+  ).toBe('Owner supplied description');
+  report.plan!.legacySales = 1n;
+  report.plan!.accounting.saleCount = 1n;
+  report.plan!.accounting.revenue = 495000n;
+  for (const language of ['en', 'id'] as const) {
+    const view = presentInvestorReport(report, language);
+    expect(view.legacySalesExplanation).toContain('Rp495.000');
+    expect(view.legacySalesExplanation).toContain('1');
+    expect(view.legacySalesExplanation).not.toContain('Rp6.450.000');
+  }
+  report.plan!.accounting.saleCount = 2n;
+  report.plan!.accounting.revenue = 900000n;
+  expect(presentInvestorReport(report).legacySalesExplanation).toContain(
+    'not only those legacy transactions',
+  );
+  expect(presentInvestorReport(report, 'id').legacySalesExplanation).toContain(
+    'bukan hanya transaksi lama tersebut',
+  );
+  report.plan!.legacySales = 0n;
+  expect(presentInvestorReport(report).legacySalesExplanation).toBe(
+    'No legacy demo-product sales are included in this report period.',
+  );
+  // The original database report remains unchanged; only this in-memory test copy was altered.
+  expect(await createInvestorReports(f.db).report(original.asOf, true)).toEqual(
+    original,
+  );
 });
 it('renders all inventory and asset detail after the executive sections and uses canonical data for every KPI', async () => {
   const report = await createInvestorReports(f.db).report(new Date(), true);
@@ -231,7 +315,7 @@ it('continues to present qualifying canonical run rates instead of replacing the
     });
     expect(id).toContain('data-projection-available');
     expect(id).not.toContain('data-projection-unavailable');
-    expect(id).toContain('Proyeksi laju pendapatan');
+    expect(id).toContain('Pendapatan disetahunkan');
     expect(id.match(/Rp[\d.]+/g)).toEqual(html.match(/Rp[\d.]+/g));
     expect(report).toEqual(before);
   } finally {
