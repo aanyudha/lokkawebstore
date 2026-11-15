@@ -12,6 +12,9 @@ async function verifySameRenderedReport(
   appendixCount: number,
 ) {
   const report = page.locator('[data-investor-report]');
+  await expect(report).not.toContainText(
+    /disposed|released assets|dilepas|tidak lagi digunakan|tidak dimiliki/i,
+  );
   await expect(report).not.toContainText(/[\u00e2\u00c3\u00c2\ufffd]/u);
   const before = await report.innerHTML();
   const tableText = await report.locator('table').allTextContents();
@@ -78,6 +81,9 @@ async function verifySameRenderedReport(
   await expect(page.locator('.admin-topbar')).toBeHidden();
   await expect(page.locator('[data-print-report]')).toBeHidden();
   await expect(page.locator('.report-language-selector')).toBeHidden();
+  await expect(page.locator('[data-investor-report]')).not.toContainText(
+    /disposed|released assets|dilepas|tidak lagi digunakan|tidak dimiliki/i,
+  );
   await expect(report.locator('.report-heading img')).toBeVisible();
   await expect(report.locator('time')).toBeVisible();
   await expect(report.locator('[data-report-primary]')).toHaveCount(
@@ -127,6 +133,26 @@ async function savePrintPdf(
   await page.emulateMedia({ media: 'print' });
   await expect(page.locator('.admin-topbar')).toBeHidden();
   await expect(page.locator('.report-language-selector')).toBeHidden();
+  if (kind === 'assets') {
+    const notes = page.locator('[data-valuation-notes]');
+    await expect(notes).toBeVisible();
+    await expect(notes.locator('h3')).toHaveText(
+      language === 'en'
+        ? 'Data and Valuation Notes'
+        : 'Catatan Data dan Penilaian',
+    );
+    await expect(notes.locator('li')).toHaveCount(5);
+    const paragraphs = await notes.locator('p, li').allTextContents();
+    expect(new Set(paragraphs).size).toBe(7);
+    expect(
+      (await page.locator('[data-report-primary]').allTextContents()).join(' '),
+    ).not.toMatch(
+      /denominator|two decimal places|listed variants|number of individual units|penyebut|cakupan nilai jual|salah satu variannya|dua angka desimal|jumlah unit fisik/i,
+    );
+    await notes.screenshot({
+      path: `test-results/investor-assets-notes-${language}.png`,
+    });
+  }
   const pdf = await page.pdf({
     path: `test-results/investor-${kind}-${language}.pdf`,
     printBackground: true,

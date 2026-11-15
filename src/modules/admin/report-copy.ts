@@ -22,6 +22,25 @@ export const reportCopy: Record<'en' | 'id', Record<string, string>> = {
     '9–12 months': '9–12 Months',
   },
   id: {
+    'Data and Valuation Notes': 'Catatan Data dan Penilaian',
+    'This report uses inventory and asset data recorded in the LOKKA system as of the report date.':
+      'Laporan ini menggunakan data persediaan dan aset yang telah tercatat di sistem LOKKA pada tanggal laporan.',
+    'Only confirmed stock quantities and recorded costs are included in inventory valuation calculations.':
+      'Hanya stok dan biaya yang sudah dikonfirmasi yang digunakan dalam perhitungan nilai persediaan.',
+    'Missing data is not treated as zero and is excluded from calculations that require it.':
+      'Data yang belum tersedia tidak dianggap bernilai nol dan tidak dimasukkan ke dalam perhitungan yang membutuhkan data tersebut.',
+    'Inventory retail value is based on current selling prices and is presented as a commercial indicator, not as recorded asset value or guaranteed profit.':
+      'Nilai jual persediaan menggunakan harga jual saat ini dan disajikan sebagai indikator potensi penjualan, bukan sebagai nilai aset tercatat atau laba yang dijamin.',
+    'Fixed assets are presented at recorded acquisition cost. Depreciation and book value have not yet been calculated.':
+      'Aktiva tetap disajikan berdasarkan nilai perolehan yang tercatat. Penyusutan dan nilai buku belum dihitung.',
+    'Product names, asset names, and SKUs are shown as recorded so the figures can be traced back to the underlying operational data.':
+      'Nama produk, aset, dan SKU ditampilkan sesuai catatan operasional agar dapat ditelusuri kembali ke data sumber.',
+    'Where stock, cost, weight, or product media is incomplete, the limitation is disclosed as an operational readiness issue. It does not change the underlying valuation basis used in this report.':
+      'Jika terdapat data stok, biaya, berat, atau foto produk yang belum lengkap, hal tersebut akan ditampilkan sebagai bagian dari kesiapan operasional, tetapi tidak mengubah metode dasar penilaian aset pada laporan ini.',
+    'in recorded acquisition cost across': 'nilai perolehan tercatat dalam',
+    'active asset entries': 'entri aktiva tetap aktif',
+    'These figures show acquisition cost, not current market value. Appendix B lists the assets included in this report.':
+      'Angka ini menunjukkan nilai perolehan, bukan nilai pasar saat ini. Lampiran B memuat rincian aset dalam laporan ini.',
     Sale: 'Penjualan',
     'Room for margin before operating and transaction costs. This is not net profit.':
       'Ruang margin sebelum biaya operasional dan biaya transaksi. Angka ini bukan laba bersih.',
@@ -108,7 +127,6 @@ export const reportCopy: Record<'en' | 'id', Record<string, string>> = {
     ACTIVE: 'Aktif',
     DISPOSED: 'Dilepas',
     'Active acquisition value': 'Nilai perolehan aktif',
-    'Disposed excluded': 'Aset yang dilepas dikecualikan',
     'Fixed acquisition value': 'Nilai perolehan aktiva tetap',
     'Combined recorded asset value': 'Total gabungan aset tercatat',
     'Displayed asset shares use recorded asset value as denominator and are rounded to two decimal places; no share is shown for a zero denominator.':
@@ -262,8 +280,8 @@ export const reportCopy: Record<'en' | 'id', Record<string, string>> = {
     'gives recorded assets of': 'menghasilkan aset tercatat sebesar',
     '. There are': '. Terdapat',
     'incomplete inventory items.': 'item persediaan yang belum lengkap.',
-    'Inventory opportunity uses current recorded inventory; accounting profit uses historical sold-item cost snapshots. Incomplete quantity/cost rows are excluded from relevant inventory totals. Disposed assets are excluded from active fixed acquisition value. Fixed assets are not depreciated book values.':
-      'Peluang persediaan menggunakan persediaan tercatat saat ini; laba akuntansi menggunakan rekaman biaya historis item terjual. Data dengan jumlah/biaya belum lengkap dikecualikan dari total persediaan terkait. Aset yang dilepas dikecualikan dari nilai perolehan aktiva tetap aktif. Nilai aktiva tetap bukan nilai buku setelah penyusutan.',
+    'Inventory opportunity uses current recorded inventory; accounting profit uses historical sold-item cost snapshots. Incomplete quantity/cost rows are excluded from relevant inventory totals. Fixed assets are not depreciated book values.':
+      'Peluang persediaan menggunakan persediaan tercatat saat ini; laba akuntansi menggunakan rekaman biaya historis item terjual. Data dengan jumlah/biaya belum lengkap dikecualikan dari total persediaan terkait. Nilai aktiva tetap bukan nilai buku setelah penyusutan.',
     'Current qualifying evidence:': 'Bukti yang memenuhi syarat saat ini:',
     'months /': 'bulan /',
     'No qualifying projection is presented in this report instance.':
@@ -310,12 +328,10 @@ export const reportCopy: Record<'en' | 'id', Record<string, string>> = {
       'Total aset tercatat merupakan gabungan nilai persediaan berdasarkan HPP dan nilai perolehan aktiva tetap yang masih aktif. Nilai jual persediaan menunjukkan potensi penjualan dan disajikan terpisah dari nilai aset tercatat.',
     'Inventory retail value is a sales opportunity, not guaranteed revenue. Gross spread shows the room for margin before operating and selling costs; it is not net profit.':
       'Nilai jual persediaan menunjukkan peluang penjualan, bukan pendapatan yang dijamin. Selisih kotor menunjukkan ruang margin sebelum biaya operasional dan penjualan; angka ini bukan laba bersih.',
-    'Active fixed assets are shown at their recorded purchase cost. No depreciation or market valuation is applied. Disposed assets remain listed for reference but do not contribute to active asset value.':
-      'Aktiva tetap aktif disajikan berdasarkan harga perolehan tercatat. Penyusutan dan penilaian pasar belum diterapkan. Aset yang dilepas tetap ditampilkan sebagai referensi, tetapi tidak termasuk nilai aset aktif.',
     'Includes inventory that has not been archived, including products still being prepared for sale. Archived products are excluded. Product names and SKUs are shown as recorded.':
       'Mencakup persediaan yang belum diarsipkan, termasuk produk yang masih dipersiapkan untuk dijual. Produk yang diarsipkan dikecualikan. Nama produk dan SKU ditampilkan sesuai catatan.',
-    'Fixed assets are shown at recorded acquisition cost, without depreciation. These figures are not market values or depreciated book values. Disposed assets remain listed but are excluded from active totals.':
-      'Aktiva tetap disajikan berdasarkan harga perolehan tercatat, tanpa penyusutan. Angka ini bukan nilai pasar atau nilai buku setelah penyusutan. Aset yang dilepas tetap ditampilkan, tetapi dikecualikan dari total aktif.',
+    'Fixed assets are shown at recorded acquisition cost, without depreciation. These figures are not market values or depreciated book values.':
+      'Aktiva tetap disajikan berdasarkan harga perolehan tercatat, tanpa penyusutan. Angka ini bukan nilai pasar atau nilai buku setelah penyusutan.',
     'Inventory value = confirmed stock × recorded cost per unit (HPP). This is the capital represented by available inventory.':
       'Nilai persediaan = jumlah stok terkonfirmasi × HPP per unit yang tercatat. Angka ini menunjukkan modal yang tertanam pada persediaan yang tersedia.',
     'Retail value = confirmed stock × current selling price. This is a potential sales value, not guaranteed revenue.':

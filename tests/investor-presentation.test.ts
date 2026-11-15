@@ -96,6 +96,8 @@ it('renders EN and ID from one immutable report with identical figures, detail r
     true,
   );
   const before = structuredClone(report);
+  expect(report.asset.fixed).toHaveLength(20);
+  expect(report.asset.fixed.every((row) => row.status === 'ACTIVE')).toBe(true);
   for (const [template, title, primary, appendices] of [
     ['asset-report', 'Daftar Aset + Valuasi', 2, 3],
     ['plan-report', 'Rencana 12 Bulan + Prospektif', 3, 5],
@@ -117,6 +119,9 @@ it('renders EN and ID from one immutable report with identical figures, detail r
     const en = await render('en');
     const id = await render('id');
     for (const html of [en, id]) {
+      expect(html).not.toMatch(
+        /disposed|released assets|dilepas|tidak lagi digunakan|tidak dimiliki/i,
+      );
       expect(html).not.toMatch(/[\u00e2\u00c3\u00c2\ufffd]/u);
       expect(html).not.toMatch(/\{(?:retail|hpp|spread|count|revenue)\}/);
       expect(html).not.toMatch(
@@ -148,6 +153,34 @@ it('renders EN and ID from one immutable report with identical figures, detail r
       }
     }
     if (template === 'asset-report') {
+      for (const [html, language] of [
+        [en, 'en'],
+        [id, 'id'],
+      ] as const) {
+        const view = presentInvestorReport(report, language);
+        expect(html.split(view.t('Data and Valuation Notes'))).toHaveLength(2);
+        expect(
+          html.split(
+            view.t(
+              'Unconfirmed stock or cost is excluded from calculations that require it. A confirmed zero is included as zero; missing data is not treated as zero.',
+            ),
+          ),
+        ).toHaveLength(2);
+        const main = html.split('<div class="report-appendices">')[0]!;
+        expect(main).not.toMatch(
+          /denominator|two decimal places|listed variants|number of individual units|penyebut|cakupan nilai jual|salah satu variannya|dua angka desimal|jumlah unit fisik/i,
+        );
+        for (const key of [
+          'This report uses inventory and asset data recorded in the LOKKA system as of the report date.',
+          'Only confirmed stock quantities and recorded costs are included in inventory valuation calculations.',
+          'Missing data is not treated as zero and is excluded from calculations that require it.',
+          'Inventory retail value is based on current selling prices and is presented as a commercial indicator, not as recorded asset value or guaranteed profit.',
+          'Fixed assets are presented at recorded acquisition cost. Depreciation and book value have not yet been calculated.',
+          'Product names, asset names, and SKUs are shown as recorded so the figures can be traced back to the underlying operational data.',
+          'Where stock, cost, weight, or product media is incomplete, the limitation is disclosed as an operational readiness issue. It does not change the underlying valuation basis used in this report.',
+        ])
+          expect(main.split(view.t(key))).toHaveLength(2);
+      }
       expect(id).toContain('Nilai Persediaan Berdasarkan HPP');
       expect(id).toContain('Nilai Perolehan Aktiva Tetap');
       expect(id).toContain('Stok Belum Diisi');
@@ -161,6 +194,39 @@ it('renders EN and ID from one immutable report with identical figures, detail r
         'Potensi Selisih Kotor bukan merupakan laba yang dijamin.',
       );
     }
+  }
+  expect(report).toEqual(before);
+});
+it('retains actual disposed asset rows and translated statuses without generic policy copy', async () => {
+  const report = await createInvestorReports(f.db).report(new Date(), true);
+  report.asset.fixed.push({
+    ...report.asset.fixed[0]!,
+    id: 'synthetic-disposed-asset',
+    assetName: 'Synthetic retired equipment',
+    status: 'DISPOSED',
+  });
+  const before = structuredClone(report);
+  for (const language of ['en', 'id'] as const) {
+    const html = await ejs.renderFile('views/admin/asset-report.ejs', {
+      report,
+      view: presentInvestorReport(report, language),
+      formatIdr,
+    });
+    expect(html).toContain('Synthetic retired equipment');
+    expect(html).toContain(
+      `<td>${language === 'en' ? 'DISPOSED' : 'Dilepas'}</td>`,
+    );
+    expect(html.replace(/<td>(?:DISPOSED|Dilepas)<\/td>/g, '')).not.toMatch(
+      /disposed|released assets|dilepas|tidak lagi digunakan|tidak dimiliki/i,
+    );
+    expect(html).toContain('data-report-fixed>Rp40.000');
+    expect(html).toContain('data-report-combined>Rp48.400');
+    expect(
+      html
+        .split('<table class="report-fixed-table">')[1]!
+        .split('</tbody>')[0]!
+        .match(/<tr>/g),
+    ).toHaveLength(22);
   }
   expect(report).toEqual(before);
 });

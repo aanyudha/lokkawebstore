@@ -117,6 +117,11 @@ test('Fixed Assets operations and formal investor reports use canonical values i
       '6 incomplete',
     );
     await expect(report).toContainText('DISPOSED');
+    expect(
+      (await report.locator('p, li, tfoot').allTextContents()).join(' '),
+    ).not.toMatch(
+      /disposed|released assets|dilepas|tidak lagi digunakan|tidak dimiliki/i,
+    );
     await page.evaluate(() => {
       window.print = () => {
         document.documentElement.dataset.printRequested = 'true';
