@@ -19,6 +19,9 @@ import { registerAdmin } from './modules/admin/routes.js';
 import { renderAdminError } from './modules/admin/presentation.js';
 import { registerCustomer } from './modules/customer/routes.js';
 import { registerCart } from './modules/cart/routes.js';
+import { DokuProvider } from './modules/payments/doku-provider.js';
+import { registerPaymentNotifications } from './modules/payments/routes.js';
+import { createPaymentService } from './modules/payments/service.js';
 import { registerStorefrontNavigation } from './modules/storefront/navigation.js';
 import { registerPos } from './modules/pos/routes.js';
 import { renderPosError } from './modules/pos/presentation.js';
@@ -38,6 +41,7 @@ export async function buildApp(
       db?: Database['db'];
     };
     logger?: boolean;
+    paymentFetch?: typeof fetch;
   } = {},
 ) {
   const app = Fastify({
@@ -58,6 +62,7 @@ export async function buildApp(
             redact: [
               'req.headers.authorization',
               'req.headers.cookie',
+              'req.headers.signature',
               'res.headers["set-cookie"]',
             ],
             serializers: {
@@ -306,8 +311,16 @@ export async function buildApp(
       : undefined;
     // Reset asset cache after build
     resetAssets();
+    const payments =
+      database.db && env.doku
+        ? createPaymentService(
+            database.db,
+            new DokuProvider(env.doku, options.paymentFetch),
+          )
+        : undefined;
+    if (payments) await registerPaymentNotifications(app, payments);
     if (database.db) await registerCustomer(app, database.db, env);
-    if (database.db) await registerCart(app, database.db, env);
+    if (database.db) await registerCart(app, database.db, env, payments);
     if (catalog) registerStorefrontNavigation(app, catalog);
     const hero = database.db
       ? createHomepageHero(database.db, storage, () =>

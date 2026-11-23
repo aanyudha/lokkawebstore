@@ -9,6 +9,11 @@ import { createCartService } from './service.js';
 import { createOrderService } from '../orders/service.js';
 import { createCheckout } from '../checkout/service.js';
 import { createCustomerAddresses } from '../customer/addresses.js';
+import {
+  isPayableWebstoreOrder,
+  readPaymentStatus,
+  type createPaymentService,
+} from '../payments/service.js';
 
 export const shopPaths = {
   en: {
@@ -32,6 +37,7 @@ export async function registerCart(
   app: FastifyInstance,
   db: Database['db'],
   env: AppEnv,
+  payments?: Pick<ReturnType<typeof createPaymentService>, 'createPayment'>,
 ) {
   const cart = createCartService(db);
   const orders = createOrderService(db);
@@ -58,11 +64,19 @@ export async function registerCart(
           request.cookies.lokka_customer_csrf,
           request.customerIdentity.session.csrfTokenHash,
         )
-      )
+      ) {
+        const paymentReturn =
+          request.method === 'GET' &&
+          request.routeOptions.url ===
+            `${shopPaths[locale].orders}/:orderNumber/payment/return`;
+        const target = paymentReturn
+          ? `${shopPaths[locale].orders}/${encodeURIComponent((request.params as { orderNumber: string }).orderNumber)}/payment/return`
+          : shopPaths[locale].cart;
         return reply.redirect(
-          `${shopPaths[locale].login}?returnTo=${encodeURIComponent(shopPaths[locale].cart)}`,
+          `${shopPaths[locale].login}?returnTo=${encodeURIComponent(target)}`,
           303,
         );
+      }
     });
     secure.addHook('preHandler', async (request, reply) => {
       if (
@@ -221,16 +235,90 @@ export async function registerCart(
           orders: await orders.list(request.customerIdentity!.customer.id),
         }),
       );
-      secure.get(`${paths.orders}/:orderNumber`, async (request, reply) => {
+      const renderOrder = async (
+        request: FastifyRequest,
+        reply: FastifyReply,
+        returning = false,
+        error: string | null = null,
+      ) => {
         const orderNumber = (request.params as { orderNumber: string })
           .orderNumber;
-        const order = await orders.get(
+        let order = await orders.get(
           request.customerIdentity!.customer.id,
           orderNumber,
         );
         if (!order) return reply.callNotFound();
-        return render(request, reply, 'order', { order }, `/${orderNumber}`);
-      });
+        const stored = await readPaymentStatus(db, order.id);
+        // The notification can commit between the order and attempt reads.
+        if (stored?.status === 'PAID' && order.status === 'PENDING_PAYMENT') {
+          order = await orders.get(customerId(request), orderNumber);
+          if (!order) return reply.callNotFound();
+        }
+        const payment = stored && {
+          status: stored.status,
+          provider: stored.provider,
+          amount: stored.amount,
+          createdAt: stored.createdAt,
+          paidAt: stored.paidAt,
+        };
+        return render(
+          request,
+          reply,
+          'order',
+          {
+            order,
+            payment,
+            returning,
+            error,
+            canPay: Boolean(payments) && isPayableWebstoreOrder(order),
+          },
+          `/${orderNumber}`,
+        );
+      };
+      secure.get(`${paths.orders}/:orderNumber`, (request, reply) =>
+        renderOrder(request, reply),
+      );
+      secure.get(
+        `${paths.orders}/:orderNumber/payment/return`,
+        (request, reply) => renderOrder(request, reply, true),
+      );
+      if (payments) {
+        secure.post(
+          `${paths.orders}/:orderNumber/payment`,
+          async (request, reply) => {
+            const { orderNumber } = request.params as { orderNumber: string };
+            const orderPath = `${paths.orders}/${encodeURIComponent(orderNumber)}`;
+            const result = await payments.createPayment({
+              customerId: customerId(request),
+              orderNumber,
+              locale,
+              returnUrl: new URL(orderPath + '/payment/return', env.appUrl)
+                .href,
+            });
+            if (result.status === 'missing') return reply.callNotFound();
+            if (result.status === 'redirect') {
+              reply.header('Referrer-Policy', 'no-referrer');
+              return render(
+                request,
+                reply,
+                'order-redirect',
+                {
+                  checkoutUrl: result.checkoutUrl,
+                },
+                `/${orderNumber}`,
+              );
+            }
+            if (result.status === 'ineligible')
+              return renderOrder(
+                request,
+                reply.code(422),
+                false,
+                'shop.error.paymentUnavailable',
+              );
+            return reply.redirect(orderPath, 303);
+          },
+        );
+      }
       secure.post(
         `${paths.orders}/:orderNumber/cancel`,
         async (request, reply) => {

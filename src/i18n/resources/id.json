@@ -190,7 +190,8 @@
     "status": {
       "PENDING_PAYMENT": "Menunggu pembayaran",
       "CANCELLED": "Dibatalkan",
-      "COMPLETED": "Selesai"
+      "COMPLETED": "Selesai",
+      "PAID": "Sudah dibayar"
     },
     "error": {
       "quantity": "Jumlah harus berupa bilangan bulat positif dalam rentang yang didukung.",
@@ -208,7 +209,8 @@
       "shipping": "Pilih metode pengiriman yang tersedia.",
       "noShipping": "Pengiriman sedang tidak tersedia. Silakan coba lagi nanti.",
       "weight": "Ada produk yang belum memiliki berat pengiriman. Perbarui keranjang untuk melanjutkan.",
-      "reviewChanged": "Rincian pesanan berubah. Tinjau kembali sebelum membuat pesanan."
+      "reviewChanged": "Rincian pesanan berubah. Tinjau kembali sebelum membuat pesanan.",
+      "paymentUnavailable": "Pesanan ini belum dapat dibayar."
     },
     "checkout": "Selesaikan pesanan",
     "shippingAddress": "Alamat pengiriman",
@@ -233,6 +235,25 @@
       "city": "Kota atau kabupaten",
       "province": "Provinsi",
       "postalCode": "Kode pos"
-    }
+    },
+    "paymentProcessing": "Konfirmasi pembayaran sedang diproses.",
+    "paymentRefresh": "Perbarui status pembayaran",
+    "paymentProvider": "Penyedia",
+    "paymentAmount": "Jumlah",
+    "paymentInitiated": "Pembayaran dimulai",
+    "paymentConfirmedAt": "Waktu konfirmasi pembayaran",
+    "paymentStatus": {
+      "CREATED": "Menunggu pembayaran",
+      "PENDING": "Menunggu pembayaran",
+      "PAID": "Pembayaran berhasil",
+      "FAILED": "Pembayaran gagal",
+      "EXPIRED": "Pembayaran kedaluwarsa",
+      "CANCELLED": "Pembayaran dibatalkan",
+      "REVIEW": "Pembayaran sedang diperiksa"
+    },
+    "payment": "Pembayaran",
+    "paymentStart": "Bayar dengan DOKU",
+    "paymentContinue": "Lanjut ke pembayaran",
+    "paymentRetry": "Coba bayar lagi"
   }
 }

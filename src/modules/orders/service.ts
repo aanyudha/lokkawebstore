@@ -6,6 +6,7 @@ import {
   orderCounters,
   orderItems,
   orders,
+  paymentAttempts,
   type ShippingAddressSnapshot,
   type ShippingMethodSnapshot,
 } from '../../db/schema/index.js';
@@ -171,23 +172,52 @@ export function createOrderService(db: Database['db']) {
     };
   }
   async function cancel(customerId: string, orderNumber: string) {
-    // Conditional write is safe for concurrent cancellations; no completion API in E1.
-    const [order] = await db
-      .update(orders)
-      .set({ status: 'CANCELLED', updatedAt: new Date() })
-      .where(
-        and(
-          eq(orders.customerId, customerId),
-          eq(orders.orderNumber, orderNumber),
-          eq(orders.status, 'PENDING_PAYMENT'),
-        ),
-      )
-      .returning();
-    if (!order) {
-      const prior = await get(customerId, orderNumber);
-      if (!prior || prior.status !== 'CANCELLED')
+    await db.transaction(async (tx) => {
+      const [order] = await tx
+        .select()
+        .from(orders)
+        .where(
+          and(
+            eq(orders.customerId, customerId),
+            eq(orders.orderNumber, orderNumber),
+          ),
+        )
+        .for('update');
+      if (order?.status === 'CANCELLED') return;
+      if (order?.status !== 'PENDING_PAYMENT')
         throw new FormError('order', 'shop.error.cancel');
-    }
+      const now = new Date();
+      const attempts = await tx
+        .select()
+        .from(paymentAttempts)
+        .where(
+          and(
+            eq(paymentAttempts.orderId, order.id),
+            inArray(paymentAttempts.status, ['CREATED', 'PENDING', 'REVIEW']),
+          ),
+        )
+        .for('update');
+      for (const attempt of attempts) {
+        if (
+          attempt.status !== 'PENDING' ||
+          !attempt.expiresAt ||
+          attempt.expiresAt > now
+        )
+          throw new FormError('order', 'shop.error.cancel');
+        await tx
+          .update(paymentAttempts)
+          .set({
+            status: 'EXPIRED',
+            expiredAt: attempt.expiresAt,
+            updatedAt: now,
+          })
+          .where(eq(paymentAttempts.id, attempt.id));
+      }
+      await tx
+        .update(orders)
+        .set({ status: 'CANCELLED', updatedAt: now })
+        .where(eq(orders.id, order.id));
+    });
   }
   return { create, list, get, cancel };
 }

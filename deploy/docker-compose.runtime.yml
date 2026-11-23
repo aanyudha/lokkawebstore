@@ -42,6 +42,11 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOW_STOCK_THRESHOLD: ${LOW_STOCK_THRESHOLD:-5}
       CATALOG_STORAGE_ROOT: ${CATALOG_STORAGE_ROOT:-storage/uploads/catalog}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-disabled}
+      DOKU_ENV: ${DOKU_ENV:-sandbox}
+      DOKU_CLIENT_ID: ${DOKU_CLIENT_ID:-}
+      DOKU_SECRET_KEY: ${DOKU_SECRET_KEY:-}
+      DOKU_NOTIFICATION_URL: ${DOKU_NOTIFICATION_URL:-}
     ports:
       - '${PORT:-3000}:${PORT:-3000}'
     depends_on:

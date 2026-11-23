@@ -3,6 +3,12 @@ import './styles/main.css';
 // Asset readiness marker
 document.documentElement.dataset.assets = 'ready';
 
+// Navigate separately from the same-origin payment form submission.
+const paymentRedirect = document.querySelector<HTMLAnchorElement>(
+  '[data-payment-redirect]',
+);
+if (paymentRedirect) window.location.replace(paymentRedirect.href);
+
 // Keep the existing logo fallback compatible with the strict CSP.
 document
   .querySelectorAll<HTMLImageElement>('.site-header .brand-logo, .account-logo')

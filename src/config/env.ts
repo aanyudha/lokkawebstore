@@ -1,3 +1,5 @@
+import { readDokuConfig } from '../modules/payments/config.js';
+
 export function resolveDatabaseUrl(
   appRuntime: 'fastify' | 'docker',
   source: NodeJS.ProcessEnv,
@@ -85,6 +87,14 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
       );
     }
   }
+  const databaseUrl = resolveDatabaseUrl(appRuntime, source);
+  const appUrl = url('APP_URL', ['http:', 'https:']);
+  const doku = readDokuConfig(source);
+  if (
+    doku?.environment === 'production' &&
+    new URL(appUrl).protocol !== 'https:'
+  )
+    throw new Error('DOKU production requires an HTTPS APP_URL');
   return {
     nodeEnv,
     appRuntime,
@@ -96,8 +106,9 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
     logLevel,
     trustProxy: trustProxy === 'true',
     developmentOrigins,
-    databaseUrl: resolveDatabaseUrl(appRuntime, source),
-    appUrl: url('APP_URL', ['http:', 'https:']),
+    databaseUrl,
+    appUrl,
+    doku,
   };
 }
 export type AppEnv = ReturnType<typeof readEnv>;

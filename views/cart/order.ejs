@@ -20,7 +20,40 @@
     <p><%= t('shop.shipping') %>: <%= t('shop.shippingLater') %></p>
     <p class="detail-price"><%= t('shop.grandTotal') %>: <%= formatIdr(order.grandTotal) %></p>
   <% } %>
-  <% if (order.status === 'PENDING_PAYMENT') { %>
+  <% const orderPath = paths.orders + '/' + order.orderNumber;
+     const processing = order.status === 'PENDING_PAYMENT' &&
+       (payment?.status === 'CREATED' || (returning && (!payment || payment.status === 'PENDING')));
+     const retry = payment && ['FAILED', 'EXPIRED', 'CANCELLED'].includes(payment.status);
+     const openAttempt = payment && ['CREATED', 'PENDING', 'REVIEW'].includes(payment.status); %>
+  <% if (error) { %><p class="account-error" role="alert"><%= t(error) %></p><% } %>
+  <% if (payment || canPay || returning) { %>
+    <% const localTime = (date) => date.toLocaleString(locale === 'id' ? 'id-ID' : 'en-GB', { timeZone: 'Asia/Jakarta' }) + ' WIB'; %>
+    <section aria-labelledby="order-payment">
+      <h2 id="order-payment"><%= t('shop.payment') %></h2>
+      <p data-payment-status><%= t(payment ? 'shop.paymentStatus.' + payment.status : 'shop.status.' + order.status) %></p>
+      <dl>
+        <dt><%= t('shop.paymentProvider') %></dt><dd><%= payment?.provider || 'DOKU' %></dd>
+        <dt><%= t('shop.paymentAmount') %></dt><dd><%= formatIdr(payment?.amount ?? order.grandTotal) %></dd>
+        <% if (payment) { %>
+          <dt><%= t('shop.paymentInitiated') %></dt><dd><time datetime="<%= payment.createdAt.toISOString() %>"><%= localTime(payment.createdAt) %></time></dd>
+          <% if (payment.status === 'PAID' && payment.paidAt) { %>
+            <dt><%= t('shop.paymentConfirmedAt') %></dt><dd><time datetime="<%= payment.paidAt.toISOString() %>"><%= localTime(payment.paidAt) %></time></dd>
+          <% } %>
+        <% } %>
+      </dl>
+      <% if (processing) { %>
+        <p role="status"><%= t('shop.paymentProcessing') %></p>
+        <p><a href="<%= orderPath %>/payment/return"><%= t('shop.paymentRefresh') %></a></p>
+      <% } %>
+      <% if (canPay && (!payment || retry || payment.status === 'PENDING')) { %>
+        <form method="post" action="<%= orderPath %>/payment">
+          <input type="hidden" name="csrf" value="<%= csrf %>" />
+          <button class="btn btn-primary" type="submit"><%= t(retry ? 'shop.paymentRetry' : payment ? 'shop.paymentContinue' : 'shop.paymentStart') %></button>
+        </form>
+      <% } %>
+    </section>
+  <% } %>
+  <% if (order.status === 'PENDING_PAYMENT' && !openAttempt) { %>
     <form method="post" action="<%= paths.orders %>/<%= order.orderNumber %>/cancel">
       <input type="hidden" name="csrf" value="<%= csrf %>" />
       <button class="btn btn-secondary" type="submit"><%= t('shop.cancel') %></button>

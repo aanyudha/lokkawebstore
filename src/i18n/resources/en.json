@@ -190,7 +190,8 @@
     "status": {
       "PENDING_PAYMENT": "Pending payment",
       "CANCELLED": "Cancelled",
-      "COMPLETED": "Completed"
+      "COMPLETED": "Completed",
+      "PAID": "Paid"
     },
     "error": {
       "quantity": "Quantity must be a positive whole number within the supported range.",
@@ -208,7 +209,8 @@
       "shipping": "Choose an available shipping method.",
       "noShipping": "Shipping is currently unavailable. Please try again later.",
       "weight": "A product is missing its shipping weight. Update your cart to continue.",
-      "reviewChanged": "Order details changed. Review the updated checkout before placing your order."
+      "reviewChanged": "Order details changed. Review the updated checkout before placing your order.",
+      "paymentUnavailable": "This order is currently unavailable for payment."
     },
     "checkout": "Checkout",
     "shippingAddress": "Shipping address",
@@ -233,6 +235,25 @@
       "city": "City or regency",
       "province": "Province",
       "postalCode": "Postal code"
-    }
+    },
+    "paymentProcessing": "Payment confirmation is being processed.",
+    "paymentRefresh": "Refresh payment status",
+    "paymentProvider": "Provider",
+    "paymentAmount": "Amount",
+    "paymentInitiated": "Payment initiated",
+    "paymentConfirmedAt": "Payment confirmed at",
+    "paymentStatus": {
+      "CREATED": "Payment pending",
+      "PENDING": "Payment pending",
+      "PAID": "Payment confirmed",
+      "FAILED": "Payment failed",
+      "EXPIRED": "Payment expired",
+      "CANCELLED": "Payment cancelled",
+      "REVIEW": "Payment under review"
+    },
+    "payment": "Payment",
+    "paymentStart": "Pay with DOKU",
+    "paymentContinue": "Continue to payment",
+    "paymentRetry": "Retry payment"
   }
 }
