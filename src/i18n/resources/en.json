@@ -188,12 +188,29 @@
     "payment": "Payment",
     "shipping": "Shipping",
     "paymentPending": "Not configured. No payment recorded.",
+    "paymentProcessing": "Payment confirmation is being processed.",
+    "paymentRefresh": "Refresh payment status",
+    "paymentProvider": "Provider",
+    "paymentAmount": "Amount",
+    "paymentInitiated": "Payment initiated",
+    "paymentConfirmedAt": "Payment confirmed at",
+    "paymentOrderTotal": "Grand total",
+    "paymentStatus": {
+      "CREATED": "Payment pending",
+      "PENDING": "Payment pending",
+      "PAID": "Payment confirmed",
+      "FAILED": "Payment failed",
+      "EXPIRED": "Payment expired",
+      "CANCELLED": "Payment cancelled",
+      "REVIEW": "Payment under review"
+    },
     "cancel": "Cancel order",
     "loginRequired": "Sign in is required to add items to your cart.",
     "status": {
       "PENDING_PAYMENT": "Pending payment",
       "CANCELLED": "Cancelled",
-      "COMPLETED": "Completed"
+      "COMPLETED": "Completed",
+      "PAID": "Paid"
     },
     "error": {
       "quantity": "Quantity must be a positive whole number within the supported range.",

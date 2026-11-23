@@ -42,6 +42,7 @@ export const MANUAL_CATEGORIES_BY_DIRECTION = {
 export const INCOME_CATEGORIES = MANUAL_CATEGORIES_BY_DIRECTION.INCOME;
 export const EXPENSE_CATEGORIES = MANUAL_CATEGORIES_BY_DIRECTION.EXPENSE;
 export const CATEGORY_LABELS: Record<string, string> = {
+  WEBSTORE_ORDER: 'Webstore order payment',
   PRODUCT_SALES: 'Product sales',
   OTHER_INCOME: 'Other income',
   PACKAGING: 'Packaging',
@@ -495,6 +496,7 @@ export async function insertSaleIncome(
     // Only automated sale sources may carry a sale reference; manual rows
     // never do (enforced by financial_transactions_sale_reference).
     source: 'POS' | 'WEBSTORE' | 'MARKETPLACE';
+    category?: 'PRODUCT_SALES' | 'WEBSTORE_ORDER';
     amountRupiah: bigint;
     occurredAt: Date;
     notes?: string;
@@ -507,7 +509,7 @@ export async function insertSaleIncome(
       source: input.source,
       direction: 'INCOME',
       type: 'REVENUE',
-      category: 'PRODUCT_SALES',
+      category: input.category ?? 'PRODUCT_SALES',
       amountRupiah: input.amountRupiah,
       occurredAt: input.occurredAt,
       periodMonth: periodMonthOf(input.occurredAt),

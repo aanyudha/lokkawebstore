@@ -13,6 +13,10 @@
 <% if (report.cogs === null) { %><p role="status" data-incomplete-cost>Historical cost is incomplete: <%= report.missingItemCount %> sold lines without a cost snapshot and <%= report.missingSaleCount %> sales without items. HPP and profit are unavailable for this period. Current catalog costs are never used to fill historical gaps.</p><% } %>
 <dl class="commercial-totals">
 <dt>Revenue</dt><dd data-accounting-revenue><%= formatIdr(report.revenue) %></dd>
+<% if (report.shippingCharged > 0n) { %>
+<dt>Merchandise revenue after discounts</dt><dd><%= formatIdr(report.merchandiseRevenue) %></dd>
+<dt>Shipping charged</dt><dd><%= formatIdr(report.shippingCharged) %></dd>
+<% } %>
 <dt>COGS / HPP</dt><dd data-accounting-cogs><%= report.cogs === null ? 'Unavailable — missing historical cost' : formatIdr(report.cogs) %></dd>
 <dt>Gross Profit</dt><dd data-accounting-gross><%= report.grossProfit === null ? 'Unavailable — missing historical cost' : formatIdr(report.grossProfit) %></dd>
 <dt>Operating Expenses</dt><dd data-accounting-expenses><%= formatIdr(report.operatingExpenses) %></dd>

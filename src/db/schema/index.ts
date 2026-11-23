@@ -55,7 +55,89 @@ export const webOrderStatus = pgEnum('web_order_status', [
   'PENDING_PAYMENT',
   'CANCELLED',
   'COMPLETED',
+  'PAID',
 ]);
+export const webPaymentStatus = pgEnum('web_payment_status', [
+  'CREATED',
+  'PENDING',
+  'PAID',
+  'FAILED',
+  'EXPIRED',
+  'CANCELLED',
+  'REVIEW',
+]);
+export const paymentAttempts = pgTable(
+  'payment_attempts',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orders.id),
+    provider: text('provider').notNull(),
+    invoice: text('merchant_invoice_number').notNull(),
+    sequence: integer('sequence').notNull(),
+    requestId: text('request_id').notNull(),
+    providerReference: text('provider_reference'),
+    amount: bigint('amount', { mode: 'bigint' }).notNull(),
+    currency: text('currency').notNull(),
+    status: webPaymentStatus('status').default('CREATED').notNull(),
+    checkoutUrl: text('checkout_url'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    failedAt: timestamp('failed_at', { withTimezone: true }),
+    expiredAt: timestamp('expired_at', { withTimezone: true }),
+    ...timestamps(),
+  },
+  (t) => [
+    uniqueIndex('payment_attempts_provider_invoice_uidx').on(
+      t.provider,
+      t.invoice,
+    ),
+    uniqueIndex('payment_attempts_provider_request_uidx').on(
+      t.provider,
+      t.requestId,
+    ),
+    uniqueIndex('payment_attempts_order_sequence_uidx').on(
+      t.orderId,
+      t.sequence,
+    ),
+    uniqueIndex('payment_attempts_order_active_uidx')
+      .on(t.orderId)
+      .where(sql`${t.status} IN ('CREATED', 'PENDING')`),
+    uniqueIndex('payment_attempts_order_paid_uidx')
+      .on(t.orderId)
+      .where(sql`${t.status} = 'PAID'`),
+    check(
+      'payment_attempt_money_valid',
+      sql`${t.amount} > 0 AND ${t.currency} = 'IDR'`,
+    ),
+  ],
+);
+export const paymentNotifications = pgTable(
+  'payment_notifications',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    provider: text('provider').notNull(),
+    eventId: text('event_id').notNull(),
+    attemptId: uuid('attempt_id').references(() => paymentAttempts.id),
+    invoice: text('merchant_invoice_number').notNull(),
+    originalRequestId: text('original_request_id').notNull(),
+    requestTimestamp: timestamp('request_timestamp', {
+      withTimezone: true,
+    }).notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+    amount: bigint('amount', { mode: 'bigint' }).notNull(),
+    currency: text('currency'),
+    outcome: text('outcome').notNull(),
+    providerStatus: text('provider_status').notNull(),
+    result: text('result').notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    uniqueIndex('payment_notifications_event_uidx').on(t.provider, t.eventId),
+    index('payment_notifications_attempt_idx').on(t.attemptId),
+  ],
+);
 export const orderCounters = pgTable('order_counters', {
   date: date('date').primaryKey(),
   nextSequence: integer('next_sequence').notNull(),
@@ -164,6 +246,7 @@ export const financeDirection = pgEnum('finance_direction', [
 ]);
 export const financeStatus = pgEnum('finance_status', ['POSTED', 'VOIDED']);
 export const financeCategory = pgEnum('finance_category', [
+  'WEBSTORE_ORDER',
   'PRODUCT_SALES',
   'OTHER_INCOME',
   'PACKAGING',
@@ -791,9 +874,15 @@ export const sales = pgTable(
     transactionNumber: text('transaction_number').notNull().unique(),
     source: saleSource('source').notNull(),
     status: saleStatus('status').default('pending').notNull(),
+    orderId: uuid('order_id')
+      .unique()
+      .references(() => orders.id),
     customerId: uuid('customer_id').references(() => customers.id),
     cashierId: uuid('cashier_id').references(() => adminUsers.id),
     subtotal: bigint('subtotal', { mode: 'bigint' }).notNull(),
+    shippingAmount: bigint('shipping_amount', { mode: 'bigint' })
+      .default(sql`0`)
+      .notNull(),
     discountAmount: bigint('discount_amount', { mode: 'bigint' })
       .default(sql`0`)
       .notNull(),

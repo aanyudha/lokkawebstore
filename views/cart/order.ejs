@@ -2,8 +2,7 @@
   <h1><%= order.orderNumber %></h1>
   <p><time datetime="<%= order.createdAt.toISOString() %>"><%= order.createdAt.toLocaleString(locale === 'id' ? 'id-ID' : 'en-GB', { timeZone: 'Asia/Jakarta' }) %> WIB</time></p>
   <p data-order-status><%= t('shop.status.' + order.status) %></p>
-  <p><%= t('shop.payment') %>: <%= t('shop.paymentPending') %></p>
-  <p><%= t('shop.shipping') %>: <%= t('shop.shippingLater') %></p>
+  <% if (!payment) { %><p><%= t('shop.payment') %>: <%= t('shop.paymentPending') %></p><% } %>
   <div class="shop-table-wrap" tabindex="0" role="region" aria-label="<%= t('shop.orders') %>">
     <table class="shop-table">
       <thead><tr><th scope="col"><%= t('shop.product') %></th><th scope="col"><%= t('shop.unitPrice') %></th><th scope="col"><%= t('shop.quantity') %></th><th scope="col"><%= t('shop.lineTotal') %></th></tr></thead>
@@ -13,9 +12,28 @@
     </table>
   </div>
   <p><%= t('shop.subtotal') %>: <%= formatIdr(order.subtotal) %></p>
-  <p><%= t('shop.shipping') %>: <%= t('shop.shippingLater') %></p>
-  <p class="detail-price"><%= t('shop.grandTotal') %>: <%= formatIdr(order.grandTotal) %></p>
-  <% if (order.status === 'PENDING_PAYMENT') { %>
+  <p><%= t('shop.shipping') %>: <%= payment ? formatIdr(order.shippingAmount) : t('shop.shippingLater') %></p>
+  <p class="detail-price"><%= t(payment ? 'shop.paymentOrderTotal' : 'shop.grandTotal') %>: <%= formatIdr(order.grandTotal) %></p>
+  <% if (payment) { %>
+    <% const localTime = (date) => date.toLocaleString(locale === 'id' ? 'id-ID' : 'en-GB', { timeZone: 'Asia/Jakarta' }) + ' WIB'; %>
+    <section aria-labelledby="order-payment">
+      <h2 id="order-payment"><%= t('shop.payment') %></h2>
+      <p data-payment-status><%= t('shop.paymentStatus.' + payment.status) %></p>
+      <dl>
+        <dt><%= t('shop.paymentProvider') %></dt><dd><%= payment.provider %></dd>
+        <dt><%= t('shop.paymentAmount') %></dt><dd><%= formatIdr(payment.amount) %></dd>
+        <dt><%= t('shop.paymentInitiated') %></dt><dd><time datetime="<%= payment.createdAt.toISOString() %>"><%= localTime(payment.createdAt) %></time></dd>
+        <% if (payment.status === 'PAID' && payment.paidAt) { %>
+          <dt><%= t('shop.paymentConfirmedAt') %></dt><dd><time datetime="<%= payment.paidAt.toISOString() %>"><%= localTime(payment.paidAt) %></time></dd>
+        <% } %>
+      </dl>
+    </section>
+  <% } %>
+  <% if (returning && order.status === 'PENDING_PAYMENT' && (!payment || ['CREATED', 'PENDING'].includes(payment.status))) { %>
+    <p role="status"><%= t('shop.paymentProcessing') %></p>
+    <p><a href="<%= paths.orders %>/<%= order.orderNumber %>/payment/return"><%= t('shop.paymentRefresh') %></a></p>
+  <% } %>
+  <% if (order.status === 'PENDING_PAYMENT' && (!payment || ['EXPIRED', 'FAILED', 'CANCELLED'].includes(payment.status))) { %>
     <form method="post" action="<%= paths.orders %>/<%= order.orderNumber %>/cancel">
       <input type="hidden" name="csrf" value="<%= csrf %>" />
       <button class="btn btn-secondary" type="submit"><%= t('shop.cancel') %></button>

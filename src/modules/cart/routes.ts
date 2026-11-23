@@ -7,6 +7,7 @@ import { tokenMatches } from '../auth/service.js';
 import { FormError, formatIdr, type Form } from '../catalog/validation.js';
 import { createCartService } from './service.js';
 import { createOrderService } from '../orders/service.js';
+import type { createPaymentService } from '../payments/service.js';
 
 export const shopPaths = {
   en: {
@@ -30,6 +31,7 @@ export async function registerCart(
   app: FastifyInstance,
   db: Database['db'],
   env: AppEnv,
+  payments?: Pick<ReturnType<typeof createPaymentService>, 'status'>,
 ) {
   const cart = createCartService(db);
   const orders = createOrderService(db);
@@ -181,7 +183,11 @@ export async function registerCart(
           orders: await orders.list(request.customerIdentity!.customer.id),
         }),
       );
-      secure.get(`${paths.orders}/:orderNumber`, async (request, reply) => {
+      const renderOrder = async (
+        request: FastifyRequest,
+        reply: FastifyReply,
+        returning = false,
+      ) => {
         const orderNumber = (request.params as { orderNumber: string })
           .orderNumber;
         const order = await orders.get(
@@ -189,8 +195,24 @@ export async function registerCart(
           orderNumber,
         );
         if (!order) return reply.callNotFound();
-        return render(request, reply, 'order', { order }, `/${orderNumber}`);
-      });
+        const payment = await payments?.status(order.id);
+        return render(
+          request,
+          reply,
+          'order',
+          { order, payment, returning },
+          `/${orderNumber}`,
+        );
+      };
+      secure.get(`${paths.orders}/:orderNumber`, (request, reply) =>
+        renderOrder(request, reply),
+      );
+      if (payments) {
+        secure.get(
+          `${paths.orders}/:orderNumber/payment/return`,
+          (request, reply) => renderOrder(request, reply, true),
+        );
+      }
       secure.post(
         `${paths.orders}/:orderNumber/cancel`,
         async (request, reply) => {

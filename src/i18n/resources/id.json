@@ -188,12 +188,29 @@
     "payment": "Pembayaran",
     "shipping": "Pengiriman",
     "paymentPending": "Belum dikonfigurasi. Belum ada pembayaran tercatat.",
+    "paymentProcessing": "Konfirmasi pembayaran sedang diproses.",
+    "paymentRefresh": "Perbarui status pembayaran",
+    "paymentProvider": "Penyedia",
+    "paymentAmount": "Jumlah",
+    "paymentInitiated": "Pembayaran dimulai",
+    "paymentConfirmedAt": "Waktu konfirmasi pembayaran",
+    "paymentOrderTotal": "Total pesanan",
+    "paymentStatus": {
+      "CREATED": "Menunggu pembayaran",
+      "PENDING": "Menunggu pembayaran",
+      "PAID": "Pembayaran berhasil",
+      "FAILED": "Pembayaran gagal",
+      "EXPIRED": "Pembayaran kedaluwarsa",
+      "CANCELLED": "Pembayaran dibatalkan",
+      "REVIEW": "Pembayaran sedang diperiksa"
+    },
     "cancel": "Batalkan pesanan",
     "loginRequired": "Masuk diperlukan untuk menambahkan item ke keranjang.",
     "status": {
       "PENDING_PAYMENT": "Menunggu pembayaran",
       "CANCELLED": "Dibatalkan",
-      "COMPLETED": "Selesai"
+      "COMPLETED": "Selesai",
+      "PAID": "Sudah dibayar"
     },
     "error": {
       "quantity": "Jumlah harus berupa bilangan bulat positif dalam rentang yang didukung.",
