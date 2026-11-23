@@ -1,0 +1,25 @@
+<form method="post" action="<%= paths.cart %>/review/addresses<%= addressId ? '/' + addressId : '' %>" class="form-stack">
+  <input type="hidden" name="csrf" value="<%= csrf %>" />
+  <% const fields = [
+    ['label', 80, '', false],
+    ['recipientName', 150, 'shipping name', true],
+    ['phone', 30, 'shipping tel', true],
+    ['addressLine1', 300, 'shipping address-line1', true],
+    ['addressLine2', 300, 'shipping address-line2', false],
+    ['subdistrict', 120, '', false],
+    ['district', 120, 'shipping address-level3', false],
+    ['city', 120, 'shipping address-level2', true],
+    ['province', 120, 'shipping address-level1', true],
+    ['postalCode', 5, 'shipping postal-code', true],
+  ]; %>
+  <% for (const [name, maxlength, autocomplete, required] of fields) { %>
+    <label><%= t('shop.addressFields.' + name) %>
+      <input name="<%= name %>" type="<%= name === 'phone' ? 'tel' : 'text' %>" maxlength="<%= maxlength %>"
+        value="<%= typeof values[name] === 'string' ? values[name] : '' %>" <%= required ? 'required' : '' %>
+        <% if (autocomplete) { %>autocomplete="<%= autocomplete %>"<% } %>
+        <% if (name === 'postalCode') { %>inputmode="numeric" pattern="[0-9]{5}"<% } %> />
+    </label>
+  <% } %>
+  <label class="check-label"><input type="checkbox" name="isDefault" <%= values.isDefault ? 'checked' : '' %> /> <%= t('shop.defaultAddress') %></label>
+  <button class="btn btn-secondary" type="submit"><%= t('shop.saveAddress') %></button>
+</form>

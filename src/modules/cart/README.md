@@ -14,7 +14,9 @@ and cannot authorize a purchase; only the order service creates snapshots.
 
 EN routes: `/cart`, `/cart/items`, `/cart/items/:id/update`,
 `/cart/items/:id/remove`, `/cart/review`, `/cart/orders`.
-ID equivalents use `/id/keranjang`. GETs render pages; mutations use POST.
+ID equivalents use `/id/keranjang`. The review page links the cart to delivery
+selection and order review. See the [checkout contract](../checkout/README.md).
+GETs render pages. Mutations use POST.
 Customer DB sessions, session-bound CSRF and the global origin policy protect
 mutations. Admin/POS cookies do not provide customer identity.
 

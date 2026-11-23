@@ -164,6 +164,20 @@ test('commercial admin workflows and responsive visual review', async ({
     await expect(
       page.getByText('Browser test origin · Default', { exact: true }),
     ).toBeVisible();
+    const shipping = page.getByRole('region', {
+      name: 'Checkout shipping methods',
+    });
+    await shipping.getByLabel('Method code', { exact: true }).fill('LOCAL');
+    await shipping
+      .getByLabel('Method name', { exact: true })
+      .fill('Local delivery');
+    await shipping.getByLabel('Flat rate (Rp)', { exact: true }).fill('25000');
+    await shipping
+      .getByRole('button', { name: 'Save shipping method', exact: true })
+      .click();
+    await expect(
+      shipping.getByText('Local delivery · LOCAL', { exact: true }),
+    ).toBeVisible();
     await page.goto(`${env.appUrl}/admin/finance/overhead`);
     const recovery = page.locator(`form[action$="/${period.id}/recovery"]`);
     await recovery.getByLabel('Amount (whole Rupiah; signed)').fill('100000');

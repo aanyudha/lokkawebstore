@@ -12,8 +12,15 @@ import {
   sales,
 } from '../../src/db/schema/index.js';
 import { createOrderService } from '../../src/modules/orders/service.js';
+import { createCustomerAddresses } from '../../src/modules/customer/addresses.js';
+import { createShippingMethods } from '../../src/modules/shipping/methods.js';
+import {
+  configureCheckoutShipping,
+  sampleAddress,
+} from '../helpers/checkout-fixture.js';
+import { resolvePeriod } from '../../src/modules/finance/ledger.js';
 
-test('Demo Shirt cart to pending order, immutable history, cancellation and EN/ID in a disposable DB', async ({
+test('cart, delivery selection and review create an immutable unpaid order in EN and ID', async ({
   page,
 }) => {
   test.setTimeout(120000);
@@ -40,6 +47,7 @@ test('Demo Shirt cart to pending order, immutable history, cancellation and EN/I
       bad.push(`${response.status()} ${response.url()}`);
   });
   try {
+    const method = await configureCheckoutShipping(f.db, f.catalog);
     await f.catalog.saveProduct(
       {
         name: 'Demo Shirt',
@@ -117,7 +125,7 @@ test('Demo Shirt cart to pending order, immutable history, cancellation and EN/I
     );
     await page.getByRole('button', { name: 'Remove', exact: true }).click();
     await expect(
-      page.getByRole('link', { name: 'Review order', exact: true }),
+      page.getByRole('link', { name: 'Checkout', exact: true }),
     ).toHaveCount(0);
     await expect(page.getByText('Your cart is empty.')).toBeVisible();
     await page.goto(`${base}/product/demo-shirt`);
@@ -139,28 +147,100 @@ test('Demo Shirt cart to pending order, immutable history, cancellation and EN/I
       ),
     ).toBe(true);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.getByRole('link', { name: 'Review order', exact: true }).click();
-    await expect(page.getByText('Shipping', { exact: true })).toHaveCount(0);
-    // A catalog price change after review must be recomputed by the server.
+    await page.getByRole('link', { name: 'Checkout', exact: true }).click();
+    await expect(page).toHaveURL(base + '/cart/review');
     await f.db
       .update(productVariants)
-      .set({ price: 810000n, updatedAt: new Date() })
+      .set({ weightGrams: 0, updatedAt: new Date() })
       .where(eq(productVariants.id, f.variant.id));
+    await page.reload();
+    await expect(
+      page.getByText('A product is missing its shipping weight.', {
+        exact: false,
+      }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Place order' })).toHaveCount(
+      0,
+    );
+    await f.db
+      .update(productVariants)
+      .set({ price: 810000n, weightGrams: 300, updatedAt: new Date() })
+      .where(eq(productVariants.id, f.variant.id));
+    await page.reload();
     await page
-      .getByRole('button', { name: 'Create pending order', exact: true })
+      .getByLabel('Label (optional)', { exact: true })
+      .fill(sampleAddress.label);
+    await page
+      .getByLabel('Recipient name', { exact: true })
+      .fill(sampleAddress.recipientName);
+    await page
+      .getByLabel('Phone number', { exact: true })
+      .fill(sampleAddress.phone);
+    await page
+      .getByLabel('Address line 1', { exact: true })
+      .fill(sampleAddress.addressLine1);
+    await page
+      .getByLabel('City or regency', { exact: true })
+      .fill(sampleAddress.city);
+    await page
+      .getByLabel('Province', { exact: true })
+      .fill(sampleAddress.province);
+    await page
+      .getByLabel('Postal code', { exact: true })
+      .fill(sampleAddress.postalCode);
+    await page.getByLabel('Use as default address', { exact: true }).check();
+    await page
+      .getByRole('button', { name: 'Save address', exact: true })
+      .click();
+    const addresses = createCustomerAddresses(f.db);
+    const [address] = await addresses.list(f.customer.customer.id);
+    await page
+      .getByRole('combobox', { name: 'Select shipping address', exact: true })
+      .selectOption(address!.id);
+    await page
+      .getByRole('combobox', { name: 'Shipping method', exact: true })
+      .selectOption(method.id);
+    await page
+      .getByRole('button', { name: 'Review order', exact: true })
+      .click();
+    await expect(page.locator('[data-shipping-address]')).toContainText(
+      sampleAddress.addressLine1,
+    );
+    await expect(page.locator('[data-subtotal]')).toHaveText('Rp810,000');
+    await expect(page.locator('[data-shipment-weight]')).toContainText('300 g');
+    await expect(page.locator('[data-shipping-amount]')).toHaveText('Rp22,000');
+    await expect(page.locator('[data-grand-total]')).toHaveText('Rp832,000');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(
+      page.getByRole('button', { name: 'Place order' }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    const period = resolvePeriod({
+      period: 'custom',
+      from: '2000-01-01',
+      to: '2100-01-01',
+    });
+    const accountingBefore = await f.accounting.report(period);
+    await page
+      .getByRole('button', { name: 'Place order', exact: true })
       .click();
     await expect(page).toHaveURL(/\/account\/orders\/WEB-\d{8}-\d{6,}$/);
     const number = await page.locator('main h1').innerText();
     await expect(page.locator('[data-order-status]')).toHaveText(
       'Pending payment',
     );
-    await expect(
-      page.getByText('Subtotal: Rp810,000', { exact: true }),
-    ).toBeVisible();
+    await expect(page.locator('[data-subtotal]')).toHaveText('Rp810,000');
+    await expect(page.locator('[data-grand-total]')).toHaveText('Rp832,000');
     await expect(page.locator('[data-cart-count]')).toHaveText('0');
     const orderService = createOrderService(f.db);
     const snapshot = await orderService.get(f.customer.customer.id, number);
     expect(snapshot!.items[0]!.costSnapshot).toBe(300000n);
+    expect(snapshot!.items[0]!.unitWeightGrams).toBe(300);
+    expect(await f.accounting.report(period)).toEqual(accountingBefore);
     expect(
       (
         await f.db
@@ -179,6 +259,7 @@ test('Demo Shirt cart to pending order, immutable history, cancellation and EN/I
         name: 'Edited M',
         sku: 'EDITED-M',
         price: 999000n,
+        weightGrams: 450,
         updatedAt: new Date(),
       })
       .where(eq(productVariants.id, f.variant.id));
@@ -186,10 +267,26 @@ test('Demo Shirt cart to pending order, immutable history, cancellation and EN/I
       .update(directCosts)
       .set({ amountRupiah: 600000n, updatedAt: new Date() })
       .where(eq(directCosts.id, f.cost.id));
+    await addresses.save(
+      f.customer.customer.id,
+      { ...sampleAddress, addressLine1: 'Changed address' },
+      address!.id,
+    );
+    await createShippingMethods(f.db).save(
+      { name: 'Changed delivery', amountRupiah: '45000', status: 'inactive' },
+      method.id,
+    );
     await page.reload();
     await expect(page.locator('tbody')).toContainText('Demo Shirt');
     await expect(page.locator('tbody')).toContainText('ACC-M');
     await expect(page.locator('tbody')).toContainText('Rp810,000');
+    await expect(page.locator('[data-shipping-address]')).toContainText(
+      sampleAddress.addressLine1,
+    );
+    await expect(page.locator('[data-shipping-method]')).toContainText(
+      'Standard delivery',
+    );
+    await expect(page.locator('[data-shipment-weight]')).toContainText('300 g');
     expect(await orderService.get(f.customer.customer.id, number)).toEqual(
       snapshot,
     );

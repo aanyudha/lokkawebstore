@@ -6,9 +6,9 @@ stock, creates inventory movements and posts income together. Reusing that POS
 lifecycle for unpaid orders would create false revenue and stock deductions.
 E1 therefore adds dedicated `orders` and `order_items` tables.
 
-E1 creates `PENDING_PAYMENT` orders and permits `CANCELLED` only from that state.
-`COMPLETED` is reserved for a later deliberate completion contract; E1 exposes
-no completion method. Cancellation retains order and item history and updates
+Webstore checkout creates `PENDING_PAYMENT` orders and permits `CANCELLED`
+from that state. `COMPLETED` is reserved for a later completion contract.
+Cancellation retains order and item history and updates
 `updated_at`. Order status never represents payment or fulfillment state.
 
 Creation locks the customer cart, then products in ID order, then variants in ID
@@ -37,10 +37,10 @@ implement reservation/expiry or revalidate stock again before accepting payment
 and fulfillment. Current Cash Flow and Accounting Lite only consume their
 existing ledger/completed-sales sources; pending orders cannot enter revenue.
 
-All E1 orders are WEBSTORE/IDR. Shipping and discount amounts remain zero, with
-shipping explicitly displayed as not configured/calculated later, never free.
-Future payment records and shipment/address snapshots can reference the order
-ID without changing historical items. No provider fields belong to carts.
+Webstore orders use IDR. E2 stores delivery address and method snapshots,
+integer shipment grams and unit item weights. Shipping is stored apart from
+merchandise subtotal, and discounts remain zero. Historical E1 orders retain
+their original totals and show shipping as uncalculated.
 The service takes explicit customer scope and has no HTTP/session dependency;
 future admin application services can use the schema and transaction helpers
 with their own authorization. No Back Office Orders interface is added.
@@ -49,9 +49,10 @@ Customer list/detail routes: `/account/orders[/:orderNumber]` and
 `/id/akun/pesanan[/:orderNumber]`; POST `/:orderNumber/cancel` cancels pending
 orders. Every read/write applies the authenticated customer's ID server-side.
 
-Migration: `0010_webstore_orders.sql` (carts, cart_items, orders, order_items,
-order_counters and web_order_status). Do not migrate the owner database as QA.
+Migrations `0010_webstore_orders.sql` and `0012_webstore_checkout.sql` supply
+the underlying cart, order and delivery tables and snapshots.
 `node scripts/verify-isolated.mjs unit`, `production` or `browser` wraps verification in a
 fresh migrated database and compares read-only fingerprints of every public
 and Drizzle table in the owner database before/after. The browser suite creates
-its own further disposable database. `focused` and `webbrowser` run E1 alone.
+its own further disposable database. `focused` and `webbrowser` run the webstore
+regression and checkout tests.

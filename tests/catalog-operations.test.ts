@@ -11,7 +11,12 @@ import {
 } from '../src/modules/catalog/sellability.js';
 import { createSalesService } from '../src/modules/sales/service.js';
 import { createCartService } from '../src/modules/cart/service.js';
-import { createOrderService } from '../src/modules/orders/service.js';
+import { createCheckout } from '../src/modules/checkout/service.js';
+import {
+  configureCheckoutShipping,
+  reviewedCheckout,
+  saveCheckoutAddress,
+} from './helpers/checkout-fixture.js';
 import { createFixedAssets } from '../src/modules/finance/fixed-assets.js';
 import { createLedger, resolvePeriod } from '../src/modules/finance/ledger.js';
 import {
@@ -217,7 +222,7 @@ describe('catalog operations and channel contracts', () => {
       .returning();
     const cart = createCartService(f.db);
     await expect(cart.mutate(customer!.id, 'add', saved.id, 1)).rejects.toThrow(
-      'unavailable',
+      'shop.error.weight',
     );
     await expect(
       salesService.completeSale({
@@ -244,28 +249,32 @@ describe('catalog operations and channel contracts', () => {
     await cart.mutate(customer!.id, 'add', saved.id, 1);
     const before = await cart.get(customer!.id);
     expect(before.canOrder).toBe(true);
+    const method = await configureCheckoutShipping(f.db, catalog);
+    const address = await saveCheckoutAddress(f.db, customer!.id);
+    const offer = await reviewedCheckout(
+      f.db,
+      customer!.id,
+      address.id,
+      method.id,
+    );
+    const checkout = createCheckout(f.db);
     await catalog.saveVariant(
       first.id,
       { ...values, stockQuantity: '1', weightGrams: '' },
       saved.id,
     );
     expect((await cart.get(customer!.id)).canOrder).toBe(false);
-    await expect(
-      createOrderService(f.db).create(customer!.id, before.cart!.revision),
-    ).rejects.toThrow('unavailable');
+    await expect(checkout.place(customer!.id, offer)).rejects.toThrow(
+      'shop.error.weight',
+    );
     await catalog.saveVariant(
       first.id,
       { ...values, stockQuantity: '1', weightGrams: '300' },
       saved.id,
     );
-    expect(
-      (
-        await createOrderService(f.db).create(
-          customer!.id,
-          before.cart!.revision,
-        )
-      ).status,
-    ).toBe('PENDING_PAYMENT');
+    expect((await checkout.place(customer!.id, offer)).status).toBe(
+      'PENDING_PAYMENT',
+    );
   });
   it('keeps confirmed zero distinct from unknown across both channels', async () => {
     const current = await variant(second.id);

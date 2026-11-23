@@ -7,7 +7,8 @@ import { tokenMatches } from '../auth/service.js';
 import { FormError, formatIdr, type Form } from '../catalog/validation.js';
 import { createCartService } from './service.js';
 import { createOrderService } from '../orders/service.js';
-import type { createPaymentService } from '../payments/service.js';
+import { createCheckout } from '../checkout/service.js';
+import { createCustomerAddresses } from '../customer/addresses.js';
 
 export const shopPaths = {
   en: {
@@ -31,10 +32,11 @@ export async function registerCart(
   app: FastifyInstance,
   db: Database['db'],
   env: AppEnv,
-  payments?: Pick<ReturnType<typeof createPaymentService>, 'status'>,
 ) {
   const cart = createCartService(db);
   const orders = createOrderService(db);
+  const checkout = createCheckout(db);
+  const addresses = createCustomerAddresses(db);
   app.addHook('onRequest', async (request, reply) => {
     reply.locals = Object.assign({}, reply.locals, {
       cartCount: request.customerIdentity
@@ -82,7 +84,7 @@ export async function registerCart(
         suffix = '',
       ) =>
         reply.viewAsync(`cart/${page}.ejs`, {
-          title: `${t(locale, page === 'orders' || page === 'order' ? 'shop.orders' : 'shop.cart')} | LOKKA`,
+          title: `${t(locale, page.startsWith('order') ? 'shop.orders' : page === 'checkout' ? 'shop.checkout' : 'shop.cart')} | LOKKA`,
           locale,
           locales: orderedLocales,
           htmlLang: locales[locale].htmlLang,
@@ -111,24 +113,66 @@ export async function registerCart(
       const renderCart = async (
         request: FastifyRequest,
         reply: FastifyReply,
-        review = false,
         error: string | null = null,
       ) =>
-        render(
-          request,
-          reply,
-          'cart',
-          {
-            ...(await cart.get(request.customerIdentity!.customer.id)),
-            review,
-            error,
-          },
-          review ? '/review' : '',
-        );
+        render(request, reply, 'cart', {
+          ...(await cart.get(request.customerIdentity!.customer.id)),
+          error,
+        });
       secure.get(paths.cart, (request, reply) => renderCart(request, reply));
-      secure.get(`${paths.cart}/review`, (request, reply) =>
-        renderCart(request, reply, true),
+      const customerId = (r: FastifyRequest) => r.customerIdentity!.customer.id;
+      const renderCheckout = async (
+        r: FastifyRequest,
+        reply: FastifyReply,
+        data: Record<string, unknown> = {},
+      ) =>
+        render(
+          r,
+          reply,
+          'checkout',
+          {
+            ...(await checkout.options(customerId(r))),
+            selection: form(r),
+            reviewed: null,
+            addressForm: null,
+            ...data,
+          },
+          '/review',
+        );
+      const shopError = (cause: FormError, fallback: string) =>
+        cause.message.startsWith('shop.') ? cause.message : fallback;
+      secure.get(`${paths.cart}/review`, (r, reply) =>
+        renderCheckout(r, reply),
       );
+      secure.post(`${paths.cart}/review`, async (r, reply) => {
+        try {
+          const reviewed = await checkout.review(customerId(r), form(r));
+          return renderCheckout(r, reply, { reviewed });
+        } catch (cause) {
+          if (!(cause instanceof FormError)) throw cause;
+          return renderCheckout(r, reply.code(422), {
+            error: shopError(cause, 'shop.error.changed'),
+          });
+        }
+      });
+      for (const suffix of ['', '/:id']) {
+        secure.post(
+          `${paths.cart}/review/addresses${suffix}`,
+          async (r, reply) => {
+            const addressId = (r.params as { id?: string }).id;
+            try {
+              await addresses.save(customerId(r), form(r), addressId);
+              return reply.redirect(`${paths.cart}/review`, 303);
+            } catch (cause) {
+              if (!(cause instanceof FormError)) throw cause;
+              return renderCheckout(r, reply.code(422), {
+                error: shopError(cause, 'shop.error.addressFields'),
+                addressForm: { id: addressId, values: form(r) },
+              });
+            }
+          },
+        );
+      }
       for (const action of ['add', 'update', 'remove'] as const) {
         secure.post(
           action === 'add'
@@ -150,7 +194,6 @@ export async function registerCart(
               return renderCart(
                 request,
                 reply.code(422),
-                false,
                 error.message.startsWith('shop.')
                   ? error.message
                   : 'shop.error.item',
@@ -161,21 +204,16 @@ export async function registerCart(
       }
       secure.post(`${paths.cart}/orders`, async (request, reply) => {
         try {
-          const order = await orders.create(
-            request.customerIdentity!.customer.id,
-            form(request).revision as string,
+          const order = await checkout.place(
+            customerId(request),
+            form(request),
           );
           return reply.redirect(`${paths.orders}/${order.orderNumber}`, 303);
         } catch (error) {
           if (!(error instanceof FormError)) throw error;
-          return renderCart(
-            request,
-            reply.code(422),
-            true,
-            error.message.startsWith('shop.')
-              ? error.message
-              : 'shop.error.changed',
-          );
+          return renderCheckout(request, reply.code(422), {
+            error: shopError(error, 'shop.error.changed'),
+          });
         }
       });
       secure.get(paths.orders, async (request, reply) =>
@@ -183,11 +221,7 @@ export async function registerCart(
           orders: await orders.list(request.customerIdentity!.customer.id),
         }),
       );
-      const renderOrder = async (
-        request: FastifyRequest,
-        reply: FastifyReply,
-        returning = false,
-      ) => {
+      secure.get(`${paths.orders}/:orderNumber`, async (request, reply) => {
         const orderNumber = (request.params as { orderNumber: string })
           .orderNumber;
         const order = await orders.get(
@@ -195,24 +229,8 @@ export async function registerCart(
           orderNumber,
         );
         if (!order) return reply.callNotFound();
-        const payment = await payments?.status(order.id);
-        return render(
-          request,
-          reply,
-          'order',
-          { order, payment, returning },
-          `/${orderNumber}`,
-        );
-      };
-      secure.get(`${paths.orders}/:orderNumber`, (request, reply) =>
-        renderOrder(request, reply),
-      );
-      if (payments) {
-        secure.get(
-          `${paths.orders}/:orderNumber/payment/return`,
-          (request, reply) => renderOrder(request, reply, true),
-        );
-      }
+        return render(request, reply, 'order', { order }, `/${orderNumber}`);
+      });
       secure.post(
         `${paths.orders}/:orderNumber/cancel`,
         async (request, reply) => {

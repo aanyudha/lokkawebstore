@@ -85,7 +85,9 @@ export function validateVariant(
       'items',
       variant?.stockKnown && variant.stockQuantity < qty
         ? 'shop.error.stock'
-        : 'shop.error.unavailable',
+        : variant && (variant.weightGrams ?? 0) <= 0
+          ? 'shop.error.weight'
+          : 'shop.error.unavailable',
     );
 }
 

@@ -1,0 +1,6 @@
+<dl>
+  <dt><%= t('shop.subtotal') %></dt><dd data-subtotal><%= formatIdr(totals.subtotal) %></dd>
+  <dt><%= t('shop.shipping') %></dt><dd data-shipping-amount><%= formatIdr(totals.shippingAmount) %></dd>
+  <dt><%= t('shop.discount') %></dt><dd><%= formatIdr(totals.discountAmount) %></dd>
+  <dt><%= t('shop.checkoutTotal') %></dt><dd class="detail-price" data-grand-total><%= formatIdr(totals.grandTotal) %></dd>
+</dl>

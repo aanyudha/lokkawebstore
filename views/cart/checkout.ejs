@@ -1,0 +1,64 @@
+<main id="main" class="catalog-page shop-page">
+  <h1><%= t(reviewed ? 'shop.review' : 'shop.checkout') %></h1>
+  <% if (error) { %><p class="account-error" role="alert"><%= t(error) %></p><% } %>
+  <% if (reviewed) { %>
+    <%- include('delivery.ejs', { delivery: reviewed.facts }) %>
+    <div class="shop-table-wrap" tabindex="0" role="region" aria-label="<%= t('shop.review') %>">
+      <table class="shop-table">
+        <thead><tr><th scope="col"><%= t('shop.product') %></th><th scope="col"><%= t('shop.quantity') %></th><th scope="col"><%= t('shop.unitPrice') %></th><th scope="col"><%= t('shop.lineTotal') %></th></tr></thead>
+        <tbody><% for (const row of reviewed.items) { %>
+          <tr><th scope="row"><%= row.product.name %><br /><small><%= row.variant.name %> · SKU: <%= row.variant.sku %></small></th>
+          <td><%= row.item.quantity %></td><td><%= formatIdr(row.variant.price) %></td><td><%= formatIdr(row.lineTotal) %></td></tr>
+        <% } %></tbody>
+      </table>
+    </div>
+    <%- include('totals.ejs', { totals: { ...reviewed.facts, subtotal: reviewed.subtotal } }) %>
+    <form method="post" action="<%= paths.cart %>/orders">
+      <input type="hidden" name="csrf" value="<%= csrf %>" />
+      <input type="hidden" name="revision" value="<%= reviewed.cart.revision %>" />
+      <input type="hidden" name="addressId" value="<%= selection.addressId %>" />
+      <input type="hidden" name="methodId" value="<%= selection.methodId %>" />
+      <input type="hidden" name="quote" value="<%= reviewed.token %>" />
+      <button class="btn btn-primary" type="submit"><%= t('shop.createOrder') %></button>
+    </form>
+    <p><a href="<%= paths.cart %>/review"><%= t('shop.changeDelivery') %></a></p>
+  <% } else if (!items.length) { %>
+    <p><%= t('shop.empty') %></p>
+  <% } else if (!canOrder) { %>
+    <p role="status"><%= t(items.some((row) => row.variant.weightGrams <= 0) ? 'shop.error.weight' : 'shop.error.unavailable') %></p>
+  <% } else { %>
+    <section aria-labelledby="address-heading">
+      <h2 id="address-heading"><%= t('shop.shippingAddress') %></h2>
+      <% for (const saved of addresses) { %>
+        <details <%= addressForm?.id === saved.id ? 'open' : '' %>>
+          <summary><%= t('shop.editAddress') %> · <%= saved.label || saved.recipientName %>, <%= saved.addressLine1 %></summary>
+          <%- include('address-form.ejs', { addressId: saved.id, values: addressForm?.id === saved.id ? addressForm.values : saved }) %>
+        </details>
+      <% } %>
+      <details <%= !addresses.length || (addressForm && !addressForm.id) ? 'open' : '' %>>
+        <summary><%= t('shop.addAddress') %></summary>
+        <%- include('address-form.ejs', { addressId: null, values: addressForm && !addressForm.id ? addressForm.values : {} }) %>
+      </details>
+    </section>
+    <% if (!methods.length) { %><p role="status"><%= t('shop.error.noShipping') %></p><% } %>
+    <% if (addresses.length && methods.length) { %>
+      <form method="post" action="<%= paths.cart %>/review" class="form-stack">
+        <input type="hidden" name="csrf" value="<%= csrf %>" />
+        <div>
+          <label for="checkout-address"><%= t('shop.selectAddress') %></label>
+          <select id="checkout-address" name="addressId" required>
+            <% for (const saved of addresses) { %><option value="<%= saved.id %>" <%= selection.addressId === saved.id ? 'selected' : '' %>><%= saved.label || saved.recipientName %> · <%= saved.addressLine1 %>, <%= saved.city %></option><% } %>
+          </select>
+        </div>
+        <div>
+          <label for="checkout-method"><%= t('shop.shippingMethod') %></label>
+          <select id="checkout-method" name="methodId" required>
+            <% for (const method of methods) { %><option value="<%= method.id %>" <%= selection.methodId === method.id ? 'selected' : '' %>><%= method.name %> · <%= formatIdr(method.amountRupiah) %><%= method.description ? ' · ' + method.description : '' %></option><% } %>
+          </select>
+        </div>
+        <button class="btn btn-primary" type="submit"><%= t('shop.review') %></button>
+      </form>
+    <% } %>
+  <% } %>
+  <p><a href="<%= paths.cart %>"><%= t('shop.cart') %></a></p>
+</main>

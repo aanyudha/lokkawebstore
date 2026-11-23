@@ -183,34 +183,14 @@
     "currentPrices": "Cart prices are current catalog prices and are rechecked when you create an order.",
     "shippingLater": "Not configured. Shipping will be calculated later.",
     "noReservation": "Cart items and pending orders do not reserve stock. Availability will be checked again in a later payment phase.",
-    "pendingNotice": "This creates a pending order. Payment is not configured yet.",
-    "createOrder": "Create pending order",
-    "payment": "Payment",
+    "createOrder": "Place order",
     "shipping": "Shipping",
-    "paymentPending": "Not configured. No payment recorded.",
-    "paymentProcessing": "Payment confirmation is being processed.",
-    "paymentRefresh": "Refresh payment status",
-    "paymentProvider": "Provider",
-    "paymentAmount": "Amount",
-    "paymentInitiated": "Payment initiated",
-    "paymentConfirmedAt": "Payment confirmed at",
-    "paymentOrderTotal": "Grand total",
-    "paymentStatus": {
-      "CREATED": "Payment pending",
-      "PENDING": "Payment pending",
-      "PAID": "Payment confirmed",
-      "FAILED": "Payment failed",
-      "EXPIRED": "Payment expired",
-      "CANCELLED": "Payment cancelled",
-      "REVIEW": "Payment under review"
-    },
     "cancel": "Cancel order",
     "loginRequired": "Sign in is required to add items to your cart.",
     "status": {
       "PENDING_PAYMENT": "Pending payment",
       "CANCELLED": "Cancelled",
-      "COMPLETED": "Completed",
-      "PAID": "Paid"
+      "COMPLETED": "Completed"
     },
     "error": {
       "quantity": "Quantity must be a positive whole number within the supported range.",
@@ -220,7 +200,39 @@
       "changed": "Your cart changed. Review it again before creating an order.",
       "empty": "Cannot create an order from an empty cart.",
       "total": "The total exceeds the supported Rupiah range.",
-      "cancel": "This order cannot be cancelled."
+      "cancel": "This order cannot be cancelled.",
+      "address": "Select an address from your saved shipping addresses.",
+      "addressFields": "Check the required address fields and try again.",
+      "addressPhone": "Enter a delivery phone number with 6 to 15 digits.",
+      "addressPostal": "Enter a five-digit postal code.",
+      "shipping": "Choose an available shipping method.",
+      "noShipping": "Shipping is currently unavailable. Please try again later.",
+      "weight": "A product is missing its shipping weight. Update your cart to continue.",
+      "reviewChanged": "Order details changed. Review the updated checkout before placing your order."
+    },
+    "checkout": "Checkout",
+    "shippingAddress": "Shipping address",
+    "shippingMethod": "Shipping method",
+    "selectAddress": "Select shipping address",
+    "shipmentWeight": "Shipment weight",
+    "addAddress": "Add shipping address",
+    "editAddress": "Edit address",
+    "saveAddress": "Save address",
+    "defaultAddress": "Use as default address",
+    "changeDelivery": "Change address or shipping method",
+    "checkoutTotal": "Grand total",
+    "discount": "Discount",
+    "addressFields": {
+      "label": "Label (optional)",
+      "recipientName": "Recipient name",
+      "phone": "Phone number",
+      "addressLine1": "Address line 1",
+      "addressLine2": "Address line 2 (optional)",
+      "subdistrict": "Village or kelurahan (optional)",
+      "district": "District or kecamatan (optional)",
+      "city": "City or regency",
+      "province": "Province",
+      "postalCode": "Postal code"
     }
   }
 }

@@ -1,0 +1,14 @@
+<section aria-labelledby="delivery-heading">
+  <h2 id="delivery-heading"><%= t('shop.shippingAddress') %></h2>
+  <address data-shipping-address>
+    <%= delivery.shippingAddressSnapshot.recipientName %> · <%= delivery.shippingAddressSnapshot.phone %><br />
+    <%= delivery.shippingAddressSnapshot.addressLine1 %><br />
+    <% if (delivery.shippingAddressSnapshot.addressLine2) { %><%= delivery.shippingAddressSnapshot.addressLine2 %><br /><% } %>
+    <%= [delivery.shippingAddressSnapshot.subdistrict, delivery.shippingAddressSnapshot.district, delivery.shippingAddressSnapshot.city, delivery.shippingAddressSnapshot.province].filter(Boolean).join(', ') %> <%= delivery.shippingAddressSnapshot.postalCode %><br />
+    Indonesia
+  </address>
+  <h2><%= t('shop.shippingMethod') %></h2>
+  <p data-shipping-method><%= delivery.shippingMethodSnapshot.name %> (<%= delivery.shippingMethodSnapshot.code %>)</p>
+  <% if (delivery.shippingMethodSnapshot.description) { %><p><%= delivery.shippingMethodSnapshot.description %></p><% } %>
+  <p data-shipment-weight><%= t('shop.shipmentWeight') %> <%= delivery.shipmentWeightGrams.toLocaleString(locale === 'id' ? 'id-ID' : 'en-GB') %> g</p>
+</section>

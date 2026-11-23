@@ -113,11 +113,22 @@ export function registerCommercialAdmin(
   ) =>
     page(r, reply, 'fulfillment', {
       origins: await fulfillment.list(),
+      methods: await fulfillment.methods.list(),
       error,
       values: body(r),
       action: r.url,
     });
   app.get('/settings/fulfillment', renderFulfillment);
+  for (const path of [
+    '/settings/fulfillment/methods',
+    '/settings/fulfillment/methods/:id',
+  ])
+    mutation(
+      path,
+      (r) => fulfillment.methods.save(body(r), r.params.id),
+      renderFulfillment,
+      () => '/admin/settings/fulfillment',
+    );
   for (const path of ['/settings/fulfillment', '/settings/fulfillment/:id'])
     mutation(
       path,

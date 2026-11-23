@@ -6,19 +6,46 @@ import {
   orderCounters,
   orderItems,
   orders,
-  paymentAttempts,
+  type ShippingAddressSnapshot,
+  type ShippingMethodSnapshot,
 } from '../../db/schema/index.js';
 import {
   lockCart,
   lockCatalog,
   touchCart,
   validateVariant,
+  type Transaction,
 } from '../cart/service.js';
 import { FormError, id } from '../catalog/validation.js';
 import { MAX_RUPIAH } from '../finance/calculations.js';
 
+type ReviewedItem = Pick<
+  typeof orderItems.$inferInsert,
+  | 'quantity'
+  | 'unitPriceSnapshot'
+  | 'productNameSnapshot'
+  | 'variantNameSnapshot'
+  | 'skuSnapshot'
+> & { variantId: string; unitWeightGrams: number };
+type Delivery = {
+  shippingAddressSnapshot: ShippingAddressSnapshot;
+  shippingMethodSnapshot: ShippingMethodSnapshot;
+  shipmentWeightGrams: bigint;
+  shippingAmount: bigint;
+  discountAmount: bigint;
+  grandTotal: bigint;
+};
+
 export function createOrderService(db: Database['db']) {
-  async function create(customerId: string, revision: string) {
+  async function create(
+    customerId: string,
+    revision: string,
+    resolveDelivery: (
+      tx: Transaction,
+      items: ReviewedItem[],
+      subtotal: bigint,
+    ) => Promise<Delivery>,
+  ) {
     id(customerId, 'customerId');
     id(revision, 'revision');
     return db.transaction(async (tx) => {
@@ -57,6 +84,7 @@ export function createOrderService(db: Database['db']) {
           skuSnapshot: variant!.sku,
           unitPriceSnapshot: variant!.price,
           quantity: item.quantity,
+          unitWeightGrams: variant!.weightGrams,
           lineTotalSnapshot: variant!.price * BigInt(item.quantity),
         };
       });
@@ -66,6 +94,7 @@ export function createOrderService(db: Database['db']) {
       );
       if (subtotal > MAX_RUPIAH)
         throw new FormError('cart', 'shop.error.total');
+      const delivery = await resolveDelivery(tx, snapshots, subtotal);
       const costs = await tx
         .select({
           productId: directCosts.productId,
@@ -99,7 +128,7 @@ export function createOrderService(db: Database['db']) {
           customerId,
           idempotencyKey: revision,
           subtotal,
-          grandTotal: subtotal,
+          ...delivery,
         })
         .returning();
       await tx.insert(orderItems).values(
@@ -142,52 +171,23 @@ export function createOrderService(db: Database['db']) {
     };
   }
   async function cancel(customerId: string, orderNumber: string) {
-    await db.transaction(async (tx) => {
-      const [order] = await tx
-        .select()
-        .from(orders)
-        .where(
-          and(
-            eq(orders.customerId, customerId),
-            eq(orders.orderNumber, orderNumber),
-          ),
-        )
-        .for('update');
-      if (order?.status === 'CANCELLED') return;
-      if (order?.status !== 'PENDING_PAYMENT')
+    // Conditional write is safe for concurrent cancellations; no completion API in E1.
+    const [order] = await db
+      .update(orders)
+      .set({ status: 'CANCELLED', updatedAt: new Date() })
+      .where(
+        and(
+          eq(orders.customerId, customerId),
+          eq(orders.orderNumber, orderNumber),
+          eq(orders.status, 'PENDING_PAYMENT'),
+        ),
+      )
+      .returning();
+    if (!order) {
+      const prior = await get(customerId, orderNumber);
+      if (!prior || prior.status !== 'CANCELLED')
         throw new FormError('order', 'shop.error.cancel');
-      const now = new Date();
-      const attempts = await tx
-        .select()
-        .from(paymentAttempts)
-        .where(
-          and(
-            eq(paymentAttempts.orderId, order.id),
-            inArray(paymentAttempts.status, ['CREATED', 'PENDING', 'REVIEW']),
-          ),
-        )
-        .for('update');
-      for (const attempt of attempts) {
-        if (
-          attempt.status !== 'PENDING' ||
-          !attempt.expiresAt ||
-          attempt.expiresAt > now
-        )
-          throw new FormError('order', 'shop.error.cancel');
-        await tx
-          .update(paymentAttempts)
-          .set({
-            status: 'EXPIRED',
-            expiredAt: attempt.expiresAt,
-            updatedAt: now,
-          })
-          .where(eq(paymentAttempts.id, attempt.id));
-      }
-      await tx
-        .update(orders)
-        .set({ status: 'CANCELLED', updatedAt: now })
-        .where(eq(orders.id, order.id));
-    });
+    }
   }
   return { create, list, get, cancel };
 }

@@ -183,34 +183,14 @@
     "currentPrices": "Harga keranjang mengikuti katalog saat ini dan diperiksa kembali saat pesanan dibuat.",
     "shippingLater": "Belum dikonfigurasi. Ongkir akan dihitung kemudian.",
     "noReservation": "Keranjang dan pesanan tertunda tidak mencadangkan stok. Ketersediaan akan diperiksa kembali pada tahap pembayaran berikutnya.",
-    "pendingNotice": "Pesanan akan dibuat dengan status menunggu pembayaran. Pembayaran belum dikonfigurasi.",
-    "createOrder": "Buat pesanan tertunda",
-    "payment": "Pembayaran",
+    "createOrder": "Buat pesanan",
     "shipping": "Pengiriman",
-    "paymentPending": "Belum dikonfigurasi. Belum ada pembayaran tercatat.",
-    "paymentProcessing": "Konfirmasi pembayaran sedang diproses.",
-    "paymentRefresh": "Perbarui status pembayaran",
-    "paymentProvider": "Penyedia",
-    "paymentAmount": "Jumlah",
-    "paymentInitiated": "Pembayaran dimulai",
-    "paymentConfirmedAt": "Waktu konfirmasi pembayaran",
-    "paymentOrderTotal": "Total pesanan",
-    "paymentStatus": {
-      "CREATED": "Menunggu pembayaran",
-      "PENDING": "Menunggu pembayaran",
-      "PAID": "Pembayaran berhasil",
-      "FAILED": "Pembayaran gagal",
-      "EXPIRED": "Pembayaran kedaluwarsa",
-      "CANCELLED": "Pembayaran dibatalkan",
-      "REVIEW": "Pembayaran sedang diperiksa"
-    },
     "cancel": "Batalkan pesanan",
     "loginRequired": "Masuk diperlukan untuk menambahkan item ke keranjang.",
     "status": {
       "PENDING_PAYMENT": "Menunggu pembayaran",
       "CANCELLED": "Dibatalkan",
-      "COMPLETED": "Selesai",
-      "PAID": "Sudah dibayar"
+      "COMPLETED": "Selesai"
     },
     "error": {
       "quantity": "Jumlah harus berupa bilangan bulat positif dalam rentang yang didukung.",
@@ -220,7 +200,39 @@
       "changed": "Keranjang berubah. Tinjau kembali sebelum membuat pesanan.",
       "empty": "Pesanan tidak dapat dibuat dari keranjang kosong.",
       "total": "Total melebihi rentang Rupiah yang didukung.",
-      "cancel": "Pesanan ini tidak dapat dibatalkan."
+      "cancel": "Pesanan ini tidak dapat dibatalkan.",
+      "address": "Pilih salah satu alamat pengiriman tersimpan.",
+      "addressFields": "Periksa kolom alamat yang wajib diisi, lalu coba lagi.",
+      "addressPhone": "Masukkan nomor telepon pengiriman yang terdiri dari 6 hingga 15 digit.",
+      "addressPostal": "Masukkan kode pos lima digit.",
+      "shipping": "Pilih metode pengiriman yang tersedia.",
+      "noShipping": "Pengiriman sedang tidak tersedia. Silakan coba lagi nanti.",
+      "weight": "Ada produk yang belum memiliki berat pengiriman. Perbarui keranjang untuk melanjutkan.",
+      "reviewChanged": "Rincian pesanan berubah. Tinjau kembali sebelum membuat pesanan."
+    },
+    "checkout": "Selesaikan pesanan",
+    "shippingAddress": "Alamat pengiriman",
+    "shippingMethod": "Metode pengiriman",
+    "selectAddress": "Pilih alamat pengiriman",
+    "shipmentWeight": "Berat kiriman",
+    "addAddress": "Tambah alamat pengiriman",
+    "editAddress": "Ubah alamat",
+    "saveAddress": "Simpan alamat",
+    "defaultAddress": "Jadikan alamat utama",
+    "changeDelivery": "Ubah alamat atau metode pengiriman",
+    "checkoutTotal": "Total pesanan",
+    "discount": "Diskon",
+    "addressFields": {
+      "label": "Label (opsional)",
+      "recipientName": "Nama penerima",
+      "phone": "Nomor telepon",
+      "addressLine1": "Alamat baris 1",
+      "addressLine2": "Alamat baris 2 (opsional)",
+      "subdistrict": "Desa atau kelurahan (opsional)",
+      "district": "Kecamatan (opsional)",
+      "city": "Kota atau kabupaten",
+      "province": "Provinsi",
+      "postalCode": "Kode pos"
     }
   }
 }

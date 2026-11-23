@@ -3,6 +3,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Database } from '../../db/client.js';
 import { fulfillmentOrigins, vendors } from '../../db/schema/index.js';
 import type { Catalog } from '../catalog/service.js';
+import { createShippingMethods } from './methods.js';
 import {
   choice,
   FormError,
@@ -30,6 +31,7 @@ export function createFulfillment(db: Database['db'], catalog: Catalog) {
   }
   return {
     list,
+    methods: createShippingMethods(db),
     async save(form: Form, originId?: string) {
       const vendor = await vendorId();
       const coordinate = (field: string, limit: number) => {

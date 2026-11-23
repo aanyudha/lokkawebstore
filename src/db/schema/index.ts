@@ -12,6 +12,7 @@ import {
   boolean,
   date,
   uniqueIndex,
+  jsonb,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 const timestamps = () => ({
@@ -55,93 +56,29 @@ export const webOrderStatus = pgEnum('web_order_status', [
   'PENDING_PAYMENT',
   'CANCELLED',
   'COMPLETED',
-  'PAID',
 ]);
-export const webPaymentStatus = pgEnum('web_payment_status', [
-  'CREATED',
-  'PENDING',
-  'PAID',
-  'FAILED',
-  'EXPIRED',
-  'CANCELLED',
-  'REVIEW',
-]);
-export const paymentAttempts = pgTable(
-  'payment_attempts',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-    orderId: uuid('order_id')
-      .notNull()
-      .references(() => orders.id),
-    provider: text('provider').notNull(),
-    invoice: text('merchant_invoice_number').notNull(),
-    sequence: integer('sequence').notNull(),
-    requestId: text('request_id').notNull(),
-    providerReference: text('provider_reference'),
-    amount: bigint('amount', { mode: 'bigint' }).notNull(),
-    currency: text('currency').notNull(),
-    status: webPaymentStatus('status').default('CREATED').notNull(),
-    checkoutUrl: text('checkout_url'),
-    expiresAt: timestamp('expires_at', { withTimezone: true }),
-    paidAt: timestamp('paid_at', { withTimezone: true }),
-    failedAt: timestamp('failed_at', { withTimezone: true }),
-    expiredAt: timestamp('expired_at', { withTimezone: true }),
-    ...timestamps(),
-  },
-  (t) => [
-    uniqueIndex('payment_attempts_provider_invoice_uidx').on(
-      t.provider,
-      t.invoice,
-    ),
-    uniqueIndex('payment_attempts_provider_request_uidx').on(
-      t.provider,
-      t.requestId,
-    ),
-    uniqueIndex('payment_attempts_order_sequence_uidx').on(
-      t.orderId,
-      t.sequence,
-    ),
-    uniqueIndex('payment_attempts_order_active_uidx')
-      .on(t.orderId)
-      .where(sql`${t.status} IN ('CREATED', 'PENDING')`),
-    uniqueIndex('payment_attempts_order_paid_uidx')
-      .on(t.orderId)
-      .where(sql`${t.status} = 'PAID'`),
-    check(
-      'payment_attempt_money_valid',
-      sql`${t.amount} > 0 AND ${t.currency} = 'IDR'`,
-    ),
-  ],
-);
-export const paymentNotifications = pgTable(
-  'payment_notifications',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-    provider: text('provider').notNull(),
-    eventId: text('event_id').notNull(),
-    attemptId: uuid('attempt_id').references(() => paymentAttempts.id),
-    invoice: text('merchant_invoice_number').notNull(),
-    originalRequestId: text('original_request_id').notNull(),
-    requestTimestamp: timestamp('request_timestamp', {
-      withTimezone: true,
-    }).notNull(),
-    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
-    amount: bigint('amount', { mode: 'bigint' }).notNull(),
-    currency: text('currency'),
-    outcome: text('outcome').notNull(),
-    providerStatus: text('provider_status').notNull(),
-    result: text('result').notNull(),
-    ...timestamps(),
-  },
-  (t) => [
-    uniqueIndex('payment_notifications_event_uidx').on(t.provider, t.eventId),
-    index('payment_notifications_attempt_idx').on(t.attemptId),
-  ],
-);
 export const orderCounters = pgTable('order_counters', {
   date: date('date').primaryKey(),
   nextSequence: integer('next_sequence').notNull(),
 });
+export type ShippingAddressSnapshot = {
+  label: string | null;
+  recipientName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2: string | null;
+  subdistrict: string | null;
+  district: string | null;
+  city: string;
+  province: string;
+  postalCode: string;
+  countryCode: 'ID';
+};
+export type ShippingMethodSnapshot = {
+  code: string;
+  name: string;
+  description: string | null;
+};
 export const orders = pgTable(
   'orders',
   {
@@ -162,10 +99,21 @@ export const orders = pgTable(
       .default(sql`0`)
       .notNull(),
     grandTotal: bigint('grand_total', { mode: 'bigint' }).notNull(),
+    shippingAddressSnapshot: jsonb(
+      'shipping_address_snapshot',
+    ).$type<ShippingAddressSnapshot>(),
+    shippingMethodSnapshot: jsonb(
+      'shipping_method_snapshot',
+    ).$type<ShippingMethodSnapshot>(),
+    shipmentWeightGrams: bigint('shipment_weight_grams', { mode: 'bigint' }),
     ...timestamps(),
   },
   (t) => [
     index('orders_customer_created_idx').on(t.customerId, t.createdAt),
+    check(
+      'orders_delivery_snapshot_valid',
+      sql`(${t.shippingAddressSnapshot} IS NULL AND ${t.shippingMethodSnapshot} IS NULL AND ${t.shipmentWeightGrams} IS NULL) OR (jsonb_typeof(${t.shippingAddressSnapshot}) = 'object' AND ${t.shippingAddressSnapshot} IS NOT NULL AND jsonb_typeof(${t.shippingMethodSnapshot}) = 'object' AND ${t.shippingMethodSnapshot} IS NOT NULL AND ${t.shipmentWeightGrams} IS NOT NULL AND ${t.shipmentWeightGrams} > 0)`,
+    ),
     check(
       'orders_money_valid',
       sql`${t.subtotal} >= 0 AND ${t.shippingAmount} >= 0 AND ${t.discountAmount} >= 0 AND ${t.grandTotal} >= 0 AND ${t.grandTotal}::numeric = ${t.subtotal}::numeric + ${t.shippingAmount} - ${t.discountAmount}`,
@@ -200,6 +148,7 @@ export const orderItems = pgTable(
       mode: 'bigint',
     }).notNull(),
     costSnapshot: bigint('cost_snapshot', { mode: 'bigint' }),
+    unitWeightGrams: integer('unit_weight_grams'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -207,9 +156,61 @@ export const orderItems = pgTable(
   (t) => [
     index('order_items_order_idx').on(t.orderId),
     uniqueIndex('order_variant_unique').on(t.orderId, t.variantId),
+    check('order_items_weight_positive', sql`${t.unitWeightGrams} > 0`),
     check(
       'order_items_facts_valid',
       sql`${t.quantity} > 0 AND ${t.unitPriceSnapshot} >= 0 AND ${t.lineTotalSnapshot}::numeric = ${t.unitPriceSnapshot}::numeric * ${t.quantity} AND (${t.costSnapshot} IS NULL OR ${t.costSnapshot} >= 0)`,
+    ),
+  ],
+);
+export const customerAddresses = pgTable(
+  'customer_addresses',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'cascade' }),
+    label: text('label'),
+    recipientName: text('recipient_name').notNull(),
+    phone: text('phone').notNull(),
+    addressLine1: text('address_line1').notNull(),
+    addressLine2: text('address_line2'),
+    subdistrict: text('subdistrict'),
+    district: text('district'),
+    city: text('city').notNull(),
+    province: text('province').notNull(),
+    postalCode: text('postal_code').notNull(),
+    countryCode: text('country_code').$type<'ID'>().default('ID').notNull(),
+    isDefault: boolean('is_default').default(false).notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    index('customer_addresses_customer_idx').on(t.customerId),
+    uniqueIndex('customer_addresses_default_uidx')
+      .on(t.customerId)
+      .where(sql`${t.isDefault}`),
+    check(
+      'customer_addresses_delivery_valid',
+      sql`${t.countryCode} = 'ID' AND ${t.postalCode} ~ '^[0-9]{5}$'`,
+    ),
+  ],
+);
+export const shippingMethods = pgTable(
+  'shipping_methods',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    code: text('code').notNull().unique(),
+    name: text('name').notNull(),
+    description: text('description'),
+    amountRupiah: bigint('amount_rupiah', { mode: 'bigint' }).notNull(),
+    active: boolean('active').default(true).notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    check('shipping_methods_amount_nonnegative', sql`${t.amountRupiah} >= 0`),
+    check(
+      'shipping_methods_code_valid',
+      sql`${t.code} ~ '^[A-Z0-9][A-Z0-9_-]{0,39}$'`,
     ),
   ],
 );
@@ -246,7 +247,6 @@ export const financeDirection = pgEnum('finance_direction', [
 ]);
 export const financeStatus = pgEnum('finance_status', ['POSTED', 'VOIDED']);
 export const financeCategory = pgEnum('finance_category', [
-  'WEBSTORE_ORDER',
   'PRODUCT_SALES',
   'OTHER_INCOME',
   'PACKAGING',
@@ -874,15 +874,9 @@ export const sales = pgTable(
     transactionNumber: text('transaction_number').notNull().unique(),
     source: saleSource('source').notNull(),
     status: saleStatus('status').default('pending').notNull(),
-    orderId: uuid('order_id')
-      .unique()
-      .references(() => orders.id),
     customerId: uuid('customer_id').references(() => customers.id),
     cashierId: uuid('cashier_id').references(() => adminUsers.id),
     subtotal: bigint('subtotal', { mode: 'bigint' }).notNull(),
-    shippingAmount: bigint('shipping_amount', { mode: 'bigint' })
-      .default(sql`0`)
-      .notNull(),
     discountAmount: bigint('discount_amount', { mode: 'bigint' })
       .default(sql`0`)
       .notNull(),

@@ -89,8 +89,8 @@
     {
       "idx": 12,
       "version": "7",
-      "when": 1795392000000,
-      "tag": "0012_webstore_payments",
+      "when": 1795435200000,
+      "tag": "0012_webstore_checkout",
       "breakpoints": true
     }
   ]

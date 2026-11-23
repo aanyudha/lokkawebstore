@@ -36,7 +36,6 @@ export async function readAccounting(
     .select({
       key: sales.source,
       revenue: sql<string>`sum(${sales.total}::numeric)::text`,
-      shippingCharged: sql<string>`sum(${sales.shippingAmount}::numeric)::text`,
       count: sql<string>`count(*)::text`,
     })
     .from(sales)
@@ -81,7 +80,6 @@ export async function readAccounting(
       source: sales.source,
       occurredAt: sales.createdAt,
       revenue: sales.total,
-      shippingCharged: sales.shippingAmount,
     })
     .from(sales)
     .where(validSales)
@@ -119,7 +117,7 @@ export async function readAccounting(
     .orderBy(desc(expenses.occurredAt), desc(expenses.id))
     .limit(100);
   const bySource = bySourceRows.map((r) => ({
-    key: r.key,
+    ...r,
     revenue: BigInt(r.revenue),
     count: BigInt(r.count),
   }));
@@ -128,10 +126,6 @@ export async function readAccounting(
     total: BigInt(r.total),
   }));
   const revenue = bySource.reduce((sum, r) => sum + r.revenue, 0n);
-  const shippingCharged = bySourceRows.reduce(
-    (sum, r) => sum + BigInt(r.shippingCharged),
-    0n,
-  );
   const operatingExpenses = byCategory.reduce((sum, r) => sum + r.total, 0n);
   const missingItemCount = BigInt(costs!.missingItems);
   const missingSaleCount = BigInt(missingSales!.count);
@@ -140,8 +134,6 @@ export async function readAccounting(
   const grossProfit = cogs === null ? null : revenue - cogs;
   return {
     revenue,
-    merchandiseRevenue: revenue - shippingCharged,
-    shippingCharged,
     cogs,
     knownCogs,
     grossProfit,

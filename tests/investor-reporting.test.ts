@@ -14,7 +14,7 @@ import { createFixedAssets } from '../src/modules/finance/fixed-assets.js';
 import { createCatalog } from '../src/modules/catalog/service.js';
 import { createSalesService } from '../src/modules/sales/service.js';
 import { createCartService } from '../src/modules/cart/service.js';
-import { createOrderService } from '../src/modules/orders/service.js';
+import { createCheckout } from '../src/modules/checkout/service.js';
 import { createFulfillment } from '../src/modules/shipping/service.js';
 import {
   products,
@@ -501,7 +501,9 @@ it('blocks unknown stock in POS, cart, checkout and fulfillment, while preservin
       cart.mutate(customer!.id, 'add', a.variant.id, 1),
     ).rejects.toThrow();
     await expect(
-      createOrderService(a.db).create(customer!.id, prior.cart!.revision),
+      createCheckout(a.db).place(customer!.id, {
+        revision: prior.cart!.revision,
+      }),
     ).rejects.toThrow();
     expect((await cart.get(customer!.id)).canOrder).toBe(false);
     await expect(

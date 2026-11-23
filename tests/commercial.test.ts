@@ -336,6 +336,7 @@ describe('commercial workflows on migrated PostgreSQL', () => {
       '/admin/finance/overhead/costs',
       `/admin/products/${productId}/pricing`,
       '/admin/settings/fulfillment',
+      '/admin/settings/fulfillment/methods',
     ])
       expect((await post(url, { csrf: 'bad' })).statusCode).toBe(403);
     const failed = await post('/admin/finance/overhead/costs', {

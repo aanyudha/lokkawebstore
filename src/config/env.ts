@@ -1,5 +1,3 @@
-import { readDokuConfig } from '../modules/payments/config.js';
-
 export function resolveDatabaseUrl(
   appRuntime: 'fastify' | 'docker',
   source: NodeJS.ProcessEnv,
@@ -100,7 +98,6 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
     developmentOrigins,
     databaseUrl: resolveDatabaseUrl(appRuntime, source),
     appUrl: url('APP_URL', ['http:', 'https:']),
-    doku: readDokuConfig(source),
   };
 }
 export type AppEnv = ReturnType<typeof readEnv>;
