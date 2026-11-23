@@ -27,7 +27,7 @@ A successful submission consumes the cart revision and creates one
 that order. Pending orders leave stock, inventory movements, completed sales,
 Cash Flow and Accounting Lite untouched.
 
-Migration `0012_webstore_checkout.sql` adds `customer_addresses`,
+Migration `0013_webstore_checkout.sql` adds `customer_addresses`,
 `shipping_methods` and delivery fields on orders and items. Verification uses
 disposable databases through `node scripts/verify-isolated.mjs unit` and
 `node scripts/verify-isolated.mjs webbrowser`.

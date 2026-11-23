@@ -49,7 +49,7 @@ Customer list/detail routes: `/account/orders[/:orderNumber]` and
 `/id/akun/pesanan[/:orderNumber]`; POST `/:orderNumber/cancel` cancels pending
 orders. Every read/write applies the authenticated customer's ID server-side.
 
-Migrations `0010_webstore_orders.sql` and `0012_webstore_checkout.sql` supply
+Migrations `0010_webstore_orders.sql` and `0013_webstore_checkout.sql` supply
 the underlying cart, order and delivery tables and snapshots.
 `node scripts/verify-isolated.mjs unit`, `production` or `browser` wraps verification in a
 fresh migrated database and compares read-only fingerprints of every public
