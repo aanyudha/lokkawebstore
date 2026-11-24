@@ -1,16 +1,15 @@
 import 'dotenv/config';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { readEnv } from '../src/config/env.js';
-import { createDatabase } from '../src/db/client.js';
+import pg from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { assertDatabaseIdentity, testDatabaseUrl } from './verification-db.ts';
 
-const env = readEnv({
-  ...process.env,
-  DATABASE_URL: process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL,
-});
-const database = createDatabase(env.databaseUrl);
+const url = testDatabaseUrl();
+await assertDatabaseIdentity(url.href, url.pathname.slice(1));
+const pool = new pg.Pool({ connectionString: url.href });
 try {
-  await migrate(database.db, { migrationsFolder: 'drizzle' });
+  await migrate(drizzle(pool), { migrationsFolder: 'drizzle' });
   console.log('Migrations applied');
 } finally {
-  await database.close();
+  await pool.end();
 }

@@ -25,6 +25,12 @@ import { createCatalog } from '../../dist/modules/catalog/service.js';
 import { LocalCatalogImageStorage } from '../../dist/modules/catalog/storage.js';
 import { supportedLocaleCodes } from '../../dist/i18n/locales.js';
 import { t as translate } from '../../dist/i18n/translator.js';
+import {
+  assertDatabaseIdentity,
+  disposableDatabaseUrl,
+  testDatabaseUrl,
+  verificationEnv,
+} from '../../scripts/verification-db.ts';
 
 test('compiled translations initialize for all configured locales', async () => {
   for (const locale of supportedLocaleCodes) {
@@ -56,30 +62,31 @@ test(
     });
     // Production HTTP checks mutate fixtures too. Never point the release at
     // the owner database, even when temporary records would be cleaned up.
-    const source = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
-    assert.ok(source, 'PostgreSQL URL required for production verification.');
-    const maintenance = new pg.Pool({ connectionString: source });
-    const databaseName = `lokka_production_${randomUUID().replaceAll('-', '')}`;
+    const source = testDatabaseUrl();
+    await assertDatabaseIdentity(source.href, source.pathname.slice(1));
+    const maintenance = new pg.Pool({ connectionString: source.href });
+    const { name: databaseName, url: target } = disposableDatabaseUrl(
+      source,
+      'production',
+    );
     let created = false;
+    const servers = [];
     t.after(async () => {
       try {
-        if (created) {
-          await maintenance.query(
-            'SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()',
-            [databaseName],
-          );
-          await maintenance.query(`DROP DATABASE "${databaseName}"`);
-        }
+        for (const server of servers) await stop(server, 'SIGTERM');
       } finally {
-        await maintenance.end();
+        try {
+          if (created)
+            await maintenance.query(`DROP DATABASE "${databaseName}"`);
+        } finally {
+          await maintenance.end();
+        }
       }
     });
     await maintenance.query(`CREATE DATABASE "${databaseName}"`);
     created = true;
-    const target = new URL(source);
-    target.pathname = `/${databaseName}`;
-    assert.notEqual(target.pathname, new URL(source).pathname);
-    const migrated = createDatabase(target.href);
+    await assertDatabaseIdentity(target, databaseName);
+    const migrated = createDatabase(target);
     try {
       await migrate(migrated.db, { migrationsFolder: join(root, 'drizzle') });
       await migrated.db
@@ -88,9 +95,7 @@ test(
     } finally {
       await migrated.close();
     }
-    t.diagnostic(
-      'Production fixture uses a fresh migrated lokka_production_* database; owner connection is a template only.',
-    );
+    t.diagnostic(`Production fixture database: ${databaseName}`);
     await mkdir(join(root, 'test-results'), { recursive: true });
     const release = await mkdtemp(join(root, 'test-results/production-'));
     t.after(() => rm(release, { recursive: true, force: true }));
@@ -109,12 +114,11 @@ test(
       await readFile(join(release, 'dist/build-info.json'), 'utf8'),
     );
     const env = {
-      ...process.env,
+      ...verificationEnv(target),
       NODE_ENV: 'production',
       HOST: '127.0.0.1',
       PORT: String(port),
       APP_URL: `http://127.0.0.1:${port}`,
-      DATABASE_URL: target.href,
       LOG_LEVEL: 'info',
     };
     function start() {
@@ -124,6 +128,7 @@ test(
         { cwd: release, env, silent: true, windowsHide: true },
       );
       const instance = { child, output: '', exited: once(child, 'close') };
+      servers.push(instance);
       child.stdout.on('data', (data) => {
         instance.output += data;
       });
@@ -155,7 +160,6 @@ test(
       assert.fail(`Server did not start: ${instance.output}`);
     }
     const first = start();
-    t.after(() => stop(first, 'SIGTERM'));
     await ready(first);
     assert.match(
       first.output,
@@ -308,7 +312,6 @@ test(
     assert.deepEqual(await (await get('/api/v1/version')).json(), identity);
     await stop(first, 'SIGINT');
     const restarted = start();
-    t.after(() => stop(restarted, 'SIGTERM'));
     await ready(restarted);
     assert.equal((await get('/health')).status, 200);
     await stop(restarted, 'SIGTERM');

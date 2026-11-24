@@ -91,7 +91,7 @@ npm.cmd start
 
 `format`, `lint:fix` and `test:watch` support daily development. `db:generate` creates committed migrations after schema edits; `db:migrate` applies them; `db:studio` opens local schema tooling. The base seed (`db:seed`) is idempotent and inserts only the LOKKA vendor; the optional development seed (`db:seed:dev`) adds a demo bilingual catalog and is described in Fresh Database Setup. Foundation tests use a database seam; catalog integration tests require migrated PostgreSQL via TEST_DATABASE_URL or DATABASE_URL from .env. Tests create uniquely named temporary records and remove them afterward; no DOKU/Biteship access is needed. Prefer a separate test database. CI provisions PostgreSQL 18 and runs migrations, seed, formatting, lint, typecheck, tests and build on Node 24.
 
-Run `npm.cmd run test:browser` for Chrome desktop/mobile verification on Windows. It starts an isolated app on localhost:3011 and uses temporary catalog/admin fixtures, which are cleaned afterward. Chrome must already be installed. On Linux install the Playwright Chromium browser in your development environment. Screenshots are written to ignored test-results/. Browser tests expect built assets; run build first.
+Run `node scripts/verify-isolated.mjs browser` for Chrome desktop/mobile verification on Windows. It creates disposable databases and uses temporary catalog/admin fixtures, which are cleaned afterward. Chrome must already be installed. On Linux install the Playwright Chromium browser in your development environment. Screenshots are written to ignored test-results/. Browser tests expect built assets. Run build first.
 
 ## Admin and catalog workflow
 
@@ -172,6 +172,12 @@ suite with one worker. After a build, modes `production` and `browser` run the
 production and Playwright suites with disposable database URLs and before/after
 owner table fingerprints. Use `PRODUCTION_TEST_PORT` to select a free test port
 when the production test's default port 3000 is unavailable.
+
+Use `node scripts/verify-isolated.mjs audit` to run the E3 tests, production
+tests, focused payment browser test and migration proof under one pair of
+read-only owner fingerprints. Write-capable verification requires a disposable
+database identity. The wrapper sets it, propagates the same target to all
+runtime database aliases, and checks the PostgreSQL identity in child processes.
 
 ## Production build and runtime ownership
 

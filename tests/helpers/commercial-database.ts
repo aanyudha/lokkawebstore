@@ -1,30 +1,35 @@
 import 'dotenv/config';
 import pg from 'pg';
-import { randomUUID } from 'node:crypto';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { createDatabase } from '../../src/db/client.js';
+import {
+  assertDatabaseIdentity,
+  disposableDatabaseUrl,
+  testDatabaseUrl,
+} from '../../scripts/verification-db.js';
 // Finance is global: use a disposable, independently migrated database, never owner periods.
 export async function commercialDatabase() {
-  const source = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
-  if (!source)
-    throw new Error('PostgreSQL URL required for integration verification.');
-  const admin = new pg.Pool({ connectionString: source });
-  const name = `lokka_verify_${randomUUID().replaceAll('-', '')}`;
-  await admin.query(`CREATE DATABASE "${name}"`);
-  const url = new URL(source);
-  url.pathname = `/${name}`;
-  const database = createDatabase(url.href);
+  const source = testDatabaseUrl();
+  await assertDatabaseIdentity(source.href, source.pathname.slice(1));
+  const admin = new pg.Pool({ connectionString: source.href });
+  const { name, url } = disposableDatabaseUrl(source, 'verify');
+  const database = createDatabase(url);
+  let created = false;
   try {
+    await admin.query(`CREATE DATABASE "${name}"`);
+    created = true;
+    await assertDatabaseIdentity(url, name);
     await migrate(database.db, { migrationsFolder: 'drizzle' });
+    console.log(`Integration fixture database: ${name}`);
   } catch (error) {
     await database.close();
-    await admin.query(`DROP DATABASE "${name}"`);
+    if (created) await admin.query(`DROP DATABASE "${name}"`);
     await admin.end();
     throw error;
   }
   return {
     database,
-    url: url.href,
+    url,
     async cleanup() {
       await database.close();
       await admin.query(`DROP DATABASE "${name}"`);
