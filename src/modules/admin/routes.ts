@@ -19,6 +19,7 @@ import { createLedger } from '../finance/ledger.js';
 import { createAccounting } from '../finance/accounting.js';
 import { createFulfillment } from '../shipping/service.js';
 import { registerCommercialAdmin } from './commercial-routes.js';
+import { registerFulfillmentAdmin } from './fulfillment-routes.js';
 import { registerInvestorAdmin } from './investor-routes.js';
 import { registerFinanceAdmin } from './finance-routes.js';
 import { renderAdmin, renderAdminError } from './presentation.js';
@@ -172,6 +173,7 @@ export async function registerAdmin(
             ...data,
           });
         registerHomepageAdmin(protectedRoutes, hero, page);
+        registerFulfillmentAdmin(protectedRoutes, db, page);
         registerInvestorAdmin(protectedRoutes, db, page);
         registerCommercialAdmin(
           protectedRoutes,

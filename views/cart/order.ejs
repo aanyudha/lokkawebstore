@@ -5,6 +5,19 @@
   <% if (order.shippingAddressSnapshot) { %>
     <%- include('delivery.ejs', { delivery: order }) %>
   <% } %>
+  <% if (order.status === 'PAID') { %>
+    <section aria-labelledby="shipment-heading">
+      <h2 id="shipment-heading"><%= t('shop.shipment') %></h2>
+      <p data-shipment-status><%= t('shop.shipmentStatus.' + (order.shipment?.status ?? 'READY')) %></p>
+      <% if (order.shipment) { %>
+        <dl>
+          <dt><%= t('shop.shippingCourier') %></dt><dd><%= order.shipment.courierName %></dd>
+          <dt><%= t('shop.shippingService') %></dt><dd><%= order.shipment.serviceName %></dd>
+          <dt><%= t('shop.trackingNumber') %></dt><dd data-tracking-number><%= order.shipment.trackingNumber %></dd>
+        </dl>
+      <% } %>
+    </section>
+  <% } %>
   <div class="shop-table-wrap" tabindex="0" role="region" aria-label="<%= t('shop.orders') %>">
     <table class="shop-table">
       <thead><tr><th scope="col"><%= t('shop.product') %></th><th scope="col"><%= t('shop.unitPrice') %></th><th scope="col"><%= t('shop.quantity') %></th><th scope="col"><%= t('shop.lineTotal') %></th></tr></thead>

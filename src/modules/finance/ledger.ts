@@ -315,6 +315,7 @@ export function createLedger(db: Connection) {
         'MANUAL',
         'OPENING_BALANCE',
         'REVENUE',
+        'SHIPPING_EXPENSE',
       ]),
       input.q
         ? or(
@@ -418,6 +419,11 @@ export function createLedger(db: Connection) {
         throw new FormError(
           'id',
           'POS-generated income is read-only. Correct the sale instead.',
+        );
+      if (row.type === 'SHIPPING_EXPENSE')
+        throw new FormError(
+          'id',
+          'This expense was finalized with its shipment.',
         );
       await tx
         .update(financialTransactions)

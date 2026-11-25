@@ -1,8 +1,9 @@
 
 <div class="admin-content commercial-page">
 <%- include('../partials/form-error.ejs') %>
+<p><a href="/admin/fulfillment/shipments">Record a webstore shipment</a></p>
 <% if (!origins.some(o => o.isDefault && o.status === 'active')) { %><p role="status">Fulfillment origin not configured.</p><% } %>
-<p>Use LOKKA's actual dispatch address. One active origin can be the default. No shipping provider is contacted.</p>
+<p>Use LOKKA's actual dispatch address. One active origin can be the default.</p>
 <% for (const saved of [...origins,{status:'active',countryCode:'ID',isDefault:!origins.length}]) { const dest = '/admin/settings/fulfillment' + (saved.id ? '/' + saved.id : ''); const form = error && action === dest ? values : saved; %>
 <details <%= !saved.id || action === dest ? 'open' : '' %>><summary><%= saved.id ? saved.name + (saved.isDefault ? ' · Default' : '') : 'Add fulfillment origin' %></summary><form method="post" action="<%= dest %>" class="form-stack"><input type="hidden" name="csrf" value="<%= csrf %>" />
 <%- include('../partials/commercial-fields.ejs',{form,fields:[['name','Origin name'],['contactName','Contact name'],['phone','Phone','tel'],['addressLine1','Address line 1'],['addressLine2','Address line 2 (optional)'],['district','District'],['city','City'],['province','Province'],['postalCode','Postal code'],['countryCode','Country','text',[['ID','Indonesia']]],['latitude','Latitude (optional)'],['longitude','Longitude (optional)'],['status','Status','text',[['active','Active'],['inactive','Inactive']]],['isDefault','Default fulfillment origin','checkbox']]}) %><button>Save fulfillment origin</button></form></details>

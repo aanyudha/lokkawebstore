@@ -161,6 +161,12 @@ export type ShippingMethodSnapshot = {
   code: string;
   name: string;
   description: string | null;
+  courierCode?: string | null;
+  courierName?: string | null;
+  serviceCode?: string;
+  serviceName?: string;
+  etaText?: string | null;
+  quoteSource?: string;
 };
 export const orders = pgTable(
   'orders',
@@ -1064,6 +1070,56 @@ export const inventoryMovements = pgTable(
   ],
 );
 // ─── Financial Transactions (canonical cash ledger) ─────────
+export const orderFulfillments = pgTable(
+  'order_fulfillments',
+  {
+    orderId: uuid('order_id')
+      .primaryKey()
+      .references(() => orders.id),
+    courierName: text('courier_name').notNull(),
+    serviceName: text('service_name').notNull(),
+    trackingNumber: text('tracking_number').notNull(),
+    status: text('fulfillment_status', {
+      enum: ['SHIPPED', 'DELIVERED'],
+    }).notNull(),
+    actualShippingCost: bigint('actual_shipping_cost', { mode: 'bigint' }),
+    shippedAt: timestamp('shipped_at', { withTimezone: true }).notNull(),
+    deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+    shippedById: uuid('shipped_by_id')
+      .notNull()
+      .references(() => adminUsers.id),
+    deliveredById: uuid('delivered_by_id').references(() => adminUsers.id),
+    ...timestamps(),
+  },
+  (t) => [
+    check(
+      'order_fulfillments_cost_nonnegative',
+      sql`${t.actualShippingCost} >= 0`,
+    ),
+    check(
+      'order_fulfillments_delivery',
+      sql`(${t.status} = 'SHIPPED' AND ${t.deliveredAt} IS NULL AND ${t.deliveredById} IS NULL) OR (${t.status} = 'DELIVERED' AND ${t.deliveredAt} >= ${t.shippedAt} AND ${t.deliveredAt} IS NOT NULL AND ${t.deliveredById} IS NOT NULL)`,
+    ),
+  ],
+);
+export const orderTrackingChanges = pgTable(
+  'order_tracking_changes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orderFulfillments.orderId),
+    previousTrackingNumber: text('previous_tracking_number').notNull(),
+    trackingNumber: text('tracking_number').notNull(),
+    changedById: uuid('changed_by_id')
+      .notNull()
+      .references(() => adminUsers.id),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index('order_tracking_changes_order_idx').on(t.orderId, t.createdAt)],
+);
 // One table feeds Cash Flow and future consumers (Accounting Lite, Tax).
 // Cash Flow is always derived from these rows; it is never a second ledger.
 export const financialTransactions = pgTable(
@@ -1072,10 +1128,19 @@ export const financialTransactions = pgTable(
     id: uuid('id').defaultRandom().primaryKey(),
     // Automated entries reference their originating sale; manual entries do not.
     saleId: uuid('sale_id').references(() => sales.id),
+    shipmentOrderId: uuid('shipment_order_id')
+      .unique()
+      .references(() => orderFulfillments.orderId),
     source: saleSource('source').notNull(),
     direction: financeDirection('direction').default('INCOME').notNull(),
     type: text('type', {
-      enum: ['REVENUE', 'CASH_INFLOW', 'MANUAL', 'OPENING_BALANCE'],
+      enum: [
+        'REVENUE',
+        'CASH_INFLOW',
+        'MANUAL',
+        'OPENING_BALANCE',
+        'SHIPPING_EXPENSE',
+      ],
     }).notNull(),
     category: financeCategory('category').notNull(),
     amountRupiah: bigint('amount_rupiah', { mode: 'bigint' }).notNull(),
@@ -1123,6 +1188,14 @@ export const financialTransactions = pgTable(
     check(
       'financial_transactions_void_fields',
       sql`(${t.status} = 'POSTED' AND ${t.voidReason} IS NULL AND ${t.voidedAt} IS NULL AND ${t.voidedById} IS NULL) OR (${t.status} = 'VOIDED' AND ${t.voidReason} IS NOT NULL AND ${t.voidedAt} IS NOT NULL)`,
+    ),
+    check(
+      'financial_transactions_type_enum',
+      sql`${t.type} IN ('REVENUE', 'CASH_INFLOW', 'MANUAL', 'OPENING_BALANCE', 'SHIPPING_EXPENSE')`,
+    ),
+    check(
+      'financial_transactions_shipment_expense',
+      sql`(${t.type} <> 'SHIPPING_EXPENSE' AND ${t.shipmentOrderId} IS NULL) OR (${t.type} = 'SHIPPING_EXPENSE' AND ${t.shipmentOrderId} IS NOT NULL AND ${t.source} = 'WEBSTORE' AND ${t.direction} = 'EXPENSE' AND ${t.category} = 'TRANSPORT' AND ${t.saleId} IS NULL AND ${t.status} = 'POSTED')`,
     ),
   ],
 );

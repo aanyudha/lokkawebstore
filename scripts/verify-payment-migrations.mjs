@@ -32,11 +32,12 @@ const history = readMigrationFiles({ migrationsFolder: 'drizzle' }).map(
   }),
 );
 assert.deepEqual(
-  journal.entries.slice(-3).map((entry) => entry.tag),
+  journal.entries.slice(-4).map((entry) => entry.tag),
   [
     '0012_webstore_payments',
     '0013_webstore_checkout',
     '0014_webstore_payment_provider_account',
+    '0015_manual_fulfillment',
   ],
 );
 const historical = mkdtemp(join(tmpdir(), 'lokka-audit-'));
@@ -74,24 +75,32 @@ try {
       "SELECT is_nullable FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'payment_attempts' AND column_name = 'provider_account'",
     );
     assert.equal(column?.is_nullable, 'YES');
-    console.log('Fresh lineage through 0014: PASS');
+    const [shipment] = await rows(
+      "SELECT to_regclass('public.order_fulfillments') AS fulfillment, to_regclass('public.order_tracking_changes') AS audit",
+    );
+    assert.deepEqual(shipment, {
+      fulfillment: 'order_fulfillments',
+      audit: 'order_tracking_changes',
+    });
+    console.log('Fresh lineage through 0015: PASS');
   });
-  const through0013 = journal.entries.slice(0, -1);
-  await save(
-    join(meta, '_journal.json'),
-    JSON.stringify({ ...journal, entries: through0013 }),
-  );
-  for (const { tag } of through0013) {
+  const historicalEntries = journal.entries.slice(0, -1);
+  for (const { tag } of historicalEntries) {
     assert.match(tag, /^\d{4}_[a-z0-9_]+$/);
     await save(
       join(folder, tag + '.sql'),
       await readFile(join('drizzle', tag + '.sql')),
     );
   }
-  await disposable(async (db, rows) => {
-    await migrate(db, { migrationsFolder: folder });
-    assert.deepEqual(await rows(historySql), history.slice(0, -1));
-    await rows(`WITH customer AS (
+  const journalPath = join(meta, '_journal.json');
+  files.push(journalPath);
+  for (const last of [13, 14]) {
+    const entries = historicalEntries.slice(0, last + 1);
+    await writeFile(journalPath, JSON.stringify({ ...journal, entries }));
+    await disposable(async (db, rows) => {
+      await migrate(db, { migrationsFolder: folder });
+      assert.deepEqual(await rows(historySql), history.slice(0, last + 1));
+      await rows(`WITH customer AS (
       INSERT INTO customers (name,email,email_normalized,password_hash)
       VALUES ('Migration fixture','migration@example.test','migration@example.test','fixture') RETURNING id
     ), order_row AS (
@@ -103,30 +112,42 @@ try {
     )
     INSERT INTO payment_notifications (provider,event_id,attempt_id,merchant_invoice_number,original_request_id,request_timestamp,occurred_at,amount,currency,outcome,provider_status,result)
     SELECT 'DOKU','migration-event',id,'MIGRATION1','migration-request',now(),now(),25000,'IDR','IGNORED','FAILED','IGNORED' FROM attempt`);
-    const read = async () => ({
-      orders: await rows('SELECT * FROM orders'),
-      attempts: await rows('SELECT * FROM payment_attempts'),
-      notifications: await rows('SELECT * FROM payment_notifications'),
+      await rows(`INSERT INTO financial_transactions (source, direction, type, category, amount_rupiah, occurred_at, period_month)
+      VALUES ('MANUAL','EXPENSE','MANUAL','TRANSPORT',1000,now(),'2026-11-01')`);
+      if (last === 14)
+        await rows(
+          "UPDATE payment_attempts SET provider_account = 'fixture-merchant'",
+        );
+      const read = async () => ({
+        orders: await rows('SELECT * FROM orders'),
+        attempts: await rows('SELECT * FROM payment_attempts'),
+        notifications: await rows('SELECT * FROM payment_notifications'),
+        ledger: await rows('SELECT * FROM financial_transactions'),
+      });
+      const before = await read();
+      await migrate(db, { migrationsFolder: 'drizzle' });
+      assert.deepEqual(await read(), {
+        ...before,
+        attempts: before.attempts.map((row) => ({
+          ...row,
+          provider_account: last === 14 ? row.provider_account : null,
+        })),
+        ledger: before.ledger.map((row) => ({
+          ...row,
+          shipment_order_id: null,
+        })),
+      });
+      assert.deepEqual(await rows(historySql), history);
+      console.log(
+        `Upgrade from 00${last} preserved the order, payment and ledger data: PASS`,
+      );
+      const after = await read();
+      await migrate(db, { migrationsFolder: 'drizzle' });
+      assert.deepEqual(await rows(historySql), history);
+      assert.deepEqual(await read(), after);
+      console.log('Migration replay was a no-op: PASS');
     });
-    const before = await read();
-    await migrate(db, { migrationsFolder: 'drizzle' });
-    assert.deepEqual(await read(), {
-      ...before,
-      attempts: before.attempts.map((row) => ({
-        ...row,
-        provider_account: null,
-      })),
-    });
-    assert.deepEqual(await rows(historySql), history);
-    console.log(
-      'Upgrade from 0013 preserved the order, attempt and notification: PASS',
-    );
-    const after = await read();
-    await migrate(db, { migrationsFolder: 'drizzle' });
-    assert.deepEqual(await rows(historySql), history);
-    assert.deepEqual(await read(), after);
-    console.log('Migration replay was a no-op: PASS');
-  });
+  }
 } finally {
   await parent.end();
   for (const file of files) await unlink(file);

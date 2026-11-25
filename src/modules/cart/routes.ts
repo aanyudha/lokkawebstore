@@ -8,6 +8,8 @@ import { FormError, formatIdr, type Form } from '../catalog/validation.js';
 import { createCartService } from './service.js';
 import { createOrderService } from '../orders/service.js';
 import { createCheckout } from '../checkout/service.js';
+import { createShippingRateService } from '../shipping/rates.js';
+import { JntRateProvider } from '../shipping/jnt-rate-provider.js';
 import { createCustomerAddresses } from '../customer/addresses.js';
 import {
   isPayableWebstoreOrder,
@@ -38,10 +40,16 @@ export async function registerCart(
   db: Database['db'],
   env: AppEnv,
   payments?: Pick<ReturnType<typeof createPaymentService>, 'createPayment'>,
+  shippingFetch?: typeof fetch,
 ) {
   const cart = createCartService(db);
   const orders = createOrderService(db);
-  const checkout = createCheckout(db);
+  const checkout = createCheckout(
+    db,
+    createShippingRateService(
+      env.jntRate ? [new JntRateProvider(env.jntRate, shippingFetch)] : [],
+    ),
+  );
   const addresses = createCustomerAddresses(db);
   app.addHook('onRequest', async (request, reply) => {
     reply.locals = Object.assign({}, reply.locals, {
@@ -148,6 +156,7 @@ export async function registerCart(
             ...(await checkout.options(customerId(r))),
             selection: form(r),
             reviewed: null,
+            shippingRates: null,
             addressForm: null,
             ...data,
           },
@@ -158,6 +167,17 @@ export async function registerCart(
       secure.get(`${paths.cart}/review`, (r, reply) =>
         renderCheckout(r, reply),
       );
+      secure.post(`${paths.cart}/review/rates`, async (r, reply) => {
+        try {
+          const shippingRates = await checkout.rates(customerId(r), form(r));
+          return renderCheckout(r, reply, { shippingRates });
+        } catch (cause) {
+          if (!(cause instanceof FormError)) throw cause;
+          return renderCheckout(r, reply.code(422), {
+            error: shopError(cause, 'shop.error.changed'),
+          });
+        }
+      });
       secure.post(`${paths.cart}/review`, async (r, reply) => {
         try {
           const reviewed = await checkout.review(customerId(r), form(r));

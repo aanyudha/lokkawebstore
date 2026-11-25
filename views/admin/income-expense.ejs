@@ -62,7 +62,7 @@
 <td><%= row.notes ?? '' %><% if (row.voidReason) { %><br /><small>Void reason: <%= row.voidReason %></small><% } %></td>
 <td><%- include('../partials/admin/status-badge.ejs', { status: row.status }) %></td>
 <td>
-<% if (row.status === 'POSTED') { %>
+<% if (row.status === 'POSTED' && row.type !== 'SHIPPING_EXPENSE') { %>
 <form method="post" action="/admin/finance/income-expense/<%= row.id %>/void" class="stock-form">
 <input type="hidden" name="csrf" value="<%= csrf %>" />
 <label>Reason for voiding <%= categoryLabels[row.category] ?? row.category %>

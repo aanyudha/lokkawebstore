@@ -208,6 +208,7 @@
       "addressPostal": "Enter a five-digit postal code.",
       "shipping": "Choose an available shipping method.",
       "noShipping": "Shipping is currently unavailable. Please try again later.",
+      "rateUnavailable": "We couldn't get a shipping rate for this address. Check your address or try again later.",
       "weight": "A product is missing its shipping weight. Update your cart to continue.",
       "reviewChanged": "Order details changed. Review the updated checkout before placing your order.",
       "paymentUnavailable": "This order is currently unavailable for payment."
@@ -217,6 +218,17 @@
     "shippingMethod": "Shipping method",
     "selectAddress": "Select shipping address",
     "shipmentWeight": "Shipment weight",
+    "checkRates": "Check shipping rates",
+    "rateFallback": "Live courier rates are unavailable. LOKKA's configured delivery rates are shown below.",
+    "shipment": "Shipment",
+    "shippingCourier": "Shipping courier",
+    "shippingService": "Shipping service",
+    "trackingNumber": "Tracking number",
+    "shipmentStatus": {
+      "READY": "Preparing shipment",
+      "SHIPPED": "Shipped",
+      "DELIVERED": "Delivered"
+    },
     "addAddress": "Add shipping address",
     "editAddress": "Edit address",
     "saveAddress": "Save address",

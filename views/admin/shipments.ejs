@@ -1,0 +1,59 @@
+<div class="admin-content commercial-page">
+  <form method="get" action="<%= url %>" class="form-stack">
+    <label>Order number <input name="orderNumber" value="<%= orderNumber %>" maxlength="40" required /></label>
+    <button type="submit">Find order</button>
+  </form>
+  <% if (error) { %><p role="alert"><%= error %></p><% } %>
+  <% if (orderNumber && !order && !error) { %><p role="status">Order not found.</p><% } %>
+  <% if (!orderNumber) { %>
+    <section aria-labelledby="shipments-ready">
+      <h2 id="shipments-ready">Recently paid orders awaiting shipment</h2>
+      <% if (readyOrders.length) { %>
+        <ul>
+          <% for (const ready of readyOrders) { %><li><a href="<%= url %>?orderNumber=<%= ready.orderNumber %>"><%= ready.orderNumber %></a></li><% } %>
+        </ul>
+      <% } else { %><p>No orders awaiting shipment.</p><% } %>
+    </section>
+  <% } %>
+  <% if (order) { const shipment = order.shipment; const path = url + '/' + order.orderNumber; %>
+    <section class="admin-section" aria-labelledby="shipment-order">
+      <h2 id="shipment-order"><%= order.orderNumber %></h2>
+      <dl>
+        <dt>Order status</dt><dd><%= order.status %></dd>
+        <% if (order.quote?.name) { %><dt>Quoted shipping</dt><dd><%= [order.quote.courierName, order.quote.serviceName ?? order.quote.name].filter(Boolean).join(' · ') %></dd><% } %>
+        <dt>Customer shipping charge</dt><dd><%= formatIdr(order.shippingAmount) %></dd>
+        <% if (order.status === 'PAID') { %><dt>Shipment status</dt><dd><%= shipment?.status ?? 'READY' %></dd><% } %>
+        <% if (shipment) { %>
+          <dt>Actual courier</dt><dd><%= shipment.courierName %></dd>
+          <dt>Actual service</dt><dd><%= shipment.serviceName %></dd>
+          <dt>Tracking number / Nomor resi</dt><dd><%= shipment.trackingNumber %></dd>
+          <dt>Actual shipping cost</dt><dd><%= shipment.actualShippingCost === null ? 'Unrecorded' : formatIdr(shipment.actualShippingCost) %></dd>
+        <% } %>
+      </dl>
+      <% if (order.status === 'PAID' && !shipment) { %>
+        <form method="post" action="<%= path %>/ship" class="form-stack">
+          <input type="hidden" name="csrf" value="<%= csrf %>" />
+          <label>Courier <input name="courierName" maxlength="120" required /></label>
+          <label>Service <input name="serviceName" maxlength="120" required /></label>
+          <label>Tracking number / Nomor resi <input name="trackingNumber" maxlength="120" required /></label>
+          <label>Actual shipping cost (Rp) <input name="actualShippingCost" inputmode="numeric" pattern="[0-9]+" maxlength="19" aria-describedby="shipping-cost-help" /></label>
+          <p id="shipping-cost-help">The cost is finalized when you mark the order as shipped. Leave blank if unknown.</p>
+          <button type="submit">Mark as shipped</button>
+        </form>
+      <% } else if (order.status === 'PAID' && shipment) { %>
+        <form method="post" action="<%= path %>/tracking" class="form-stack">
+          <input type="hidden" name="csrf" value="<%= csrf %>" />
+          <input type="hidden" name="previousTrackingNumber" value="<%= shipment.trackingNumber %>" />
+          <label>Correct tracking number <input name="trackingNumber" maxlength="120" value="<%= shipment.trackingNumber %>" required /></label>
+          <button type="submit">Save tracking number</button>
+        </form>
+        <% if (shipment.status === 'SHIPPED') { %>
+          <form method="post" action="<%= path %>/deliver">
+            <input type="hidden" name="csrf" value="<%= csrf %>" />
+            <button type="submit">Mark as delivered</button>
+          </form>
+        <% } %>
+      <% } %>
+    </section>
+  <% } %>
+</div>

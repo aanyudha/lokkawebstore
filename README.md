@@ -17,7 +17,7 @@ npm.cmd run db:seed
 npm.cmd run dev
 ```
 
-Edit .env for your environment. DATABASE_URL and APP_URL are required; NODE_ENV, HOST, PORT, LOG_LEVEL and TRUST_PROXY are validated at startup. DOKU/Biteship settings are unused placeholders. Never use the Compose development password in production. The database binds to localhost:5432 and persists in a named volume. `npm.cmd run docker:down` stops it without deleting data. Docker must be accessible to the current user; install/start missing system dependencies yourself.
+Edit .env for your environment. DATABASE_URL and APP_URL are required; NODE_ENV, HOST, PORT, LOG_LEVEL and TRUST_PROXY are validated at startup. Payment and live shipping rates are opt-in. Never use the Compose development password in production. The database binds to localhost:5432 and persists in a named volume. `npm.cmd run docker:down` stops it without deleting data. Docker must be accessible to the current user; install/start missing system dependencies yourself.
 
 Open http://127.0.0.1:3000, matching the default APP_URL. Development first builds assets, then watches server TypeScript and frontend assets concurrently. Refresh the browser after frontend edits; there is no HMR server. The asset directory is intentionally ignored by Git.
 
@@ -178,6 +178,21 @@ tests, focused payment browser test and migration proof under one pair of
 read-only owner fingerprints. Write-capable verification requires a disposable
 database identity. The wrapper sets it, propagates the same target to all
 runtime database aliases, and checks the PostgreSQL identity in child processes.
+
+## Manual fulfillment and rate checking (Phase E4)
+
+Checkout can quote J&T rates for a saved destination and uses configured LOKKA
+flat rates when the tariff service has no usable rate. See the
+[shipping module](src/modules/shipping/README.md) for activation and geographic
+mapping. In **Sales → Shipments**, staff can look up a paid webstore order,
+record the courier, service, tracking number and actual cost, and mark it
+shipped or delivered. The customer's order detail shows the shipment and
+tracking number in English and Indonesian.
+
+Migration `0015_manual_fulfillment.sql` adds shipment and tracking audit tables
+and links the canonical shipping expense to its shipment. After building, run
+`node scripts/verify-isolated.mjs e4` for the targeted regression suite, production
+checks, webstore browser flows and fresh/upgrade migration proof.
 
 ## Production build and runtime ownership
 

@@ -4,6 +4,7 @@ import {
   cartItems,
   directCosts,
   orderCounters,
+  orderFulfillments,
   orderItems,
   orders,
   paymentAttempts,
@@ -162,8 +163,18 @@ export function createOrderService(db: Database['db']) {
         ),
       );
     if (!order) return null;
+    const [shipment] = await db
+      .select({
+        courierName: orderFulfillments.courierName,
+        serviceName: orderFulfillments.serviceName,
+        trackingNumber: orderFulfillments.trackingNumber,
+        status: orderFulfillments.status,
+      })
+      .from(orderFulfillments)
+      .where(eq(orderFulfillments.orderId, order.id));
     return {
       ...order,
+      shipment: shipment ?? null,
       items: await db
         .select()
         .from(orderItems)

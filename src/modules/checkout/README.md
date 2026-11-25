@@ -6,20 +6,25 @@ before placing it. Address writes use the existing customer session and CSRF
 protection. Checkout and order pages are private and excluded from indexing.
 
 Cart owns availability and revision. Customer owns saved addresses and
-ownership checks. Shipping supplies active flat rates from **Settings →
-Fulfillment**. The owner configures an active default LOKKA origin and at
-least one active method. Method codes stay stable when editing a rate. A zero
-flat rate must be configured explicitly.
+ownership checks. With J&T rates enabled, customers select a saved address,
+request tariff options, choose a service, and confirm the price at review.
+Shipping uses the active default LOKKA origin and can fall back to the flat
+rates configured in **Settings → Fulfillment**. A zero flat rate must be
+configured explicitly.
 
 Orders locks the cart, products and variants using the existing lock order.
-Checkout reads the selected customer address, origin and method under shared
-row locks and recalculates delivery facts. A review token detects changes to
-the address, configuration, prices, quantities or weights. Customers review
-changed facts before placing their order.
+Checkout reads the selected customer address and origin under shared row locks,
+recalculates the weight from validated item facts, and revalidates the selected
+tariff or flat rate. A review token detects changes to the address, shipping
+option, prices, quantities or weights. Customers review changed facts before
+placing their order.
 
-New orders snapshot the address, method, item unit weights and aggregate
-shipment grams. Money uses bigint whole rupiah. The grand total is merchandise
-subtotal + shipping charge − discount. Discount is zero in this phase.
+New orders snapshot the address, quoted courier and service, source, optional
+ETA text, shipping charge, item unit weights and aggregate shipment grams.
+Generic flat-rate methods have no quoted courier. Staff fulfillment records
+the actual courier and cost separately. Money uses bigint whole rupiah. The
+grand total is merchandise subtotal + shipping charge − discount. Discount is
+zero in this phase.
 Existing E1 orders retain their original display and totals.
 
 A successful submission consumes the cart revision and creates one

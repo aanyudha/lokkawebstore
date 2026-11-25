@@ -2,6 +2,7 @@
   <h1><%= t(reviewed ? 'shop.review' : 'shop.checkout') %></h1>
   <% if (error) { %><p class="account-error" role="alert"><%= t(error) %></p><% } %>
   <% if (reviewed) { %>
+    <% if (reviewed.usingFallback) { %><p role="status"><%= t('shop.rateFallback') %></p><% } %>
     <%- include('delivery.ejs', { delivery: reviewed.facts }) %>
     <div class="shop-table-wrap" tabindex="0" role="region" aria-label="<%= t('shop.review') %>">
       <table class="shop-table">
@@ -40,9 +41,9 @@
         <%- include('address-form.ejs', { addressId: null, values: addressForm && !addressForm.id ? addressForm.values : {} }) %>
       </details>
     </section>
-    <% if (!methods.length) { %><p role="status"><%= t('shop.error.noShipping') %></p><% } %>
-    <% if (addresses.length && methods.length) { %>
-      <form method="post" action="<%= paths.cart %>/review" class="form-stack">
+    <% if (!rateLookup && !methods.length) { %><p role="status"><%= t('shop.error.noShipping') %></p><% } %>
+    <% if (!shippingRates && addresses.length && (rateLookup || methods.length)) { %>
+      <form method="post" action="<%= paths.cart %>/review<%= rateLookup ? '/rates' : '' %>" class="form-stack">
         <input type="hidden" name="csrf" value="<%= csrf %>" />
         <div>
           <label for="checkout-address"><%= t('shop.selectAddress') %></label>
@@ -50,14 +51,27 @@
             <% for (const saved of addresses) { %><option value="<%= saved.id %>" <%= selection.addressId === saved.id ? 'selected' : '' %>><%= saved.label || saved.recipientName %> · <%= saved.addressLine1 %>, <%= saved.city %></option><% } %>
           </select>
         </div>
-        <div>
+        <% if (!rateLookup) { %><div>
           <label for="checkout-method"><%= t('shop.shippingMethod') %></label>
           <select id="checkout-method" name="methodId" required>
             <% for (const method of methods) { %><option value="<%= method.id %>" <%= selection.methodId === method.id ? 'selected' : '' %>><%= method.name %> · <%= formatIdr(method.amountRupiah) %><%= method.description ? ' · ' + method.description : '' %></option><% } %>
           </select>
-        </div>
+        </div><% } %>
+        <button class="btn btn-primary" type="submit"><%= t(rateLookup ? 'shop.checkRates' : 'shop.review') %></button>
+      </form>
+    <% } %>
+    <% if (shippingRates) { %>
+      <% if (shippingRates.usingFallback) { %><p role="status"><%= t('shop.rateFallback') %></p><% } %>
+      <form method="post" action="<%= paths.cart %>/review" class="form-stack">
+        <input type="hidden" name="csrf" value="<%= csrf %>" />
+        <input type="hidden" name="addressId" value="<%= selection.addressId %>" />
+        <label for="checkout-rate"><%= t('shop.shippingMethod') %></label>
+        <select id="checkout-rate" name="methodId" required>
+          <% for (const rate of shippingRates.rates) { %><option value="<%= rate.id %>"><%= [rate.courierName, rate.serviceName, formatIdr(rate.amountRupiah), rate.etaText].filter(Boolean).join(' · ') %></option><% } %>
+        </select>
         <button class="btn btn-primary" type="submit"><%= t('shop.review') %></button>
       </form>
+      <p><a href="<%= paths.cart %>/review"><%= t('shop.changeDelivery') %></a></p>
     <% } %>
   <% } %>
   <p><a href="<%= paths.cart %>"><%= t('shop.cart') %></a></p>

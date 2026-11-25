@@ -18,17 +18,20 @@ export function createShippingMethods(
   db: Pick<Database['db'], 'select' | 'insert' | 'update'>,
 ) {
   return {
-    list(activeOnly = false) {
-      return db
+    list(activeOnly = false, lock = false) {
+      const query = db
         .select()
         .from(shippingMethods)
         .where(activeOnly ? eq(shippingMethods.active, true) : undefined)
         .orderBy(asc(shippingMethods.name), asc(shippingMethods.code));
+      return lock ? query.for('share') : query;
     },
     async origin(lock = false) {
       const query = db
         .select({
           id: fulfillmentOrigins.id,
+          province: fulfillmentOrigins.province,
+          city: fulfillmentOrigins.city,
           updatedAt: fulfillmentOrigins.updatedAt,
         })
         .from(fulfillmentOrigins)

@@ -34,7 +34,14 @@ export const adminNavigation = [
   },
   {
     label: 'Sales',
-    items: [{ label: 'POS', href: '/pos', area: 'pos' }],
+    items: [
+      { label: 'POS', href: '/pos', area: 'pos' },
+      {
+        label: 'Shipments',
+        href: '/admin/fulfillment/shipments',
+        area: 'shipments',
+      },
+    ],
   },
   {
     label: 'Finance',
@@ -240,6 +247,12 @@ function metadata(page: string, data: Record<string, unknown>) {
       area: 'income-expense',
       breadcrumbs: [{ label: 'Finance' }, { label: 'Income & Expense' }],
       action: { label: 'Add transaction', href: '#add-transaction' },
+    },
+    shipments: {
+      title: 'Webstore shipments',
+      area: 'shipments',
+      description: '',
+      breadcrumbs: [{ label: 'Sales' }, { label: 'Shipments' }],
     },
     fulfillment: {
       title: 'LOKKA fulfillment origin',

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte, or, sql } from 'drizzle-orm';
 import type { Database } from '../../db/client.js';
 import {
   financialTransactions as expenses,
@@ -26,8 +26,10 @@ export async function readAccounting(
   const validExpenses = and(
     eq(expenses.status, 'POSTED'),
     eq(expenses.direction, 'EXPENSE'),
-    eq(expenses.type, 'MANUAL'),
-    eq(expenses.source, 'MANUAL'),
+    or(
+      and(eq(expenses.type, 'MANUAL'), eq(expenses.source, 'MANUAL')),
+      eq(expenses.type, 'SHIPPING_EXPENSE'),
+    ),
     inArray(expenses.category, [...EXPENSE_CATEGORIES]),
     gte(expenses.occurredAt, period.from),
     lte(expenses.occurredAt, period.to),

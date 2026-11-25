@@ -105,6 +105,7 @@ describe('admin presentation boundaries', () => {
       '/admin/inventory',
       '/admin/media',
       '/pos',
+      '/admin/fulfillment/shipments',
       '/admin/finance/cash-flow',
       '/admin/finance/income-expense',
       '/admin/finance/accounting',
@@ -116,7 +117,7 @@ describe('admin presentation boundaries', () => {
       '/admin/settings/homepage',
     ])
       expect(nav).toContain(`href="${path}"`);
-    expect(nav.match(/href=/g)).toHaveLength(15);
+    expect(nav.match(/href=/g)).toHaveLength(16);
     expect(nav).not.toMatch(
       /Orders|Customers|Story|Lookbook|Legal|Tax|SMEXPO|User Management/,
     );
@@ -153,6 +154,7 @@ describe('admin presentation boundaries', () => {
       [`/admin/categories/${categoryId}/edit`, '/admin/categories'],
       ['/admin/inventory', '/admin/inventory'],
       ['/admin/media', '/admin/media'],
+      ['/admin/fulfillment/shipments', '/admin/fulfillment/shipments'],
       ['/admin/finance/cash-flow', '/admin/finance/cash-flow'],
       ['/admin/finance/income-expense', '/admin/finance/income-expense'],
       ['/admin/finance/overhead', '/admin/finance/overhead'],

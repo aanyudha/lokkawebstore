@@ -16,6 +16,16 @@ export const sampleAddress = {
   isDefault: 'on',
 };
 
+export const jntFixtureEnv = {
+  SHIPPING_RATE_PROVIDER: 'jnt',
+  JNT_TARIFF_URL: 'https://tariff.example.test/check',
+  JNT_TARIFF_CUSTOMER_NAME: 'fixture-customer',
+  JNT_TARIFF_KEY: 'fixture-signing-key',
+  JNT_TARIFF_ORIGIN_CODES: '{"DKI Jakarta|Jakarta Pusat":"FIXTURE_ORIGIN"}',
+  JNT_TARIFF_DESTINATION_CODES:
+    '{"DKI Jakarta|Jakarta Pusat|Menteng|10310":"FIXTURE_DEST"}',
+};
+
 export async function configureCheckoutShipping(
   db: Database['db'],
   catalog: Catalog,

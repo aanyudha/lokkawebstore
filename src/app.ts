@@ -42,6 +42,7 @@ export async function buildApp(
     };
     logger?: boolean;
     paymentFetch?: typeof fetch;
+    shippingFetch?: typeof fetch;
   } = {},
 ) {
   const app = Fastify({
@@ -320,7 +321,14 @@ export async function buildApp(
         : undefined;
     if (payments) await registerPaymentNotifications(app, payments);
     if (database.db) await registerCustomer(app, database.db, env);
-    if (database.db) await registerCart(app, database.db, env, payments);
+    if (database.db)
+      await registerCart(
+        app,
+        database.db,
+        env,
+        payments,
+        options.shippingFetch,
+      );
     if (catalog) registerStorefrontNavigation(app, catalog);
     const hero = database.db
       ? createHomepageHero(database.db, storage, () =>

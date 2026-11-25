@@ -98,11 +98,42 @@ const modes = {
     ],
     ['node', ['scripts/verify-payment-migrations.mjs']],
   ],
+  e4: [
+    [
+      'npm',
+      [
+        'test',
+        '--',
+        '--maxWorkers=1',
+        'tests/webstore.test.ts',
+        'tests/webstore-payments.test.ts',
+        'tests/webstore-fulfillment.test.ts',
+        'tests/doku-provider.test.ts',
+        'tests/admin-foundation.test.ts',
+        'tests/verification-db.test.ts',
+        'tests/accounting.test.ts',
+        'tests/finance-cash-flow.test.ts',
+        'tests/pos.test.ts',
+      ],
+    ],
+    ['npm', ['run', 'test:production']],
+    [
+      'npm',
+      [
+        'run',
+        'test:browser',
+        '--',
+        'tests/browser/webstore.spec.ts',
+        'tests/browser/webstore-payment.spec.ts',
+      ],
+    ],
+    ['node', ['scripts/verify-payment-migrations.mjs']],
+  ],
 };
 const commands = modes[process.argv[2]];
 if (!commands)
   throw new Error(
-    'Use focused, unit, production, browser, webbrowser or audit.',
+    'Use focused, unit, production, browser, webbrowser, audit or e4.',
   );
 let created = false;
 const before = await fingerprint();

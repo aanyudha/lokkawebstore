@@ -14,6 +14,7 @@ import { resolvePeriod } from '../../src/modules/finance/ledger.js';
 import { dokuNotificationPath } from '../../src/modules/payments/config.js';
 import {
   configureCheckoutShipping,
+  jntFixtureEnv,
   sampleAddress,
 } from '../helpers/checkout-fixture.js';
 import { dokuFixture, signedHeaders } from '../helpers/doku-fixture.js';
@@ -29,6 +30,7 @@ test('checkout starts hosted payment and only a verified notification confirms t
   const hostedOrigin = 'https://sandbox.doku.com';
   const hosted = new Map<string, string>();
   const amounts: number[] = [];
+  const tariffCalls: string[] = [];
   const app = await buildApp(
     readEnv({
       ...process.env,
@@ -41,10 +43,20 @@ test('checkout starts hosted payment and only a verified notification confirms t
       DOKU_CLIENT_ID: dokuFixture.clientId,
       DOKU_SECRET_KEY: dokuFixture.secretKey,
       DOKU_NOTIFICATION_URL: dokuFixture.notificationUrl,
+      ...jntFixtureEnv,
     }),
     {
       database: { ...f.database, close: async () => {} },
       logger: false,
+      async shippingFetch(url, options) {
+        expect(url).toBe(jntFixtureEnv.JNT_TARIFF_URL);
+        const tariff = new URLSearchParams(String(options?.body));
+        tariffCalls.push(JSON.parse(tariff.get('data')!).weight);
+        return Response.json({
+          is_success: 'true',
+          content: '[{"name":"EZ","cost":"22000"}]',
+        });
+      },
       async paymentFetch(url, options) {
         expect(url).toBe('https://api-sandbox.doku.com/checkout/v1/payment');
         const sent = JSON.parse(String(options?.body)).order;
@@ -122,6 +134,7 @@ test('checkout starts hosted payment and only a verified notification confirms t
       ['Phone number', sampleAddress.phone],
       ['Address line 1', sampleAddress.addressLine1],
       ['City or regency', sampleAddress.city],
+      ['District or kecamatan (optional)', sampleAddress.district],
       ['Province', sampleAddress.province],
       ['Postal code', sampleAddress.postalCode],
     ] as const)
@@ -132,6 +145,10 @@ test('checkout starts hosted payment and only a verified notification confirms t
     await page
       .getByRole('combobox', { name: 'Select shipping address' })
       .selectOption({ index: 0 });
+    await page.getByRole('button', { name: 'Check shipping rates' }).click();
+    await expect(
+      page.getByRole('option', { name: /J&T Express.*EZ.*22,000/ }),
+    ).toBeAttached();
     await page
       .getByRole('combobox', { name: 'Shipping method' })
       .selectOption({ index: 0 });
@@ -146,6 +163,12 @@ test('checkout starts hosted payment and only a verified notification confirms t
     );
     await expect(page.locator('[data-grand-total]')).toHaveText('Rp817,000');
     const [order] = await f.db.select().from(orders);
+    expect(order?.shippingMethodSnapshot).toMatchObject({
+      courierCode: 'JNT',
+      serviceCode: 'EZ',
+      quoteSource: 'JNT',
+    });
+    expect(tariffCalls).toEqual(['0.200', '0.200', '0.200']);
     const currentAttempts = () =>
       f.db
         .select()
@@ -234,6 +257,56 @@ test('checkout starts hosted payment and only a verified notification confirms t
       merchandiseRevenue: 795000n,
       shippingCharged: 22000n,
       cogs: 300000n,
+    });
+
+    await page.goto(base + '/admin/login');
+    await page.getByLabel('Email', { exact: true }).fill(f.admin.email);
+    await page
+      .getByLabel('Password', { exact: true })
+      .fill('temporary-accounting-password');
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await page.getByRole('link', { name: 'Shipments', exact: true }).click();
+    await page.getByRole('link', { name: order!.orderNumber }).click();
+    await expect(page.getByText('J&T Express · EZ')).toBeVisible();
+    await page.getByLabel('Courier', { exact: true }).fill('JNE');
+    await page.getByLabel('Service', { exact: true }).fill('REG');
+    await page.getByLabel('Tracking number / Nomor resi').fill('000123456');
+    await page.getByLabel('Actual shipping cost (Rp)').fill('17000');
+    await page.getByRole('button', { name: 'Mark as shipped' }).click();
+    await expect(page.getByText('000123456', { exact: true })).toBeVisible();
+    const customerOrder = '/account/orders/' + order!.orderNumber;
+    await page.goto(base + customerOrder);
+    await expect(page.locator('[data-shipment-status]')).toHaveText('Shipped');
+    await expect(page.locator('[data-tracking-number]')).toHaveText(
+      '000123456',
+    );
+    await expect(page.getByText('JNE', { exact: true })).toBeVisible();
+    await expect(page.locator('[data-quoted-courier]')).toHaveText(
+      'J&T Express',
+    );
+    await expect(page.locator('[data-shipping-amount]')).toHaveText('Rp22,000');
+    await expect(page.locator('[data-grand-total]')).toHaveText('Rp817,000');
+    await page.goto(
+      base + '/admin/fulfillment/shipments?orderNumber=' + order!.orderNumber,
+    );
+    await page.getByLabel('Correct tracking number').fill('000123457');
+    await page.getByRole('button', { name: 'Save tracking number' }).click();
+    await expect(page.getByText('000123457', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Mark as delivered' }).click();
+    await expect(page.getByText('DELIVERED', { exact: true })).toBeVisible();
+    await page.goto(base + '/id/akun/pesanan/' + order!.orderNumber);
+    await expect(page.locator('[data-shipment-status]')).toHaveText('Terkirim');
+    await expect(page.getByText('Nomor resi', { exact: true })).toBeVisible();
+    await expect(page.locator('[data-tracking-number]')).toHaveText(
+      '000123457',
+    );
+    expect(tariffCalls).toHaveLength(3);
+    expect(await f.db.select().from(financialTransactions)).toHaveLength(2);
+    expect(await f.accounting.report(period)).toMatchObject({
+      revenue: 817000n,
+      shippingCharged: 22000n,
+      cogs: 300000n,
+      operatingExpenses: 17000n,
     });
     expect(failedAssets).toEqual([]);
     expect(pageErrors).toEqual([]);
