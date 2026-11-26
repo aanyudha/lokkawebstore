@@ -88,7 +88,8 @@ export function verificationEnv(
     TEST_DATABASE_URL: url,
     DATABASE_URL_DOCKER: url,
     PGDATABASE: name,
-    DOTENV_CONFIG_OVERRIDE: 'false',
+    // Dotenv treats any nonempty override string as true.
+    DOTENV_CONFIG_OVERRIDE: '',
     PAYMENT_PROVIDER: 'disabled',
     SHIPPING_RATE_PROVIDER: 'disabled',
     JNT_TARIFF_URL: '',

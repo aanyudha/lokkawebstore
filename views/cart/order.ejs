@@ -27,6 +27,7 @@
   <section aria-labelledby="order-payment">
     <h2 id="order-payment"><%= t('shop.payment') %></h2>
     <p data-payment-status><%= t(payment ? 'shop.paymentStatus.' + payment.status : 'shop.history.noPayment') %></p>
+    <% if (paymentOffline) { %><p role="status"><%= t('shop.paymentOffline') %></p><% } %>
     <% if (payment || paymentAction) { %>
       <dl>
         <dt><%= t('shop.paymentProvider') %></dt><dd><%= payment?.provider ?? 'DOKU' %></dd>

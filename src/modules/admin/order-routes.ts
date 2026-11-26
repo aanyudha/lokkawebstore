@@ -10,6 +10,7 @@ import {
   paymentLabels,
 } from '../orders/back-office.js';
 import { t } from '../../i18n/translator.js';
+import type { PaymentReadiness } from '../payments/config.js';
 import { createOrderFulfillment } from '../shipping/order-fulfillment.js';
 import {
   registerShipmentActions,
@@ -34,6 +35,7 @@ export async function registerOrderAdmin(
   app: FastifyInstance,
   db: Database['db'],
   page: AdminPage,
+  paymentReadiness: PaymentReadiness,
 ) {
   const read = createBackOfficeOrders(db);
   const shared = {
@@ -92,6 +94,7 @@ export async function registerOrderAdmin(
         error,
         orderStatus,
         notificationLabels,
+        paymentReadiness,
         customerStatus: t('en', 'shop.history.status.' + data.status),
       });
     }

@@ -175,7 +175,12 @@ export async function registerAdmin(
           });
         registerHomepageAdmin(protectedRoutes, hero, page);
         registerFulfillmentAdmin(protectedRoutes, db, page);
-        await registerOrderAdmin(protectedRoutes, db, page);
+        await registerOrderAdmin(
+          protectedRoutes,
+          db,
+          page,
+          env.paymentReadiness,
+        );
         registerInvestorAdmin(protectedRoutes, db, page);
         registerCommercialAdmin(
           protectedRoutes,

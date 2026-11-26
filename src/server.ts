@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { readEnv } from './config/env.js';
 import { buildApp } from './app.js';
 import { runtimeIdentity } from './config/identity.js';
+import { PaymentConfigurationError } from './modules/payments/config.js';
 try {
   const env = readEnv();
   const app = await buildApp(env);
@@ -59,7 +60,11 @@ try {
     await shutdown();
     process.exitCode = 1;
   }
-} catch {
-  process.stderr.write('Startup failed. Check application configuration.\n');
+} catch (error) {
+  process.stderr.write(
+    error instanceof PaymentConfigurationError
+      ? `Startup failed. ${error.message}\n`
+      : 'Startup failed. Check application configuration.\n',
+  );
   process.exitCode = 1;
 }

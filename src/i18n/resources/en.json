@@ -248,6 +248,7 @@
       "postalCode": "Postal code"
     },
     "paymentProcessing": "Payment confirmation is being processed.",
+    "paymentOffline": "Online payment is temporarily unavailable. Your order has been saved. Please try again later.",
     "paymentRefresh": "Refresh payment status",
     "paymentProvider": "Provider",
     "paymentAmount": "Amount",

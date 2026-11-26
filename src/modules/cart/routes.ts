@@ -304,8 +304,8 @@ export async function registerCart(
         const detail = await history.detail(customerId(request), orderNumber);
         if (!detail) return reply.callNotFound();
         const { order, payment, shipment } = detail;
-        const canPay =
-          Boolean(payments) && !shipment && isPayableWebstoreOrder(order);
+        const payable = !shipment && isPayableWebstoreOrder(order);
+        const canPay = Boolean(payments) && payable;
         const paymentAction = !canPay
           ? null
           : !payment
@@ -332,6 +332,11 @@ export async function registerCart(
             ...detail,
             error,
             paymentAction,
+            paymentOffline:
+              !payments &&
+              payable &&
+              payment?.status !== 'REVIEW' &&
+              payment?.status !== 'PAID',
             timeline,
             canCancel:
               order.status === 'PENDING_PAYMENT' &&

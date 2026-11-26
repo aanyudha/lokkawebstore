@@ -13,13 +13,23 @@ Set `PAYMENT_PROVIDER=doku`, `DOKU_ENV=sandbox`, `DOKU_CLIENT_ID`,
 Payments default to disabled and only the explicit `DOKU_ENV=production`
 selects the production API. Production requires an HTTPS `APP_URL`.
 Localized return URLs are built from `APP_URL` and the saved order number.
+Sandbox accepts an HTTP `APP_URL`, such as a private LAN address reachable from
+the customer's browser. This address serves the browser return.
 Keep credentials in private runtime configuration. The Docker runtime overlay
 passes the same variables to the application container.
 
-Set a public HTTPS URL ending in `/payments/doku/notification` and configure
-that URL for the applicable DOKU dashboard channels. DOKU must be able to reach
-the URL externally. Confirm that sandbox channels support the Checkout payload,
+For real sandbox acceptance, use a deployed HTTPS staging domain or an approved
+public HTTPS tunnel or reverse proxy for `DOKU_NOTIFICATION_URL`. Set the
+endpoint to `https://<public-host>/payments/doku/notification` and configure it
+for the applicable DOKU dashboard channels. The private LAN URL serves local
+browsing only. Confirm that sandbox channels support the Checkout payload,
 and keep abandoned-cart recovery disabled to allow a fresh attempt after expiry.
+
+Explicit DOKU configuration errors stop startup and identify the failing field.
+An intentionally disabled runtime shows a saved-order message for payable
+orders and exposes only provider mode and configuration presence in admin
+order detail. Reopening the same saved order after enabling DOKU allows payment
+at the stored total.
 
 ## Payment attempts and receipts
 
@@ -57,6 +67,7 @@ notification. For sandbox acceptance, use the DOKU simulator and a public HTTPS
 notification endpoint before enabling a live merchant.
 
 - [DOKU Checkout backend integration](https://developers.doku.com/accept-payments/doku-checkout/integration-guide/backend-integration)
+- [DOKU notification endpoint setup](https://developers.doku.com/get-started-with-doku-api/notification/setup-notification-url)
 - [DOKU notification verification](https://developers.doku.com/get-started-with-doku-api/notification/best-practice)
 - [DOKU retry behavior](https://developers.doku.com/get-started-with-doku-api/notification/retry-notification)
 - [DOKU sandbox simulator](https://developers.doku.com/accept-payments/doku-checkout/integration-guide/simulate-payment-and-notification)

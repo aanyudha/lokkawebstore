@@ -73,6 +73,32 @@ const mode = process.argv[2];
 const e6 = mode === 'e6' || mode === 'e6-focused';
 const e5 = mode === 'e5' || e6;
 const modes = {
+  payment: [
+    [
+      'npm',
+      [
+        'test',
+        '--',
+        '--maxWorkers=1',
+        'tests/doku-config.test.ts',
+        'tests/doku-provider.test.ts',
+        'tests/webstore-payments.test.ts',
+        'tests/webstore-history.test.ts',
+        'tests/verification-db.test.ts',
+      ],
+    ],
+    ['npm', ['run', 'test:production']],
+    [
+      'npm',
+      [
+        'run',
+        'test:browser',
+        '--',
+        'tests/browser/webstore-payment.spec.ts',
+        'tests/browser/webstore-history.spec.ts',
+      ],
+    ],
+  ],
   shipping: [
     [
       'npm',
@@ -183,11 +209,12 @@ const modes = {
 const commands = modes[e5 ? 'e4' : mode];
 if (!commands)
   throw new Error(
-    'Use focused, unit, production, browser, webbrowser, audit, e4, e5, e6, e6-focused, e6-smoke or shipping.',
+    'Use focused, unit, production, browser, webbrowser, audit, e4, e5, e6, e6-focused, e6-smoke, shipping or payment.',
   );
 let created = false;
 const before = await fingerprint();
-const inventoryAudit = e6 || mode === 'e6-smoke' || mode === 'shipping';
+const inventoryAudit =
+  e6 || mode === 'e6-smoke' || mode === 'shipping' || mode === 'payment';
 const e4Tables = new Set([
   'public.order_fulfillments',
   'public.order_tracking_changes',

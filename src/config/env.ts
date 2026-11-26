@@ -1,4 +1,8 @@
-import { readDokuConfig } from '../modules/payments/config.js';
+import {
+  PaymentConfigurationError,
+  paymentReadiness,
+  readDokuConfig,
+} from '../modules/payments/config.js';
 import { readShippingRateSettings } from '../modules/shipping/jnt-rate-provider.js';
 
 export function resolveDatabaseUrl(
@@ -95,7 +99,9 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
     doku?.environment === 'production' &&
     new URL(appUrl).protocol !== 'https:'
   )
-    throw new Error('DOKU production requires an HTTPS APP_URL');
+    throw new PaymentConfigurationError(
+      'DOKU production requires an HTTPS APP_URL.',
+    );
   return {
     nodeEnv,
     appRuntime,
@@ -110,6 +116,7 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
     databaseUrl,
     appUrl,
     doku,
+    paymentReadiness: paymentReadiness(source, doku),
     ...readShippingRateSettings(source),
   };
 }

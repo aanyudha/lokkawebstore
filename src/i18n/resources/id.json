@@ -248,6 +248,7 @@
       "postalCode": "Kode pos"
     },
     "paymentProcessing": "Konfirmasi pembayaran sedang diproses.",
+    "paymentOffline": "Pembayaran online sementara belum tersedia. Pesanan Anda sudah tersimpan. Silakan coba kembali nanti.",
     "paymentRefresh": "Perbarui status pembayaran",
     "paymentProvider": "Penyedia",
     "paymentAmount": "Jumlah",

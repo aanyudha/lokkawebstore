@@ -29,7 +29,7 @@ it('overrides all runtime database aliases and loads the guard in children', () 
     DATABASE_URL_DOCKER: url,
     TEST_DATABASE_URL: url,
     PAYMENT_PROVIDER: 'disabled',
-    DOTENV_CONFIG_OVERRIDE: 'false',
+    DOTENV_CONFIG_OVERRIDE: '',
   });
   const child = spawnSync(
     process.execPath,
