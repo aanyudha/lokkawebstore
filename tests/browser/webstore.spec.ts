@@ -231,7 +231,7 @@ test('cart, delivery selection and review create an immutable unpaid order in EN
     await expect(page).toHaveURL(/\/account\/orders\/WEB-\d{8}-\d{6,}$/);
     const number = await page.locator('main h1').innerText();
     await expect(page.locator('[data-order-status]')).toHaveText(
-      'Pending payment',
+      'Waiting for payment',
     );
     await expect(page.locator('[data-subtotal]')).toHaveText('Rp810,000');
     await expect(page.locator('[data-grand-total]')).toHaveText('Rp832,000');
@@ -295,7 +295,9 @@ test('cart, delivery selection and review create an immutable unpaid order in EN
       fullPage: true,
     });
     await page.getByRole('link', { name: 'Orders', exact: true }).click();
-    await page.getByRole('link', { name: number, exact: true }).click();
+    await page
+      .getByRole('link', { name: `View order ${number}`, exact: true })
+      .click();
     await page
       .getByRole('button', { name: 'Cancel order', exact: true })
       .click();

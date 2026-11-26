@@ -321,8 +321,32 @@
   width: 5rem;
   padding: 0.5rem;
 }
-.shop-orders li {
-  margin-block: 1rem;
+.shop-orders {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: var(--space-md);
+  list-style: none;
+  padding: 0;
+  margin-block: var(--space-lg);
+}
+.shop-orders > li {
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+}
+.shop-orders h2 {
+  font-size: 1rem;
+}
+.shop-orders dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-xs) var(--space-sm);
+  margin-block: var(--space-md);
+}
+.shop-orders dd {
+  margin: 0;
+}
+.shop-orders a {
+  text-decoration: underline;
 }
 .header-cart {
   white-space: nowrap;

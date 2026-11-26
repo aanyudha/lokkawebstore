@@ -49,6 +49,18 @@ Customer list/detail routes: `/account/orders[/:orderNumber]` and
 `/id/akun/pesanan[/:orderNumber]`; POST `/:orderNumber/cancel` cancels pending
 orders. Every read/write applies the authenticated customer's ID server-side.
 
+E5 history is a read model over the existing order, item, payment and shipment
+records. It filters in PostgreSQL and retrieves 12 orders per page, ordered by
+creation time and order ID descending. A single list query sums item quantities
+and selects one effective payment attempt per order. A confirmed attempt takes
+precedence over reconciliation review, followed by the newest attempt.
+The Processing filter covers payment processing, reconciliation review and
+preparation for dispatch. The detail loads item snapshots separately and uses
+recorded timestamps for the timeline. Checkout shipping and the actual
+shipment appear separately. Legacy orders show unavailable delivery details.
+E5 requires no migration. Run `node scripts/verify-isolated.mjs e5` after a
+production build for the focused history and E1–E4 regression checks.
+
 Migrations `0010_webstore_orders.sql` and `0013_webstore_checkout.sql` supply
 the underlying cart, order and delivery tables and snapshots.
 `node scripts/verify-isolated.mjs unit`, `production` or `browser` wraps verification in a

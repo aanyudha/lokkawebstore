@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import type { Database } from '../../db/client.js';
 import {
   orders,
@@ -7,6 +7,7 @@ import {
   paymentNotifications,
 } from '../../db/schema/index.js';
 import { lockOrderStock, postPaidWebstoreSale } from '../sales/webstore.js';
+import { effectivePaymentOrder, effectivePaymentStatus } from './read-model.js';
 import {
   PaymentProviderError,
   type HostedPayment,
@@ -326,20 +327,14 @@ export async function readPaymentStatus(
   orderId: string,
   now = new Date(),
 ) {
-  const attempts = await db
-    .select()
+  const [attempt] = await db
+    .select({
+      ...getTableColumns(paymentAttempts),
+      status: effectivePaymentStatus(now),
+    })
     .from(paymentAttempts)
     .where(eq(paymentAttempts.orderId, orderId))
-    .orderBy(desc(paymentAttempts.sequence));
-  const latest =
-    attempts.find((attempt) => attempt.status === 'PAID') ??
-    attempts.find((attempt) => attempt.status === 'REVIEW') ??
-    attempts[0];
-  if (
-    latest?.status === 'PENDING' &&
-    latest.expiresAt &&
-    latest.expiresAt <= now
-  )
-    return { ...latest, status: 'EXPIRED' as const };
-  return latest ?? null;
+    .orderBy(...effectivePaymentOrder)
+    .limit(1);
+  return attempt ?? null;
 }

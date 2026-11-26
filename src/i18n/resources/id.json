@@ -264,7 +264,53 @@
       "REVIEW": "Pembayaran sedang diperiksa"
     },
     "payment": "Pembayaran",
-    "paymentStart": "Bayar dengan DOKU",
+    "paymentStart": "Bayar sekarang",
+    "history": {
+      "filter": "Status pesanan",
+      "apply": "Terapkan filter",
+      "noResults": "Tidak ada pesanan pada halaman dan filter ini.",
+      "items": "Jumlah barang",
+      "orderItems": "Barang dalam pesanan",
+      "view": "Lihat pesanan",
+      "pages": "Halaman riwayat pesanan",
+      "previous": "Halaman sebelumnya",
+      "next": "Halaman berikutnya",
+      "page": "Halaman",
+      "noPayment": "Belum ada pembayaran tercatat",
+      "noDelivery": "Rincian pengiriman tidak tersedia untuk pesanan ini.",
+      "unavailable": "Tidak tersedia",
+      "actualShipment": "Pengiriman aktual",
+      "selectedShipping": "Pengiriman yang dipilih saat checkout",
+      "shippingCharge": "Ongkos kirim yang dibayar",
+      "shippedAt": "Waktu dikirim",
+      "deliveredAt": "Waktu diterima",
+      "trackingLater": "Nomor resi akan tersedia setelah pesanan dikirim.",
+      "timeline": "Linimasa pesanan",
+      "events": {
+        "placed": "Pesanan dibuat",
+        "paid": "Pembayaran dikonfirmasi",
+        "shipped": "Dikirim",
+        "delivered": "Terkirim"
+      },
+      "filters": {
+        "all": "Semua",
+        "waiting": "Menunggu pembayaran",
+        "processing": "Diproses",
+        "shipped": "Dikirim",
+        "delivered": "Terkirim",
+        "cancelled": "Dibatalkan"
+      },
+      "status": {
+        "WAITING_FOR_PAYMENT": "Menunggu pembayaran",
+        "PAYMENT_PROCESSING": "Pembayaran sedang diproses",
+        "PREPARING_ORDER": "Pesanan sedang disiapkan",
+        "SHIPPED": "Dikirim",
+        "DELIVERED": "Terkirim",
+        "CANCELLED": "Dibatalkan",
+        "PAYMENT_REVIEW": "Konfirmasi pembayaran sedang ditinjau",
+        "COMPLETED": "Selesai"
+      }
+    },
     "paymentContinue": "Lanjut ke pembayaran",
     "paymentRetry": "Coba bayar lagi"
   }

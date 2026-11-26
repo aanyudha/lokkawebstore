@@ -264,7 +264,53 @@
       "REVIEW": "Payment under review"
     },
     "payment": "Payment",
-    "paymentStart": "Pay with DOKU",
+    "paymentStart": "Pay now",
+    "history": {
+      "filter": "Order status",
+      "apply": "Apply filter",
+      "noResults": "No orders match this page and filter.",
+      "items": "Items",
+      "orderItems": "Order items",
+      "view": "View order",
+      "pages": "Order history pages",
+      "previous": "Previous page",
+      "next": "Next page",
+      "page": "Page",
+      "noPayment": "No payment recorded",
+      "noDelivery": "Delivery details are unavailable for this order.",
+      "unavailable": "Unavailable",
+      "actualShipment": "Actual shipment",
+      "selectedShipping": "Shipping selected at checkout",
+      "shippingCharge": "Shipping charged",
+      "shippedAt": "Shipped at",
+      "deliveredAt": "Delivered at",
+      "trackingLater": "Tracking number will appear after your order is shipped.",
+      "timeline": "Order timeline",
+      "events": {
+        "placed": "Order placed",
+        "paid": "Payment confirmed",
+        "shipped": "Shipped",
+        "delivered": "Delivered"
+      },
+      "filters": {
+        "all": "All",
+        "waiting": "Waiting for payment",
+        "processing": "Processing",
+        "shipped": "Shipped",
+        "delivered": "Delivered",
+        "cancelled": "Cancelled"
+      },
+      "status": {
+        "WAITING_FOR_PAYMENT": "Waiting for payment",
+        "PAYMENT_PROCESSING": "Payment processing",
+        "PREPARING_ORDER": "Preparing your order",
+        "SHIPPED": "Shipped",
+        "DELIVERED": "Delivered",
+        "CANCELLED": "Cancelled",
+        "PAYMENT_REVIEW": "Payment confirmation under review",
+        "COMPLETED": "Completed"
+      }
+    },
     "paymentContinue": "Continue to payment",
     "paymentRetry": "Retry payment"
   }

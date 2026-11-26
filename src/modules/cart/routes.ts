@@ -7,13 +7,18 @@ import { tokenMatches } from '../auth/service.js';
 import { FormError, formatIdr, type Form } from '../catalog/validation.js';
 import { createCartService } from './service.js';
 import { createOrderService } from '../orders/service.js';
+import {
+  createOrderHistory,
+  historyFilters,
+  historySuffix,
+} from '../orders/history.js';
 import { createCheckout } from '../checkout/service.js';
 import { createShippingRateService } from '../shipping/rates.js';
 import { JntRateProvider } from '../shipping/jnt-rate-provider.js';
 import { createCustomerAddresses } from '../customer/addresses.js';
+import { safeReturnPath } from '../customer/validation.js';
 import {
   isPayableWebstoreOrder,
-  readPaymentStatus,
   type createPaymentService,
 } from '../payments/service.js';
 
@@ -44,6 +49,7 @@ export async function registerCart(
 ) {
   const cart = createCartService(db);
   const orders = createOrderService(db);
+  const history = createOrderHistory(db);
   const checkout = createCheckout(
     db,
     createShippingRateService(
@@ -73,13 +79,11 @@ export async function registerCart(
           request.customerIdentity.session.csrfTokenHash,
         )
       ) {
-        const paymentReturn =
+        const orderPage =
           request.method === 'GET' &&
-          request.routeOptions.url ===
-            `${shopPaths[locale].orders}/:orderNumber/payment/return`;
-        const target = paymentReturn
-          ? `${shopPaths[locale].orders}/${encodeURIComponent((request.params as { orderNumber: string }).orderNumber)}/payment/return`
-          : shopPaths[locale].cart;
+          request.routeOptions.url?.startsWith(shopPaths[locale].orders);
+        const target =
+          (orderPage && safeReturnPath(request.url)) || shopPaths[locale].cart;
         return reply.redirect(
           `${shopPaths[locale].login}?returnTo=${encodeURIComponent(target)}`,
           303,
@@ -130,6 +134,10 @@ export async function registerCart(
           error: null,
           t: (key: string) => t(locale, key),
           formatIdr: (value: bigint) => formatIdr(value, locale),
+          localTime: (date: Date) =>
+            date.toLocaleString(locale === 'id' ? 'id-ID' : 'en-GB', {
+              timeZone: 'Asia/Jakarta',
+            }) + ' WIB',
           ...data,
         });
       const renderCart = async (
@@ -250,47 +258,71 @@ export async function registerCart(
           });
         }
       });
-      secure.get(paths.orders, async (request, reply) =>
-        render(request, reply, 'orders', {
-          orders: await orders.list(request.customerIdentity!.customer.id),
-        }),
+      secure.get<{ Querystring: { status?: unknown; page?: unknown } }>(
+        paths.orders,
+        async (request, reply) => {
+          const list = await history.list(customerId(request), request.query);
+          return render(
+            request,
+            reply,
+            'orders',
+            {
+              ...list,
+              filters: historyFilters,
+              historySuffix,
+              formatCount: (value: string) =>
+                BigInt(value).toLocaleString(
+                  locale === 'id' ? 'id-ID' : 'en-GB',
+                ),
+            },
+            historySuffix(list.filter, list.page),
+          );
+        },
       );
       const renderOrder = async (
         request: FastifyRequest,
         reply: FastifyReply,
-        returning = false,
         error: string | null = null,
       ) => {
         const orderNumber = (request.params as { orderNumber: string })
           .orderNumber;
-        let order = await orders.get(
-          request.customerIdentity!.customer.id,
-          orderNumber,
-        );
-        if (!order) return reply.callNotFound();
-        const stored = await readPaymentStatus(db, order.id);
-        // The notification can commit between the order and attempt reads.
-        if (stored?.status === 'PAID' && order.status === 'PENDING_PAYMENT') {
-          order = await orders.get(customerId(request), orderNumber);
-          if (!order) return reply.callNotFound();
-        }
-        const payment = stored && {
-          status: stored.status,
-          provider: stored.provider,
-          amount: stored.amount,
-          createdAt: stored.createdAt,
-          paidAt: stored.paidAt,
-        };
+        const detail = await history.detail(customerId(request), orderNumber);
+        if (!detail) return reply.callNotFound();
+        const { order, payment, shipment } = detail;
+        const canPay =
+          Boolean(payments) && !shipment && isPayableWebstoreOrder(order);
+        const paymentAction = !canPay
+          ? null
+          : !payment
+            ? 'paymentStart'
+            : payment.status === 'PENDING'
+              ? 'paymentContinue'
+              : ['EXPIRED', 'FAILED', 'CANCELLED'].includes(payment.status)
+                ? 'paymentRetry'
+                : null;
+        const timeline = [
+          { event: 'placed', date: order.createdAt },
+          {
+            event: 'paid',
+            date: payment?.status === 'PAID' ? payment.paidAt : null,
+          },
+          { event: 'shipped', date: shipment?.shippedAt },
+          { event: 'delivered', date: shipment?.deliveredAt },
+        ].filter(({ date }) => date);
         return render(
           request,
           reply,
           'order',
           {
-            order,
-            payment,
-            returning,
+            ...detail,
             error,
-            canPay: Boolean(payments) && isPayableWebstoreOrder(order),
+            paymentAction,
+            timeline,
+            canCancel:
+              order.status === 'PENDING_PAYMENT' &&
+              !shipment &&
+              (!payment ||
+                ['FAILED', 'EXPIRED', 'CANCELLED'].includes(payment.status)),
           },
           `/${orderNumber}`,
         );
@@ -300,7 +332,7 @@ export async function registerCart(
       );
       secure.get(
         `${paths.orders}/:orderNumber/payment/return`,
-        (request, reply) => renderOrder(request, reply, true),
+        (request, reply) => renderOrder(request, reply),
       );
       if (payments) {
         secure.post(
@@ -332,7 +364,6 @@ export async function registerCart(
               return renderOrder(
                 request,
                 reply.code(422),
-                false,
                 'shop.error.paymentUnavailable',
               );
             return reply.redirect(orderPath, 303);

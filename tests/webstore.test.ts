@@ -487,7 +487,9 @@ describe('checkout delivery', () => {
       cookies,
     });
     expect(page.statusCode).toBe(200);
-    expect(page.body).toContain('Shipping will be calculated later');
+    expect(page.body).toContain(
+      'Delivery details are unavailable for this order.',
+    );
     expect(page.body).not.toContain('data-shipping-address');
   });
 

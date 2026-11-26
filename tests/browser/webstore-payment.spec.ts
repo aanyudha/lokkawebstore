@@ -159,7 +159,7 @@ test('checkout starts hosted payment and only a verified notification confirms t
       .getByRole('button', { name: 'Place order', exact: true })
       .click();
     await expect(page.locator('[data-order-status]')).toHaveText(
-      'Pending payment',
+      'Waiting for payment',
     );
     await expect(page.locator('[data-grand-total]')).toHaveText('Rp817,000');
     const [order] = await f.db.select().from(orders);
@@ -204,16 +204,14 @@ test('checkout starts hosted payment and only a verified notification confirms t
         expect(response.status()).toBe(200);
       }
     }
-    await page
-      .getByRole('button', { name: 'Pay with DOKU', exact: true })
-      .click();
+    await page.getByRole('button', { name: 'Pay now', exact: true }).click();
     await expect(page).toHaveURL(hostedOrigin + '/checkout-link-v2/1');
     await page.getByRole('link', { name: 'Return to LOKKA' }).click();
     await expect(page.getByRole('status')).toHaveText(
       'Payment confirmation is being processed.',
     );
     await expect(page.locator('[data-order-status]')).toHaveText(
-      'Pending payment',
+      'Payment processing',
     );
     const [first] = await currentAttempts();
     await receipt(first!, 'FAILED');
@@ -241,7 +239,9 @@ test('checkout starts hosted payment and only a verified notification confirms t
     await expect(page.locator('[data-payment-status]')).toHaveText(
       'Payment confirmed',
     );
-    await expect(page.locator('[data-order-status]')).toHaveText('Paid');
+    await expect(page.locator('[data-order-status]')).toHaveText(
+      'Preparing your order',
+    );
     await page.goto(
       base + '/id/akun/pesanan/' + order!.orderNumber + '/payment/return',
     );

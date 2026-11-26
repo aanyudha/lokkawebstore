@@ -7,9 +7,10 @@
     <%= [delivery.shippingAddressSnapshot.subdistrict, delivery.shippingAddressSnapshot.district, delivery.shippingAddressSnapshot.city, delivery.shippingAddressSnapshot.province].filter(Boolean).join(', ') %> <%= delivery.shippingAddressSnapshot.postalCode %><br />
     Indonesia
   </address>
-  <h2><%= t('shop.shippingMethod') %></h2>
+  <h2><%= t(typeof historical !== 'undefined' && historical ? 'shop.history.selectedShipping' : 'shop.shippingMethod') %></h2>
   <% if (delivery.shippingMethodSnapshot.courierName) { %><p data-quoted-courier><%= delivery.shippingMethodSnapshot.courierName %></p><% } %>
-  <p data-shipping-method><%= delivery.shippingMethodSnapshot.name %> (<%= delivery.shippingMethodSnapshot.code %>)</p>
-  <% if (delivery.shippingMethodSnapshot.description) { %><p><%= delivery.shippingMethodSnapshot.description %></p><% } %>
+  <p data-shipping-method><%= delivery.shippingMethodSnapshot.serviceName ?? delivery.shippingMethodSnapshot.name %> (<%= delivery.shippingMethodSnapshot.serviceCode ?? delivery.shippingMethodSnapshot.code %>)</p>
+  <% if (delivery.shippingMethodSnapshot.etaText || delivery.shippingMethodSnapshot.description) { %><p><%= delivery.shippingMethodSnapshot.etaText || delivery.shippingMethodSnapshot.description %></p><% } %>
+  <% if (typeof historical !== 'undefined' && historical) { %><p><%= t('shop.history.shippingCharge') %> · <%= formatIdr(delivery.shippingAmount) %></p><% } %>
   <p data-shipment-weight><%= t('shop.shipmentWeight') %> <%= delivery.shipmentWeightGrams.toLocaleString(locale === 'id' ? 'id-ID' : 'en-GB') %> g</p>
 </section>

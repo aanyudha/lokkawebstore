@@ -1,10 +1,39 @@
 <main id="main" class="catalog-page shop-page">
   <h1><%= t('shop.orders') %></h1>
-  <% if (!orders.length) { %><p><%= t('shop.noOrders') %></p><% } %>
-  <ul class="shop-orders"><% for (const order of orders) { %>
-    <li><a href="<%= paths.orders %>/<%= order.orderNumber %>"><%= order.orderNumber %></a> ·
-      <time datetime="<%= order.createdAt.toISOString() %>"><%= order.createdAt.toLocaleString(locale === 'id' ? 'id-ID' : 'en-GB', {timeZone: 'Asia/Jakarta'}) %> WIB</time> ·
-      <%= t('shop.status.' + order.status) %> · <%= formatIdr(order.grandTotal) %>
-    </li><% } %></ul>
+  <form method="get" action="<%= paths.orders %>" class="account-actions">
+    <label for="order-status-filter"><%= t('shop.history.filter') %></label>
+    <select id="order-status-filter" name="status">
+      <% for (const option of filters) { %>
+        <option value="<%= option %>" <%= option === filter ? 'selected' : '' %>><%= t('shop.history.filters.' + option) %></option>
+      <% } %>
+    </select>
+    <button type="submit" class="btn btn-secondary"><%= t('shop.history.apply') %></button>
+  </form>
+  <% if (!orders.length) { %><p><%= t(filter === 'all' && page === 1 ? 'shop.noOrders' : 'shop.history.noResults') %></p><% } %>
+  <ul class="shop-orders">
+    <% for (const order of orders) { %>
+      <li data-history-order>
+        <h2><%= order.orderNumber %></h2>
+        <p><time datetime="<%= order.createdAt.toISOString() %>"><%= localTime(order.createdAt) %></time></p>
+        <p data-order-status><%= t('shop.history.status.' + order.status) %></p>
+        <dl>
+          <dt><%= t('shop.history.items') %></dt><dd data-item-count><%= formatCount(order.itemCount) %></dd>
+          <dt><%= t('shop.checkoutTotal') %></dt><dd><%= formatIdr(order.grandTotal) %></dd>
+          <dt><%= t('shop.payment') %></dt><dd><%= t(order.paymentStatus ? 'shop.paymentStatus.' + order.paymentStatus : 'shop.history.noPayment') %></dd>
+          <% if (order.shipmentStatus || order.status === 'PREPARING_ORDER') { %>
+            <dt><%= t('shop.shipment') %></dt><dd><%= t('shop.shipmentStatus.' + (order.shipmentStatus ?? 'READY')) %></dd>
+          <% } %>
+        </dl>
+        <a href="<%= paths.orders %>/<%= order.orderNumber %>" aria-label="<%= t('shop.history.view') %> <%= order.orderNumber %>"><%= t('shop.history.view') %></a>
+      </li>
+    <% } %>
+  </ul>
+  <% if (page > 1 || hasNext) { %>
+    <nav class="account-actions" aria-label="<%= t('shop.history.pages') %>">
+      <% if (page > 1) { %><a rel="prev" href="<%= paths.orders + historySuffix(filter, page - 1) %>"><%= t('shop.history.previous') %></a><% } %>
+      <span><%= t('shop.history.page') %> <%= page %></span>
+      <% if (hasNext) { %><a rel="next" href="<%= paths.orders + historySuffix(filter, page + 1) %>"><%= t('shop.history.next') %></a><% } %>
+    </nav>
+  <% } %>
   <div class="account-actions"><a href="<%= paths.account %>"><%= t('nav.account') %></a><a href="<%= paths.shopping %>"><%= t('shop.continueShopping') %></a></div>
 </main>

@@ -69,6 +69,7 @@ function run(command, args, env) {
     );
   });
 }
+const e5 = process.argv[2] === 'e5';
 const modes = {
   focused: [['npx', ['vitest', 'run', 'tests/webstore.test.ts']]],
   // Limit contention from parallel Argon2 and database integration work.
@@ -114,6 +115,7 @@ const modes = {
         'tests/accounting.test.ts',
         'tests/finance-cash-flow.test.ts',
         'tests/pos.test.ts',
+        ...(e5 ? ['tests/webstore-history.test.ts'] : []),
       ],
     ],
     ['npm', ['run', 'test:production']],
@@ -125,15 +127,16 @@ const modes = {
         '--',
         'tests/browser/webstore.spec.ts',
         'tests/browser/webstore-payment.spec.ts',
+        ...(e5 ? ['tests/browser/webstore-history.spec.ts'] : []),
       ],
     ],
     ['node', ['scripts/verify-payment-migrations.mjs']],
   ],
 };
-const commands = modes[process.argv[2]];
+const commands = modes[e5 ? 'e4' : process.argv[2]];
 if (!commands)
   throw new Error(
-    'Use focused, unit, production, browser, webbrowser, audit or e4.',
+    'Use focused, unit, production, browser, webbrowser, audit, e4 or e5.',
   );
 let created = false;
 const before = await fingerprint();
