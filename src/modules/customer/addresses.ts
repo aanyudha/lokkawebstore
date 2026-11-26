@@ -57,13 +57,15 @@ export function createCustomerAddresses(
         addressLine1: textField(form, 'addressLine1', 300, true),
         addressLine2: textField(form, 'addressLine2', 300) || null,
         subdistrict: textField(form, 'subdistrict', 120) || null,
-        district: textField(form, 'district', 120) || null,
+        district: textField(form, 'district', 120),
         city: textField(form, 'city', 120, true),
         province: textField(form, 'province', 120, true),
         postalCode: textField(form, 'postalCode', 5, true),
         countryCode: 'ID' as const,
         updatedAt: new Date(),
       };
+      if (!values.district)
+        throw new FormError('district', 'shop.error.addressDistrict');
       if (
         !/^\+?[0-9 ()-]+$/.test(values.phone) ||
         !/^\d{6,15}$/.test(values.phone.replace(/\D/g, ''))

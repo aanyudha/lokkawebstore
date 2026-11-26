@@ -134,7 +134,7 @@ test('checkout starts hosted payment and only a verified notification confirms t
       ['Phone number', sampleAddress.phone],
       ['Address line 1', sampleAddress.addressLine1],
       ['City or regency', sampleAddress.city],
-      ['District or kecamatan (optional)', sampleAddress.district],
+      ['District or kecamatan', sampleAddress.district],
       ['Province', sampleAddress.province],
       ['Postal code', sampleAddress.postalCode],
     ] as const)

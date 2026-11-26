@@ -1,5 +1,5 @@
 import { readDokuConfig } from '../modules/payments/config.js';
-import { readJntRateConfig } from '../modules/shipping/jnt-rate-provider.js';
+import { readShippingRateSettings } from '../modules/shipping/jnt-rate-provider.js';
 
 export function resolveDatabaseUrl(
   appRuntime: 'fastify' | 'docker',
@@ -110,7 +110,7 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
     databaseUrl,
     appUrl,
     doku,
-    jntRate: readJntRateConfig(source),
+    ...readShippingRateSettings(source),
   };
 }
 export type AppEnv = ReturnType<typeof readEnv>;

@@ -259,20 +259,22 @@ it('shows explicitly configured fallback and blocks with no usable rate', async 
   await createCartService(f.db).mutate(buyer, 'add', f.variant.id, 1);
   const options = await customerPost('/cart/review/rates', { addressId });
   expect(options.statusCode).toBe(200);
-  expect(options.body).toContain('Live courier rates are unavailable');
+  expect(options.body).not.toContain('Shipping is not available');
   expect(options.body).toContain('Standard delivery');
   expect(options.body).toContain('Rp22,000');
   expect(
     (await customerPost('/cart/review', { addressId, methodId: manualId }))
       .body,
-  ).toContain('Live courier rates are unavailable');
+  ).toContain('data-shipping-method');
   await f.db
     .update(shippingMethods)
     .set({ active: false, updatedAt: new Date() })
     .where(eq(shippingMethods.id, manualId));
   const result = await customerPost('/cart/review/rates', { addressId });
   expect(result.statusCode).toBe(422);
-  expect(result.body).toContain('shipping rate for this address');
+  expect(result.body).toContain(
+    'Shipping is not available for this address yet.',
+  );
   await createCustomerAddresses(f.db).save(
     buyer,
     {

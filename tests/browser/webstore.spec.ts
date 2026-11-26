@@ -180,6 +180,9 @@ test('cart, delivery selection and review create an immutable unpaid order in EN
       .getByLabel('Address line 1', { exact: true })
       .fill(sampleAddress.addressLine1);
     await page
+      .getByLabel('District or kecamatan', { exact: true })
+      .fill(sampleAddress.district);
+    await page
       .getByLabel('City or regency', { exact: true })
       .fill(sampleAddress.city);
     await page

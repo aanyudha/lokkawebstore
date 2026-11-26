@@ -206,9 +206,9 @@
       "addressFields": "Check the required address fields and try again.",
       "addressPhone": "Enter a delivery phone number with 6 to 15 digits.",
       "addressPostal": "Enter a five-digit postal code.",
+      "addressDistrict": "Enter a district or kecamatan.",
       "shipping": "Choose an available shipping method.",
-      "noShipping": "Shipping is currently unavailable. Please try again later.",
-      "rateUnavailable": "We couldn't get a shipping rate for this address. Check your address or try again later.",
+      "noShipping": "Shipping is not available for this address yet. Please contact LOKKA or try another address.",
       "weight": "A product is missing its shipping weight. Update your cart to continue.",
       "reviewChanged": "Order details changed. Review the updated checkout before placing your order.",
       "paymentUnavailable": "This order is currently unavailable for payment."
@@ -219,7 +219,6 @@
     "selectAddress": "Select shipping address",
     "shipmentWeight": "Shipment weight",
     "checkRates": "Check shipping rates",
-    "rateFallback": "Live courier rates are unavailable. LOKKA's configured delivery rates are shown below.",
     "shipment": "Shipment",
     "shippingCourier": "Shipping courier",
     "shippingService": "Shipping service",
@@ -243,7 +242,7 @@
       "addressLine1": "Address line 1",
       "addressLine2": "Address line 2 (optional)",
       "subdistrict": "Village or kelurahan (optional)",
-      "district": "District or kecamatan (optional)",
+      "district": "District or kecamatan",
       "city": "City or regency",
       "province": "Province",
       "postalCode": "Postal code"

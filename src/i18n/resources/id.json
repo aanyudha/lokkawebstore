@@ -206,9 +206,9 @@
       "addressFields": "Periksa kolom alamat yang wajib diisi, lalu coba lagi.",
       "addressPhone": "Masukkan nomor telepon pengiriman yang terdiri dari 6 hingga 15 digit.",
       "addressPostal": "Masukkan kode pos lima digit.",
+      "addressDistrict": "Masukkan kecamatan.",
       "shipping": "Pilih metode pengiriman yang tersedia.",
-      "noShipping": "Pengiriman sedang tidak tersedia. Silakan coba lagi nanti.",
-      "rateUnavailable": "Ongkos kirim untuk alamat ini belum tersedia. Periksa alamat atau coba lagi nanti.",
+      "noShipping": "Pengiriman belum tersedia untuk alamat ini. Silakan hubungi LOKKA atau gunakan alamat lain.",
       "weight": "Ada produk yang belum memiliki berat pengiriman. Perbarui keranjang untuk melanjutkan.",
       "reviewChanged": "Rincian pesanan berubah. Tinjau kembali sebelum membuat pesanan.",
       "paymentUnavailable": "Pesanan ini belum dapat dibayar."
@@ -219,7 +219,6 @@
     "selectAddress": "Pilih alamat pengiriman",
     "shipmentWeight": "Berat kiriman",
     "checkRates": "Cek ongkos kirim",
-    "rateFallback": "Tarif kurir sedang tidak tersedia. Tarif pengiriman yang ditetapkan LOKKA ditampilkan di bawah.",
     "shipment": "Pengiriman",
     "shippingCourier": "Kurir pengiriman",
     "shippingService": "Layanan pengiriman",
@@ -243,7 +242,7 @@
       "addressLine1": "Alamat baris 1",
       "addressLine2": "Alamat baris 2 (opsional)",
       "subdistrict": "Desa atau kelurahan (opsional)",
-      "district": "Kecamatan (opsional)",
+      "district": "Kecamatan",
       "city": "Kota atau kabupaten",
       "province": "Provinsi",
       "postalCode": "Kode pos"

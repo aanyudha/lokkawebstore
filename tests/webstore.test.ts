@@ -471,6 +471,24 @@ describe('canonical order foundation', () => {
 });
 
 describe('checkout delivery', () => {
+  it('requires a district on new and edited addresses while leaving kelurahan optional', async () => {
+    for (const suffix of ['', '/' + addressId]) {
+      const response = await post('/cart/review/addresses' + suffix, {
+        ...sampleAddress,
+        district: ' ',
+      });
+      expect(response.statusCode).toBe(422);
+      expect(response.body).toContain('Enter a district or kecamatan.');
+    }
+    expect(
+      (
+        await post('/cart/review/addresses', {
+          ...sampleAddress,
+          subdistrict: '',
+        })
+      ).statusCode,
+    ).toBe(303);
+  });
   it('keeps pre-checkout E1 orders readable without delivery snapshots', async () => {
     const [legacy] = await f.db
       .insert(orderTable)

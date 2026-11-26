@@ -12,7 +12,10 @@ import {
   historyFilters,
   historySuffix,
 } from '../orders/history.js';
-import { createCheckout } from '../checkout/service.js';
+import {
+  createCheckout,
+  ShippingSelectionChanged,
+} from '../checkout/service.js';
 import { createShippingRateService } from '../shipping/rates.js';
 import { JntRateProvider } from '../shipping/jnt-rate-provider.js';
 import { createCustomerAddresses } from '../customer/addresses.js';
@@ -50,10 +53,24 @@ export async function registerCart(
   const cart = createCartService(db);
   const orders = createOrderService(db);
   const history = createOrderHistory(db);
+  if (env.shippingRateMode === 'jnt_unavailable')
+    app.log.warn(
+      { provider: 'jnt', reason: 'configuration_unavailable' },
+      'Shipping tariff unavailable',
+    );
   const checkout = createCheckout(
     db,
     createShippingRateService(
-      env.jntRate ? [new JntRateProvider(env.jntRate, shippingFetch)] : [],
+      env.jntRate
+        ? [
+            new JntRateProvider(env.jntRate, shippingFetch, (reason) => {
+              app.log.info(
+                { provider: 'jnt', reason },
+                'Shipping tariff unavailable',
+              );
+            }),
+          ]
+        : [],
     ),
   );
   const addresses = createCustomerAddresses(db);
@@ -172,6 +189,10 @@ export async function registerCart(
         );
       const shopError = (cause: FormError, fallback: string) =>
         cause.message.startsWith('shop.') ? cause.message : fallback;
+      const checkoutError = (cause: FormError) =>
+        cause instanceof ShippingSelectionChanged
+          ? { shippingRates: { rates: cause.rates } }
+          : { error: shopError(cause, 'shop.error.changed') };
       secure.get(`${paths.cart}/review`, (r, reply) =>
         renderCheckout(r, reply),
       );
@@ -181,9 +202,7 @@ export async function registerCart(
           return renderCheckout(r, reply, { shippingRates });
         } catch (cause) {
           if (!(cause instanceof FormError)) throw cause;
-          return renderCheckout(r, reply.code(422), {
-            error: shopError(cause, 'shop.error.changed'),
-          });
+          return renderCheckout(r, reply.code(422), checkoutError(cause));
         }
       });
       secure.post(`${paths.cart}/review`, async (r, reply) => {
@@ -192,9 +211,7 @@ export async function registerCart(
           return renderCheckout(r, reply, { reviewed });
         } catch (cause) {
           if (!(cause instanceof FormError)) throw cause;
-          return renderCheckout(r, reply.code(422), {
-            error: shopError(cause, 'shop.error.changed'),
-          });
+          return renderCheckout(r, reply.code(422), checkoutError(cause));
         }
       });
       for (const suffix of ['', '/:id']) {
@@ -253,9 +270,7 @@ export async function registerCart(
           return reply.redirect(`${paths.orders}/${order.orderNumber}`, 303);
         } catch (error) {
           if (!(error instanceof FormError)) throw error;
-          return renderCheckout(request, reply.code(422), {
-            error: shopError(error, 'shop.error.changed'),
-          });
+          return renderCheckout(request, reply.code(422), checkoutError(error));
         }
       });
       secure.get<{ Querystring: { status?: unknown; page?: unknown } }>(

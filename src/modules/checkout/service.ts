@@ -21,6 +21,12 @@ import {
 type OrderService = ReturnType<typeof createOrderService>;
 type QuoteItems = Parameters<Parameters<OrderService['create']>[2]>[1];
 
+export class ShippingSelectionChanged extends FormError {
+  constructor(public rates: ShippingRate[]) {
+    super('shipping', 'shop.error.shipping');
+  }
+}
+
 function addressId(value: unknown) {
   try {
     return id(value);
@@ -55,7 +61,6 @@ export function createCheckout(
     if (!address) throw new FormError('address', 'shop.error.address');
     const methods = createShippingMethods(connection);
     const origin = await methods.origin(lock);
-    if (!origin) throw new FormError('shipping', 'shop.error.noShipping');
 
     const weightGrams = items.reduce(
       (sum, item) => sum + BigInt(item.unitWeightGrams) * BigInt(item.quantity),
@@ -64,31 +69,28 @@ export function createCheckout(
     if (weightGrams <= 0n || weightGrams > MAX_RUPIAH)
       throw new FormError('cart', 'shop.error.total');
 
-    const rates = rateService.enabled
-      ? await rateService.rates({ origin, destination: address, weightGrams })
-      : [];
-    const usingFallback = rateService.enabled && !rates.length;
-    if (!rates.length) {
-      rates.push(
-        ...(await methods.list(true, lock)).map((method): ShippingRate => ({
-          id: method.id,
-          quoteSource: 'MANUAL',
-          courierCode: null,
-          courierName: null,
-          serviceCode: method.code,
-          serviceName: method.name,
-          etaText: method.description,
-          amountRupiah: method.amountRupiah,
-        })),
-      );
-    }
-    if (!rates.length)
-      throw new FormError(
-        'shipping',
-        rateService.enabled
-          ? 'shop.error.rateUnavailable'
-          : 'shop.error.noShipping',
-      );
+    const manual = async () =>
+      (await methods.list(true, lock)).map((method): ShippingRate => ({
+        id: method.id,
+        quoteSource: 'MANUAL',
+        courierCode: null,
+        courierName: null,
+        serviceCode: method.code,
+        serviceName: method.name,
+        etaText: method.description,
+        amountRupiah: method.amountRupiah,
+      }));
+    // Keep a selected, active staff-configured rate usable when J&T recovers.
+    const manualRates = selection.methodId ? await manual() : null;
+    const selectedManual = manualRates?.find(
+      (rate) => rate.id === selection.methodId,
+    );
+    const live =
+      !selectedManual && rateService.enabled && origin
+        ? await rateService.rates({ origin, destination: address, weightGrams })
+        : [];
+    const rates = live.length ? live : (manualRates ?? (await manual()));
+    if (!rates.length) throw new FormError('shipping', 'shop.error.noShipping');
 
     const reviewed = items
       .map((item) => [
@@ -103,7 +105,6 @@ export function createCheckout(
       .sort(([left], [right]) => String(left).localeCompare(String(right)));
     const shippingAddressSnapshot = addressSnapshot(address);
     return {
-      usingFallback,
       quotes: rates.map((rate) => {
         const facts = {
           shippingAddressSnapshot,
@@ -129,8 +130,8 @@ export function createCheckout(
             JSON.stringify([
               address.id,
               shippingAddressSnapshot,
-              origin.id,
-              origin.updatedAt.toISOString(),
+              origin?.id ?? null,
+              origin?.updatedAt.toISOString() ?? null,
               rate.id,
               facts.shippingMethodSnapshot,
               rate.amountRupiah.toString(),
@@ -149,7 +150,8 @@ export function createCheckout(
     const quote = result.quotes.find(
       ({ rate }) => rate.id === selection.methodId,
     );
-    if (!quote) throw new FormError('shipping', 'shop.error.shipping');
+    if (!quote)
+      throw new ShippingSelectionChanged(result.quotes.map(({ rate }) => rate));
     if (quote.facts.grandTotal > MAX_RUPIAH)
       throw new FormError('cart', 'shop.error.total');
     return quote;
@@ -179,29 +181,25 @@ export function createCheckout(
       const [state, ownedAddresses, methods, origin] = await Promise.all([
         cart.get(customerId),
         addresses.list(customerId),
-        rateService.enabled ? [] : shipping.list(true),
+        shipping.list(true),
         shipping.origin(),
       ]);
       return {
         ...state,
         addresses: ownedAddresses,
-        methods: origin ? methods : [],
+        methods,
         rateLookup: Boolean(origin && rateService.enabled),
       };
     },
     async rates(customerId: string, selection: Form) {
       const { result } = await reviewOffers(customerId, selection);
-      return {
-        rates: result.quotes.map(({ rate }) => rate),
-        usingFallback: result.usingFallback,
-      };
+      return { rates: result.quotes.map(({ rate }) => rate) };
     },
     async review(customerId: string, selection: Form) {
       const { state, result } = await reviewOffers(customerId, selection);
       return {
         ...state,
         ...selected(result, selection),
-        usingFallback: result.usingFallback,
       };
     },
     async place(customerId: string, selection: Form) {

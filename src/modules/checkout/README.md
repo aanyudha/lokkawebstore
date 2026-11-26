@@ -8,9 +8,11 @@ protection. Checkout and order pages are private and excluded from indexing.
 Cart owns availability and revision. Customer owns saved addresses and
 ownership checks. With J&T rates enabled, customers select a saved address,
 request tariff options, choose a service, and confirm the price at review.
-Shipping uses the active default LOKKA origin and can fall back to the flat
-rates configured in **Settings → Fulfillment**. A zero flat rate must be
-configured explicitly.
+J&T requires an active default LOKKA origin. Checkout can fall back to active
+flat rates from **Settings → Fulfillment** even before an origin is configured.
+New and edited addresses require a district (kecamatan). Existing addresses
+without a district remain selectable for flat-rate checkout. Kelurahan remains
+optional. A zero flat rate must be configured explicitly.
 
 Orders locks the cart, products and variants using the existing lock order.
 Checkout reads the selected customer address and origin under shared row locks,

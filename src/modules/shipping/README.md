@@ -19,11 +19,13 @@ JNT_TARIFF_ORIGIN_CODES={"Province|City":"ORIGIN_CODE"}
 JNT_TARIFF_DESTINATION_CODES={"Province|City|District|PostalCode":"DISTRICT_CODE"}
 ```
 
-The active default LOKKA origin is required in both modes. When the location
-is unmapped, a tariff request fails or no usable service is returned, checkout
-offers the active flat rates configured in **Settings → Fulfillment** and
-identifies them as LOKKA rates. Checkout blocks if that list is empty.
-`SHIPPING_RATE_PROVIDER=disabled` uses those configured rates directly.
+J&T lookup requires an active default LOKKA origin. Active flat rates in
+**Settings → Fulfillment** are available independently of the origin. Checkout
+uses them directly when J&T is disabled or its configuration is incomplete, and
+falls back to them when lookup yields no usable tariff. If both sources are
+unavailable, checkout asks the customer to contact LOKKA or use another
+address. Settings shows the configured provider, origin and active flat-rate
+count. J&T diagnostics record a reason code without address or credential data.
 
 In **Sales → Shipments**, staff use the recent paid queue or exact order-number
 lookup. The courier, service and tracking number describe the physical shipment.

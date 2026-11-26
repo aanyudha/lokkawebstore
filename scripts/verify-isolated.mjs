@@ -73,6 +73,38 @@ const mode = process.argv[2];
 const e6 = mode === 'e6' || mode === 'e6-focused';
 const e5 = mode === 'e5' || e6;
 const modes = {
+  shipping: [
+    [
+      'npm',
+      [
+        'test',
+        '--',
+        '--maxWorkers=1',
+        'tests/shipping-availability.test.ts',
+        'tests/webstore.test.ts',
+        'tests/webstore-fulfillment.test.ts',
+        'tests/webstore-payments.test.ts',
+        'tests/webstore-history.test.ts',
+        'tests/back-office-orders.test.ts',
+        'tests/commercial.test.ts',
+      ],
+    ],
+    ['npm', ['run', 'test:production']],
+    [
+      'npm',
+      [
+        'run',
+        'test:browser',
+        '--',
+        'tests/browser/shipping-availability.spec.ts',
+        'tests/browser/webstore.spec.ts',
+        'tests/browser/webstore-payment.spec.ts',
+        'tests/browser/webstore-history.spec.ts',
+        'tests/browser/back-office-orders.spec.ts',
+        'tests/browser/commercial.spec.ts',
+      ],
+    ],
+  ],
   focused: [['npx', ['vitest', 'run', 'tests/webstore.test.ts']]],
   // Limit contention from parallel Argon2 and database integration work.
   unit: [['npm', ['test', '--', '--maxWorkers=1']]],
@@ -151,11 +183,11 @@ const modes = {
 const commands = modes[e5 ? 'e4' : mode];
 if (!commands)
   throw new Error(
-    'Use focused, unit, production, browser, webbrowser, audit, e4, e5, e6, e6-focused or e6-smoke.',
+    'Use focused, unit, production, browser, webbrowser, audit, e4, e5, e6, e6-focused, e6-smoke or shipping.',
   );
 let created = false;
 const before = await fingerprint();
-const e6Audit = e6 || mode === 'e6-smoke';
+const inventoryAudit = e6 || mode === 'e6-smoke' || mode === 'shipping';
 const e4Tables = new Set([
   'public.order_fulfillments',
   'public.order_tracking_changes',
@@ -164,7 +196,7 @@ const extraBefore = before.facts.filter(({ table }) =>
   e4Tables.has(table),
 ).length;
 if (
-  e6Audit &&
+  inventoryAudit &&
   (before.facts.length - extraBefore !== 39 || extraBefore === 1)
 ) {
   await owner.end();
@@ -190,7 +222,7 @@ try {
     await database.connect();
     await assertConnectedDatabase(database, name);
     await migrate(drizzle(database), { migrationsFolder: 'drizzle' });
-    if (e6Audit) {
+    if (inventoryAudit) {
       const { rows } = await database.query(
         "SELECT schemaname || '.' || tablename AS name FROM pg_tables WHERE schemaname IN ('public', 'drizzle')",
       );
@@ -230,7 +262,7 @@ try {
   console.log(
     `Owner DB isolation: ${unchanged ? 'PASS' : 'FAIL'}; ${after.facts.length} table fingerprints compared; disposable database dropped.`,
   );
-  if (e6Audit && unchanged) {
+  if (inventoryAudit && unchanged) {
     console.log(
       `Owner baseline matched: 39/39. Migration 0015 tables matched: ${extraBefore}/${extraBefore}. All owner tables matched: ${after.facts.length}/${before.facts.length}.`,
     );

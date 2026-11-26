@@ -2,11 +2,7 @@ import { createHash } from 'node:crypto';
 import { MAX_RUPIAH } from '../finance/calculations.js';
 import type { ShippingRate, ShippingRateProvider } from './rates.js';
 
-export function readJntRateConfig(env: NodeJS.ProcessEnv) {
-  const mode = env.SHIPPING_RATE_PROVIDER ?? 'disabled';
-  if (mode === 'disabled') return null;
-  if (mode !== 'jnt') throw new Error('Invalid SHIPPING_RATE_PROVIDER');
-
+function readJntRateConfig(env: NodeJS.ProcessEnv) {
   function required(key: string) {
     const value = env[key]?.trim();
     if (!value) throw new Error(`Missing ${key}`);
@@ -56,6 +52,21 @@ export function readJntRateConfig(env: NodeJS.ProcessEnv) {
   };
 }
 
+export function readShippingRateSettings(env: NodeJS.ProcessEnv) {
+  const mode = env.SHIPPING_RATE_PROVIDER ?? 'disabled';
+  if (mode === 'disabled')
+    return { shippingRateMode: 'disabled' as const, jntRate: null };
+  if (mode !== 'jnt') throw new Error('Invalid SHIPPING_RATE_PROVIDER');
+  try {
+    return {
+      shippingRateMode: 'jnt' as const,
+      jntRate: readJntRateConfig(env),
+    };
+  } catch {
+    return { shippingRateMode: 'jnt_unavailable' as const, jntRate: null };
+  }
+}
+
 function locationKey(parts: (string | null)[]) {
   return JSON.stringify(
     parts.map((part) => part?.trim().replace(/\s+/g, ' ').toUpperCase() ?? ''),
@@ -64,8 +75,9 @@ function locationKey(parts: (string | null)[]) {
 
 export class JntRateProvider implements ShippingRateProvider {
   constructor(
-    private readonly config: NonNullable<ReturnType<typeof readJntRateConfig>>,
+    private readonly config: ReturnType<typeof readJntRateConfig>,
     private readonly fetchTariff = fetch,
+    private readonly diagnostic: (reason: JntRateDiagnostic) => void = () => {},
   ) {}
 
   async rates({
@@ -84,8 +96,35 @@ export class JntRateProvider implements ShippingRateProvider {
         destination.postalCode,
       ]),
     );
-    if (!sendSiteCode || !destAreaCode || !destination.district) return [];
+    if (!sendSiteCode || !destAreaCode || !destination.district) {
+      this.diagnostic(
+        sendSiteCode ? 'destination_unmapped' : 'origin_unmapped',
+      );
+      return [];
+    }
+    try {
+      const rates = await this.requestRates(
+        sendSiteCode,
+        destAreaCode,
+        weightGrams,
+      );
+      if (!rates.length) this.diagnostic('no_usable_tariff');
+      return rates;
+    } catch (error) {
+      this.diagnostic(
+        error instanceof Error && error.name === 'TimeoutError'
+          ? 'tariff_timeout'
+          : 'tariff_request_failed',
+      );
+      return [];
+    }
+  }
 
+  private async requestRates(
+    sendSiteCode: string,
+    destAreaCode: string,
+    weightGrams: bigint,
+  ) {
     const data = JSON.stringify({
       weight: `${weightGrams / 1000n}.${String(weightGrams % 1000n).padStart(3, '0')}`,
       sendSiteCode,
@@ -105,7 +144,7 @@ export class JntRateProvider implements ShippingRateProvider {
       redirect: 'error',
       signal: AbortSignal.timeout(3000),
     });
-    if (!response.ok) return [];
+    if (!response.ok) throw new Error('Tariff request unsuccessful');
     const result = await response.json();
     if (result?.is_success !== 'true' || typeof result.content !== 'string')
       return [];
@@ -141,3 +180,10 @@ export class JntRateProvider implements ShippingRateProvider {
     return [...rates.values()];
   }
 }
+
+type JntRateDiagnostic =
+  | 'destination_unmapped'
+  | 'origin_unmapped'
+  | 'tariff_timeout'
+  | 'tariff_request_failed'
+  | 'no_usable_tariff';

@@ -182,6 +182,7 @@ export async function registerAdmin(
           createFinance(db, catalog),
           createFulfillment(db, catalog),
           page,
+          env.shippingRateMode,
         );
         registerFinanceAdmin(
           protectedRoutes,

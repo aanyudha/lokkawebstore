@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { AppEnv } from '../../config/env.js';
 import type { Finance } from '../finance/service.js';
 import type { createFulfillment } from '../shipping/service.js';
 import { FormError, formatIdr, type Form } from '../catalog/validation.js';
@@ -15,6 +16,7 @@ export function registerCommercialAdmin(
   finance: Finance,
   fulfillment: ReturnType<typeof createFulfillment>,
   page: Page,
+  shippingRateMode: AppEnv['shippingRateMode'],
 ) {
   const body = (r: FastifyRequest) => (r.body ?? {}) as Form;
   const renderOverhead = async (
@@ -114,6 +116,7 @@ export function registerCommercialAdmin(
     page(r, reply, 'fulfillment', {
       origins: await fulfillment.list(),
       methods: await fulfillment.methods.list(),
+      shippingRateMode,
       error,
       values: body(r),
       action: r.url,

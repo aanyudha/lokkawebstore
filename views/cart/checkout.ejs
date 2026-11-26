@@ -2,7 +2,6 @@
   <h1><%= t(reviewed ? 'shop.review' : 'shop.checkout') %></h1>
   <% if (error) { %><p class="account-error" role="alert"><%= t(error) %></p><% } %>
   <% if (reviewed) { %>
-    <% if (reviewed.usingFallback) { %><p role="status"><%= t('shop.rateFallback') %></p><% } %>
     <%- include('delivery.ejs', { delivery: reviewed.facts }) %>
     <div class="shop-table-wrap" tabindex="0" role="region" aria-label="<%= t('shop.review') %>">
       <table class="shop-table">
@@ -41,7 +40,7 @@
         <%- include('address-form.ejs', { addressId: null, values: addressForm && !addressForm.id ? addressForm.values : {} }) %>
       </details>
     </section>
-    <% if (!rateLookup && !methods.length) { %><p role="status"><%= t('shop.error.noShipping') %></p><% } %>
+    <% if (!error && addresses.length && !rateLookup && !methods.length) { %><p role="status"><%= t('shop.error.noShipping') %></p><% } %>
     <% if (!shippingRates && addresses.length && (rateLookup || methods.length)) { %>
       <form method="post" action="<%= paths.cart %>/review<%= rateLookup ? '/rates' : '' %>" class="form-stack">
         <input type="hidden" name="csrf" value="<%= csrf %>" />
@@ -61,7 +60,6 @@
       </form>
     <% } %>
     <% if (shippingRates) { %>
-      <% if (shippingRates.usingFallback) { %><p role="status"><%= t('shop.rateFallback') %></p><% } %>
       <form method="post" action="<%= paths.cart %>/review" class="form-stack">
         <input type="hidden" name="csrf" value="<%= csrf %>" />
         <input type="hidden" name="addressId" value="<%= selection.addressId %>" />
