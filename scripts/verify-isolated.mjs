@@ -69,7 +69,9 @@ function run(command, args, env) {
     );
   });
 }
-const e5 = process.argv[2] === 'e5';
+const mode = process.argv[2];
+const e6 = mode === 'e6' || mode === 'e6-focused';
+const e5 = mode === 'e5' || e6;
 const modes = {
   focused: [['npx', ['vitest', 'run', 'tests/webstore.test.ts']]],
   // Limit contention from parallel Argon2 and database integration work.
@@ -78,6 +80,13 @@ const modes = {
   browser: [['npm', ['run', 'test:browser']]],
   webbrowser: [
     ['npx', ['playwright', 'test', 'tests/browser/webstore.spec.ts']],
+  ],
+  'e6-smoke': [
+    ['npm', ['test', '--', 'tests/back-office-orders.test.ts']],
+    [
+      'npm',
+      ['run', 'test:browser', '--', 'tests/browser/back-office-orders.spec.ts'],
+    ],
   ],
   audit: [
     [
@@ -106,16 +115,21 @@ const modes = {
         'test',
         '--',
         '--maxWorkers=1',
-        'tests/webstore.test.ts',
-        'tests/webstore-payments.test.ts',
-        'tests/webstore-fulfillment.test.ts',
-        'tests/doku-provider.test.ts',
-        'tests/admin-foundation.test.ts',
-        'tests/verification-db.test.ts',
-        'tests/accounting.test.ts',
-        'tests/finance-cash-flow.test.ts',
-        'tests/pos.test.ts',
-        ...(e5 ? ['tests/webstore-history.test.ts'] : []),
+        ...(mode === 'e6'
+          ? []
+          : [
+              'tests/webstore.test.ts',
+              'tests/webstore-payments.test.ts',
+              'tests/webstore-fulfillment.test.ts',
+              'tests/doku-provider.test.ts',
+              'tests/admin-foundation.test.ts',
+              'tests/verification-db.test.ts',
+              'tests/accounting.test.ts',
+              'tests/finance-cash-flow.test.ts',
+              'tests/pos.test.ts',
+              ...(e5 ? ['tests/webstore-history.test.ts'] : []),
+              ...(e6 ? ['tests/back-office-orders.test.ts'] : []),
+            ]),
       ],
     ],
     ['npm', ['run', 'test:production']],
@@ -128,18 +142,36 @@ const modes = {
         'tests/browser/webstore.spec.ts',
         'tests/browser/webstore-payment.spec.ts',
         ...(e5 ? ['tests/browser/webstore-history.spec.ts'] : []),
+        ...(e6 ? ['tests/browser/back-office-orders.spec.ts'] : []),
       ],
     ],
     ['node', ['scripts/verify-payment-migrations.mjs']],
   ],
 };
-const commands = modes[e5 ? 'e4' : process.argv[2]];
+const commands = modes[e5 ? 'e4' : mode];
 if (!commands)
   throw new Error(
-    'Use focused, unit, production, browser, webbrowser, audit, e4 or e5.',
+    'Use focused, unit, production, browser, webbrowser, audit, e4, e5, e6, e6-focused or e6-smoke.',
   );
 let created = false;
 const before = await fingerprint();
+const e6Audit = e6 || mode === 'e6-smoke';
+const e4Tables = new Set([
+  'public.order_fulfillments',
+  'public.order_tracking_changes',
+]);
+const extraBefore = before.facts.filter(({ table }) =>
+  e4Tables.has(table),
+).length;
+if (
+  e6Audit &&
+  (before.facts.length - extraBefore !== 39 || extraBefore === 1)
+) {
+  await owner.end();
+  throw new Error(
+    `Expected the 39 baseline owner tables with either zero or both migration 0015 tables, found ${before.facts.length} total and ${extraBefore} from 0015.`,
+  );
+}
 const { name, url } = disposableDatabaseUrl(
   databaseUrl(source),
   'e1_verify',
@@ -158,6 +190,22 @@ try {
     await database.connect();
     await assertConnectedDatabase(database, name);
     await migrate(drizzle(database), { migrationsFolder: 'drizzle' });
+    if (e6Audit) {
+      const { rows } = await database.query(
+        "SELECT schemaname || '.' || tablename AS name FROM pg_tables WHERE schemaname IN ('public', 'drizzle')",
+      );
+      const migrated = new Set(rows.map(({ name }) => name));
+      const expected = rows
+        .map(({ name }) => name)
+        .filter((name) => extraBefore > 0 || !e4Tables.has(name));
+      if (
+        expected.length !== before.facts.length ||
+        before.facts.some(({ table }) => !migrated.has(table))
+      )
+        throw new Error(
+          'Owner table inventory differs from the expected migration inventory.',
+        );
+    }
   } finally {
     await database.end();
   }
@@ -182,6 +230,11 @@ try {
   console.log(
     `Owner DB isolation: ${unchanged ? 'PASS' : 'FAIL'}; ${after.facts.length} table fingerprints compared; disposable database dropped.`,
   );
+  if (e6Audit && unchanged) {
+    console.log(
+      `Owner baseline matched: 39/39. Migration 0015 tables matched: ${extraBefore}/${extraBefore}. All owner tables matched: ${after.facts.length}/${before.facts.length}.`,
+    );
+  }
   await owner.end();
   await admin.end();
   if (!unchanged) process.exitCode = 1;

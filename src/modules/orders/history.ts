@@ -4,12 +4,11 @@ import {
   orderFulfillments,
   orderItems,
   orders,
-  paymentAttempts,
 } from '../../db/schema/index.js';
 import {
-  effectivePaymentOrder,
-  effectivePaymentStatus,
-} from '../payments/read-model.js';
+  orderItemCount,
+  orderPresentationFacts,
+} from './presentation-facts.js';
 
 const filters = {
   waiting: ['WAITING_FOR_PAYMENT'],
@@ -19,8 +18,6 @@ const filters = {
   cancelled: ['CANCELLED'],
 } as const;
 type Filter = 'all' | keyof typeof filters;
-type CustomerStatus =
-  (typeof filters)[keyof typeof filters][number] | 'COMPLETED';
 export const historyFilters = ['all', ...Object.keys(filters)] as Filter[];
 const pageSize = 12;
 const maxPage = Math.floor(Number.MAX_SAFE_INTEGER / pageSize);
@@ -34,34 +31,6 @@ export function historySuffix(filter: Filter, page: number) {
 }
 
 export function createOrderHistory(db: Database['db']) {
-  function facts(now: Date) {
-    const payment = db
-      .select({
-        status: effectivePaymentStatus(now).as('effective_status'),
-        provider: paymentAttempts.provider,
-        amount: paymentAttempts.amount,
-        createdAt: paymentAttempts.createdAt,
-        paidAt: paymentAttempts.paidAt,
-      })
-      .from(paymentAttempts)
-      .where(eq(paymentAttempts.orderId, orders.id))
-      .orderBy(...effectivePaymentOrder)
-      .limit(1)
-      .as('effective_payment');
-
-    const status = sql<CustomerStatus>`case
-      when ${orders.status} = 'CANCELLED' then 'CANCELLED'
-      when ${orderFulfillments.status} = 'DELIVERED' then 'DELIVERED'
-      when ${orderFulfillments.status} = 'SHIPPED' then 'SHIPPED'
-      when ${orders.status} = 'PAID' then 'PREPARING_ORDER'
-      when ${orders.status} = 'COMPLETED' then 'COMPLETED'
-      when ${payment.status} = 'REVIEW' then 'PAYMENT_REVIEW'
-      when ${payment.status} in ('CREATED', 'PENDING') then 'PAYMENT_PROCESSING'
-      else 'WAITING_FOR_PAYMENT'
-    end`;
-    return { payment, status };
-  }
-
   async function list(
     customerId: string,
     input: { status?: unknown; page?: unknown },
@@ -73,7 +42,7 @@ export function createOrderHistory(db: Database['db']) {
         ? Number(input.page)
         : 1;
     const page = value >= 1 && value <= maxPage ? value : 1;
-    const { payment, status } = facts(new Date());
+    const { payment, status } = orderPresentationFacts(db, new Date());
     const rows = await db
       .select({
         orderNumber: orders.orderNumber,
@@ -81,10 +50,10 @@ export function createOrderHistory(db: Database['db']) {
         grandTotal: orders.grandTotal,
         status,
         paymentStatus: sql<
-          typeof paymentAttempts.$inferSelect.status | null
+          typeof payment.status._.type | null
         >`${payment.status}`,
         shipmentStatus: orderFulfillments.status,
-        itemCount: sql<string>`(select coalesce(sum(${orderItems.quantity}), 0)::text from ${orderItems} where ${orderItems.orderId} = ${orders.id})`,
+        itemCount: orderItemCount,
       })
       .from(orders)
       .leftJoinLateral(payment, sql`true`)
@@ -107,7 +76,7 @@ export function createOrderHistory(db: Database['db']) {
   }
 
   async function detail(customerId: string, orderNumber: string) {
-    const { payment, status } = facts(new Date());
+    const { payment, status } = orderPresentationFacts(db, new Date());
     const [result] = await db
       .select({
         order: orders,

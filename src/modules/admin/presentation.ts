@@ -36,6 +36,7 @@ export const adminNavigation = [
     label: 'Sales',
     items: [
       { label: 'POS', href: '/pos', area: 'pos' },
+      { label: 'Orders', href: '/admin/orders', area: 'orders' },
       {
         label: 'Shipments',
         href: '/admin/fulfillment/shipments',
@@ -102,6 +103,8 @@ export const adminNavigation = [
 ];
 type Crumb = { label: string; href?: string };
 function metadata(page: string, data: Record<string, unknown>) {
+  const orderNumber =
+    (data.order as { orderNumber: string } | undefined)?.orderNumber ?? 'Order';
   const values = (data.values ?? {}) as { id?: string };
   const product = data.product as { id: string; name: string } | undefined;
   const pages: Record<
@@ -247,6 +250,22 @@ function metadata(page: string, data: Record<string, unknown>) {
       area: 'income-expense',
       breadcrumbs: [{ label: 'Finance' }, { label: 'Income & Expense' }],
       action: { label: 'Add transaction', href: '#add-transaction' },
+    },
+    orders: {
+      title: 'Webstore orders',
+      description: '',
+      area: 'orders',
+      breadcrumbs: [{ label: 'Sales' }, { label: 'Orders' }],
+    },
+    'order-detail': {
+      title: orderNumber,
+      description: '',
+      area: 'orders',
+      breadcrumbs: [
+        { label: 'Sales' },
+        { label: 'Orders', href: '/admin/orders' },
+        { label: orderNumber },
+      ],
     },
     shipments: {
       title: 'Webstore shipments',

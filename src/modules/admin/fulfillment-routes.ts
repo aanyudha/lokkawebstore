@@ -1,22 +1,20 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Database } from '../../db/client.js';
-import { FormError, formatIdr, type Form } from '../catalog/validation.js';
+import { formatIdr } from '../catalog/validation.js';
 import { createOrderFulfillment } from '../shipping/order-fulfillment.js';
+import {
+  registerShipmentActions,
+  validWebOrderNumber,
+  type AdminPage,
+} from './shipment-actions.js';
 
-type Page = (
-  request: FastifyRequest,
-  reply: FastifyReply,
-  name: string,
-  data: Record<string, unknown>,
-) => Promise<unknown>;
 const route = '/fulfillment/shipments';
 const url = '/admin' + route;
-const validOrderNumber = /^WEB-\d{8}-\d{6,10}$/;
 
 export function registerFulfillmentAdmin(
   app: FastifyInstance,
   db: Database['db'],
-  page: Page,
+  page: AdminPage,
 ) {
   const fulfillment = createOrderFulfillment(db);
   async function render(
@@ -25,7 +23,7 @@ export function registerFulfillmentAdmin(
     orderNumber: string,
     error: string | null = null,
   ) {
-    const order = validOrderNumber.test(orderNumber)
+    const order = validWebOrderNumber.test(orderNumber)
       ? await fulfillment.lookup(orderNumber)
       : null;
     if (orderNumber && !order && !error) reply.code(404);
@@ -50,30 +48,11 @@ export function registerFulfillmentAdmin(
     },
   );
 
-  for (const action of ['ship', 'tracking', 'deliver'] as const) {
-    app.post<{ Params: { orderNumber: string } }>(
-      `${route}/:orderNumber/${action}`,
-      async (request, reply) => {
-        const { orderNumber } = request.params;
-        if (!validOrderNumber.test(orderNumber)) return reply.callNotFound();
-        const actor = request.internalAdmin!.id;
-        const form = (request.body ?? {}) as Form;
-        try {
-          if (action === 'ship')
-            await fulfillment.markShipped(orderNumber, form, actor);
-          if (action === 'tracking')
-            await fulfillment.correctTracking(orderNumber, form, actor);
-          if (action === 'deliver')
-            await fulfillment.markDelivered(orderNumber, actor);
-          return reply.redirect(
-            `${url}?orderNumber=${encodeURIComponent(orderNumber)}`,
-            303,
-          );
-        } catch (error) {
-          if (!(error instanceof FormError)) throw error;
-          return render(request, reply.code(422), orderNumber, error.message);
-        }
-      },
-    );
-  }
+  registerShipmentActions(
+    app,
+    `${route}/:orderNumber`,
+    fulfillment,
+    (orderNumber) => `${url}?orderNumber=${encodeURIComponent(orderNumber)}`,
+    render,
+  );
 }

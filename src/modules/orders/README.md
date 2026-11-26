@@ -61,6 +61,21 @@ shipment appear separately. Legacy orders show unavailable delivery details.
 E5 requires no migration. Run `node scripts/verify-isolated.mjs e5` after a
 production build for the focused history and E1–E4 regression checks.
 
+E6 adds **Sales → Orders** in the protected admin shell. Staff can search
+WEBSTORE orders by number, customer name, email or tracking number. The list
+uses a page query and a matching count query, with the E5 status derivation
+shared across surfaces. The Payment review filter includes linked reconciliation
+flags even when the order has already advanced to another operational status.
+
+Detail reads payment attempts and safe notification fields alongside the order,
+address, items, shipment and tracking audit. Posting indicators are based on
+linked sales, ledger rows, inventory movements and sale-item HPP snapshots.
+Orders and the existing Shipments queue share E4 forms and mutation handling.
+Customer order history reads those shipment updates directly. E6 uses the
+existing schema. After building, `node scripts/verify-isolated.mjs e6` runs the
+full test suite, production checks, focused browser regressions and migration
+proof under read-only owner fingerprints.
+
 Migrations `0010_webstore_orders.sql` and `0013_webstore_checkout.sql` supply
 the underlying cart, order and delivery tables and snapshots.
 `node scripts/verify-isolated.mjs unit`, `production` or `browser` wraps verification in a

@@ -1,0 +1,24 @@
+<% if (canFulfill && !shipment) { %>
+  <form method="post" action="<%= path %>/ship" class="form-stack">
+    <input type="hidden" name="csrf" value="<%= csrf %>" />
+    <label>Courier <input name="courierName" maxlength="120" required /></label>
+    <label>Service <input name="serviceName" maxlength="120" required /></label>
+    <label>Tracking number / Nomor resi <input name="trackingNumber" maxlength="120" required /></label>
+    <label>Actual shipping cost (Rp) <input name="actualShippingCost" inputmode="numeric" pattern="[0-9]+" maxlength="19" aria-describedby="shipping-cost-help" /></label>
+    <p id="shipping-cost-help">The cost is finalized when you mark the order as shipped. Leave blank if unknown.</p>
+    <button type="submit">Mark as shipped</button>
+  </form>
+<% } else if (canFulfill && shipment) { %>
+  <form method="post" action="<%= path %>/tracking" class="form-stack">
+    <input type="hidden" name="csrf" value="<%= csrf %>" />
+    <input type="hidden" name="previousTrackingNumber" value="<%= shipment.trackingNumber %>" />
+    <label>Correct tracking number <input name="trackingNumber" maxlength="120" value="<%= shipment.trackingNumber %>" required /></label>
+    <button type="submit">Save tracking number</button>
+  </form>
+  <% if (shipment.status === 'SHIPPED') { %>
+    <form method="post" action="<%= path %>/deliver">
+      <input type="hidden" name="csrf" value="<%= csrf %>" />
+      <button type="submit">Mark as delivered</button>
+    </form>
+  <% } %>
+<% } %>

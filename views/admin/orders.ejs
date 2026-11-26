@@ -1,0 +1,40 @@
+<div class="admin-content">
+  <form method="get" action="<%= url %>" class="form-stack order-filters">
+    <label>Search orders
+      <input name="q" maxlength="200" value="<%= listing?.q ?? '' %>" placeholder="Order number, name, email or tracking number" />
+    </label>
+    <label>Order status
+      <select name="status">
+        <% for (const [key, label] of filters) { %><option value="<%= key %>" <%= filter === key ? 'selected' : '' %>><%= label %></option><% } %>
+      </select>
+    </label>
+    <div><button type="submit">Apply filters</button> <a href="<%= url %>">Clear</a></div>
+  </form>
+  <% if (error) { %><p role="alert"><%= error %></p><% } %>
+  <% if (listing && !rows.length) { %><p>No orders match these filters.</p><% } %>
+  <% if (rows.length) { %>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Webstore orders">
+      <table>
+        <thead><tr><th scope="col">Order</th><th scope="col">Created</th><th scope="col">Customer</th><th scope="col">Status</th><th scope="col">Payment</th><th scope="col">Fulfillment</th><th scope="col">Items</th><th scope="col">Grand total</th><th scope="col">Action</th></tr></thead>
+        <tbody>
+          <% for (const row of rows) { %>
+            <tr data-order-row>
+              <th scope="row"><%= row.orderNumber %></th><td><time datetime="<%= row.createdAt.toISOString() %>"><%= localTime(row.createdAt) %></time></td>
+              <td><%= row.customerName %><br /><%= row.email %></td>
+              <td><%- include('../partials/admin/status-badge.ejs', { status: orderLabels[row.status] }) %>
+                <% if (row.review && row.status !== 'PAYMENT_REVIEW') { %><br /><small>Payment review</small><% } %>
+              </td>
+              <td><%= paymentLabels[row.paymentStatus] ?? 'No attempt' %></td>
+              <td><%= shipmentLabels[row.shipmentStatus] ?? (row.status === 'PREPARING_ORDER' ? 'Awaiting shipment' : '—') %>
+                <% if (row.courier) { %><br /><%= row.courier %> · <%= row.tracking || 'Missing tracking number' %><% } %>
+              </td>
+              <td><%= row.itemCount %></td><td><%= formatIdr(row.grandTotal) %></td>
+              <td><a href="<%= url %>/<%= row.orderNumber %>" aria-label="View <%= row.orderNumber %>">View</a></td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+  <% if (listing) { %><%- include('../partials/admin/list-pagination.ejs', { paginationLabel: 'Order pages' }) %><% } %>
+</div>

@@ -441,6 +441,24 @@
 .admin-ui .stock-form button {
   margin-top: 8px;
 }
+.admin-ui .order-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: var(--space-lg);
+}
+
+.admin-ui .order-detail-grid dd {
+  margin-inline-start: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-ui .order-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
 .admin-ui .status-badge {
   display: inline-flex;
   padding: 3px 9px;

@@ -20,6 +20,7 @@ import { createAccounting } from '../finance/accounting.js';
 import { createFulfillment } from '../shipping/service.js';
 import { registerCommercialAdmin } from './commercial-routes.js';
 import { registerFulfillmentAdmin } from './fulfillment-routes.js';
+import { registerOrderAdmin } from './order-routes.js';
 import { registerInvestorAdmin } from './investor-routes.js';
 import { registerFinanceAdmin } from './finance-routes.js';
 import { renderAdmin, renderAdminError } from './presentation.js';
@@ -174,6 +175,7 @@ export async function registerAdmin(
           });
         registerHomepageAdmin(protectedRoutes, hero, page);
         registerFulfillmentAdmin(protectedRoutes, db, page);
+        await registerOrderAdmin(protectedRoutes, db, page);
         registerInvestorAdmin(protectedRoutes, db, page);
         registerCommercialAdmin(
           protectedRoutes,

@@ -1,0 +1,107 @@
+<div class="admin-content commercial-page">
+  <% if (error) { %><p role="alert"><%= error %></p><% } %>
+  <% const placed = order.shippingAddressSnapshot; const quote = order.shippingMethodSnapshot; %>
+  <div class="order-detail-grid">
+    <section class="admin-section" aria-labelledby="order-summary">
+      <h2 id="order-summary">Order summary</h2>
+      <dl>
+        <dt>Created</dt><dd><time datetime="<%= order.createdAt.toISOString() %>"><%= localTime(order.createdAt) %></time></dd>
+        <dt>Order state</dt><dd><%= orderStatus[order.status] %></dd>
+        <dt>Operational status</dt><dd><%- include('../partials/admin/status-badge.ejs', { status: orderLabels[status] }) %></dd>
+        <dt>Customer status</dt><dd><%= customerStatus %></dd>
+        <dt>Customer</dt><dd><%= customer.name %><br /><%= customer.email %></dd>
+        <dt>Merchandise subtotal</dt><dd><%= formatIdr(order.subtotal) %></dd>
+        <dt>Shipping charged</dt><dd><%= quote ? formatIdr(order.shippingAmount) : 'Unavailable' %></dd>
+        <dt>Discount</dt><dd><%= formatIdr(order.discountAmount) %></dd>
+        <dt>Grand total</dt><dd data-order-total><%= formatIdr(order.grandTotal) %></dd>
+      </dl>
+    </section>
+    <section class="admin-section" aria-labelledby="checkout-shipping">
+      <h2 id="checkout-shipping">Checkout shipping</h2>
+      <% if (placed && quote) { %>
+        <address>
+          <%= placed.recipientName %><% if (placed.phone) { %> · <%= placed.phone %><% } %><br />
+          <%= placed.addressLine1 %><% if (placed.addressLine2) { %><br /><%= placed.addressLine2 %><% } %><br />
+          <%= [placed.subdistrict, placed.district, placed.city, placed.province, placed.postalCode].filter(Boolean).join(', ') %>
+        </address>
+        <dl>
+          <dt>Quoted courier</dt><dd><%= quote.courierName ?? 'Unspecified' %></dd>
+          <dt>Quoted service</dt><dd><%= quote.serviceName ?? quote.name %></dd>
+          <dt>Customer charge</dt><dd><%= formatIdr(order.shippingAmount) %></dd>
+          <dt>Shipment weight</dt><dd><%= order.shipmentWeightGrams %> g</dd>
+          <% if (quote.etaText || quote.description) { %><dt>Delivery estimate or notes</dt><dd><%= quote.etaText || quote.description %></dd><% } %>
+        </dl>
+      <% } else { %><p>Delivery snapshot unavailable.</p><% } %>
+    </section>
+  </div>
+  <section class="admin-section" aria-labelledby="order-items">
+    <h2 id="order-items">Order items</h2>
+    <% if (!items.length) { %><p>No item snapshots recorded.</p><% } else { %>
+      <div class="table-scroll" tabindex="0" role="region" aria-labelledby="order-items"><table>
+        <thead><tr><th scope="col">Product</th><th scope="col">Variant / SKU</th><th scope="col">Qty</th><th scope="col">Unit price</th><th scope="col">Line total</th><th scope="col">Historical unit HPP</th></tr></thead>
+        <tbody><% for (const item of items) { %><tr><th scope="row"><%= item.productNameSnapshot %></th><td><%= item.variantNameSnapshot %> · <%= item.skuSnapshot %></td><td><%= item.quantity %></td><td><%= formatIdr(item.unitPriceSnapshot) %></td><td><%= formatIdr(item.lineTotalSnapshot) %></td><td><%= item.costSnapshot === null ? 'HPP unavailable' : formatIdr(item.costSnapshot) %></td></tr><% } %></tbody>
+      </table></div>
+    <% } %>
+  </section>
+  <section class="admin-section" aria-labelledby="payment-history">
+    <h2 id="payment-history">Payment history</h2>
+    <p>Effective payment state <strong><%= paymentLabels[effectivePaymentStatus] ?? 'No attempt recorded' %></strong></p>
+    <% if (review) { %><p role="status"><strong>Payment review</strong> · Inspect the reconciliation records below.</p><% } %>
+    <% if (attempts.length) { %>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Payment attempts"><table>
+        <thead><tr><th scope="col">Attempt</th><th scope="col">Provider</th><th scope="col">Merchant invoice</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Initiated</th><th scope="col">Paid / expiry / failure</th><th scope="col">Provider reference</th></tr></thead>
+        <tbody><% for (const entry of attempts) { %><tr>
+          <th scope="row"><%= entry.sequence %><% if (entry.sequence === effectiveSequence) { %> · Effective<% } %></th><td><%= entry.provider %></td><td><%= entry.invoice %></td><td><%= formatIdr(entry.amount) %></td><td><%= paymentLabels[entry.status] %></td><td><%= localTime(entry.createdAt) %></td>
+          <td><% if (entry.paidAt) { %><%= entry.status === 'REVIEW' ? 'Success reported' : 'Paid' %> · <%= localTime(entry.paidAt) %><br /><% } %>
+              <% if (entry.expiredAt) { %>Expired · <%= localTime(entry.expiredAt) %><br /><% } %>
+              <% if (entry.failedAt) { %>Failed · <%= localTime(entry.failedAt) %><% } %>
+              <% if (!entry.paidAt && !entry.expiredAt && !entry.failedAt) { %>—<% } %></td>
+          <td><%= entry.reference ?? '—' %></td>
+        </tr><% } %></tbody>
+      </table></div>
+    <% } %>
+    <% if (notifications.length) { %>
+      <h3>Payment notifications and reconciliation</h3>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Payment reconciliation"><table>
+        <thead><tr><th scope="col">Attempt</th><th scope="col">Expected (IDR)</th><th scope="col">Received</th><th scope="col">Outcome</th><th scope="col">Result</th><th scope="col">Event time</th></tr></thead>
+        <tbody><% for (const notice of notifications) { %><tr><th scope="row"><%= notice.sequence %></th><td><%= formatIdr(notice.expected) %></td><td><%= notice.currency && notice.currency !== 'IDR' ? notice.received.toString() + ' ' + notice.currency : formatIdr(notice.received) %></td><td><%= notice.outcome === 'PAID' ? 'Success reported' : 'No success reported' %></td><td><%= notificationLabels[notice.result] ?? 'See canonical payment state' %></td><td><%= localTime(notice.occurredAt) %></td></tr><% } %></tbody>
+      </table></div>
+    <% } %>
+  </section>
+  <div class="order-detail-grid">
+    <section class="admin-section" aria-labelledby="actual-fulfillment">
+      <h2 id="actual-fulfillment">Actual fulfillment</h2>
+      <% if (shipment) { %>
+        <dl>
+          <dt>Fulfillment state</dt><dd><%= shipmentLabels[shipment.status] %></dd>
+          <dt>Actual courier / service</dt><dd><%= shipment.courierName %> · <%= shipment.serviceName %></dd>
+          <dt>Tracking number</dt><dd data-actual-tracking><%= shipment.trackingNumber || 'Missing tracking number' %></dd>
+          <dt>Actual shipping cost</dt><dd><%= shipment.actualShippingCost === null ? 'Unrecorded' : formatIdr(shipment.actualShippingCost) %></dd>
+          <dt>Shipped</dt><dd><%= localTime(shipment.shippedAt) %></dd>
+          <dt>Delivered</dt><dd><%= localTime(shipment.deliveredAt) %></dd>
+        </dl>
+      <% } else { %><p><%= status === 'PREPARING_ORDER' ? 'Ready to ship' : 'No shipment recorded' %></p><% } %>
+      <%- include('../partials/admin/shipment-actions.ejs', { canFulfill: order.status === 'PAID', shipment, path: url + '/' + order.orderNumber }) %>
+    </section>
+    <section class="admin-section" aria-labelledby="accounting-postings">
+      <h2 id="accounting-postings">Accounting and inventory</h2>
+      <dl>
+        <dt>Payment received</dt><dd><%= effectivePaymentStatus === 'PAID' ? 'Confirmed' : effectivePaymentStatus === 'REVIEW' ? 'Under review' : 'No confirmed payment' %></dd>
+        <dt>Sale</dt><dd><%= sale ? sale.reference + ' · ' + (sale.status === 'completed' ? 'Completed' : 'Not completed') : 'No sale record' %></dd>
+        <dt>Cash Flow receipt</dt><dd><%= incomePosted ? 'Posted' : 'Not posted' %></dd>
+        <dt>Inventory movement</dt><dd><%= inventoryPosted ? 'Posted' : 'Not posted' %></dd>
+        <dt>Shipping expense</dt><dd data-shipping-expense><%= shippingExpensePosted ? 'Posted' : 'Not posted' %></dd>
+        <dt>COGS availability</dt><dd><%= !postedCosts ? 'No posted sale-item costs' : missingCosts ? 'HPP unavailable for one or more sale items' : 'Historical HPP available' %></dd>
+      </dl>
+    </section>
+  </div>
+  <% if (tracking.length) { %>
+    <section class="admin-section" aria-labelledby="tracking-history"><h2 id="tracking-history">Tracking corrections</h2>
+      <div class="table-scroll" tabindex="0" role="region" aria-labelledby="tracking-history"><table>
+        <thead><tr><th scope="col">Previous number</th><th scope="col">New number</th><th scope="col">Changed by</th><th scope="col">Changed at</th></tr></thead>
+        <tbody><% for (const change of tracking) { %><tr><td><%= change.previous %></td><td><%= change.current %></td><td><%= change.staff %></td><td><%= localTime(change.date) %></td></tr><% } %></tbody>
+      </table></div>
+    </section>
+  <% } %>
+  <p><a href="<%= url %>">Back to orders</a></p>
+</div>
