@@ -20,7 +20,7 @@ export interface PaymentNotification {
   invoice: string;
   amount: bigint;
   currency: string | null;
-  outcome: 'PAID' | 'IGNORED';
+  outcome: 'PAID' | 'IGNORED' | 'FAILED' | 'EXPIRED' | 'REVIEW';
   providerStatus: string;
   occurredAt: Date;
 }

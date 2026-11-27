@@ -47,8 +47,12 @@
     <h2 id="payment-history">Payment history</h2>
     <dl aria-label="Payment readiness">
       <dt>Payment provider</dt><dd><%= paymentReadiness.provider %></dd>
+      <% if (paymentReadiness.developmentOnly) { %>
+        <dt>Payment mode</dt><dd>DEVELOPMENT ONLY</dd>
+      <% } else { %>
       <dt>Notification endpoint</dt><dd><%= paymentReadiness.notificationConfigured ? 'Configured' : 'Missing' %></dd>
       <dt>Credentials</dt><dd><%= paymentReadiness.credentialsConfigured ? 'Configured' : 'Missing' %></dd>
+      <% } %>
     </dl>
     <p>Effective payment state <strong><%= paymentLabels[effectivePaymentStatus] ?? 'No attempt recorded' %></strong></p>
     <% if (review) { %><p role="status"><strong>Payment review</strong> · Inspect the reconciliation records below.</p><% } %>

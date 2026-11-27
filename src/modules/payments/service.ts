@@ -6,11 +6,17 @@ import {
   paymentAttempts,
   paymentNotifications,
 } from '../../db/schema/index.js';
+import type { Transaction } from '../cart/service.js';
+import {
+  LocalPaymentProvider,
+  type LocalPaymentAction,
+} from './local-provider.js';
 import { lockOrderStock, postPaidWebstoreSale } from '../sales/webstore.js';
 import { effectivePaymentOrder, effectivePaymentStatus } from './read-model.js';
 import {
   PaymentProviderError,
   type HostedPayment,
+  type PaymentNotification,
   type PaymentProvider,
 } from './provider.js';
 
@@ -219,105 +225,233 @@ export function createPaymentService(
             .where(eq(paymentAttempts.id, candidate.id))
             .for('update')
         : [];
-      const [inserted] = await tx
-        .insert(paymentNotifications)
-        .values({
-          ...event,
-          provider: provider.name,
-          attemptId: attempt?.id,
-          result: 'RECEIVED',
-        })
-        .onConflictDoNothing()
-        .returning({ id: paymentNotifications.id });
-      const [existing] = inserted
-        ? []
-        : await tx
-            .select()
-            .from(paymentNotifications)
-            .where(
-              and(
-                eq(paymentNotifications.provider, provider.name),
-                eq(paymentNotifications.eventId, event.eventId),
-              ),
-            );
-      if (
-        existing &&
-        (existing.invoice !== event.invoice ||
-          existing.originalRequestId !== event.originalRequestId ||
-          existing.amount !== event.amount ||
-          existing.currency !== event.currency ||
-          existing.outcome !== event.outcome ||
-          existing.providerStatus !== event.providerStatus ||
-          existing.occurredAt.getTime() !== event.occurredAt.getTime())
-      )
-        return 'EVENT_CONFLICT';
-      if (existing && existing.result !== 'STOCK_REVIEW')
-        return existing.result;
-      const receiptId = inserted?.id ?? existing!.id;
-      const time = now();
-      async function record(result: string) {
-        await tx
-          .update(paymentNotifications)
-          .set({ result, updatedAt: time })
-          .where(eq(paymentNotifications.id, receiptId));
-        return result;
-      }
-      if (!attempt || !order) return record('UNKNOWN_PAYMENT');
-      if (attempt.providerAccount !== provider.account)
-        return record('ACCOUNT_MISMATCH');
-      if (event.originalRequestId !== attempt.requestId)
-        return record('REQUEST_MISMATCH');
-      if (
-        event.amount !== attempt.amount ||
-        event.amount !== order.grandTotal ||
-        attempt.currency !== order.currency ||
-        (event.currency !== null && event.currency !== order.currency)
-      )
-        return record('MONEY_MISMATCH');
-      if (event.outcome !== 'PAID') return record('IGNORED');
-      if (attempt.status === 'PAID') return record('ALREADY_PAID');
-      if (!isPayableWebstoreOrder(order)) {
-        await tx
-          .update(paymentAttempts)
-          .set({ status: 'REVIEW', paidAt: event.occurredAt, updatedAt: time })
-          .where(eq(paymentAttempts.id, attempt.id));
-        return record(
-          order.status === 'PAID' ? 'LATE_SUCCESS' : 'INELIGIBLE_ORDER',
-        );
-      }
-      const stock = await lockOrderStock(tx, order.id);
-      if (!stock) {
-        await tx
-          .update(paymentAttempts)
-          .set({ status: 'REVIEW', paidAt: event.occurredAt, updatedAt: time })
-          .where(eq(paymentAttempts.id, attempt.id));
-        return record('STOCK_REVIEW');
-      }
-      await postPaidWebstoreSale(tx, order, stock, event.occurredAt, time);
-      await tx
-        .update(paymentAttempts)
-        .set({ status: 'PAID', paidAt: event.occurredAt, updatedAt: time })
-        .where(eq(paymentAttempts.id, attempt.id));
-      await tx
-        .update(paymentAttempts)
-        .set({ status: 'CANCELLED', updatedAt: time })
-        .where(
-          and(
-            eq(paymentAttempts.orderId, order.id),
-            inArray(paymentAttempts.status, ['CREATED', 'PENDING']),
-          ),
-        );
-      await tx
-        .update(orders)
-        .set({ status: 'PAID', updatedAt: time })
-        .where(eq(orders.id, order.id));
-      return record('PAID');
+      return settle(tx, event, order, attempt);
     });
   }
+
+  async function settle(
+    tx: Transaction,
+    event: PaymentNotification,
+    order: Order | undefined,
+    attempt: Attempt | undefined,
+  ) {
+    const [inserted] = await tx
+      .insert(paymentNotifications)
+      .values({
+        ...event,
+        provider: provider.name,
+        attemptId: attempt?.id,
+        result: 'RECEIVED',
+      })
+      .onConflictDoNothing()
+      .returning({ id: paymentNotifications.id });
+    const [existing] = inserted
+      ? []
+      : await tx
+          .select()
+          .from(paymentNotifications)
+          .where(
+            and(
+              eq(paymentNotifications.provider, provider.name),
+              eq(paymentNotifications.eventId, event.eventId),
+            ),
+          );
+    if (
+      existing &&
+      (existing.invoice !== event.invoice ||
+        existing.originalRequestId !== event.originalRequestId ||
+        existing.amount !== event.amount ||
+        existing.currency !== event.currency ||
+        existing.outcome !== event.outcome ||
+        existing.providerStatus !== event.providerStatus ||
+        existing.occurredAt.getTime() !== event.occurredAt.getTime())
+    )
+      return 'EVENT_CONFLICT';
+    if (existing && existing.result !== 'STOCK_REVIEW') return existing.result;
+    const receiptId = inserted?.id ?? existing!.id;
+    const time = now();
+    async function record(result: string) {
+      await tx
+        .update(paymentNotifications)
+        .set({ result, updatedAt: time })
+        .where(eq(paymentNotifications.id, receiptId));
+      return result;
+    }
+    if (!attempt || !order) return record('UNKNOWN_PAYMENT');
+    if (attempt.providerAccount !== provider.account)
+      return record('ACCOUNT_MISMATCH');
+    if (event.originalRequestId !== attempt.requestId)
+      return record('REQUEST_MISMATCH');
+    if (
+      event.amount !== attempt.amount ||
+      event.amount !== order.grandTotal ||
+      attempt.currency !== order.currency ||
+      (event.currency !== null && event.currency !== order.currency)
+    )
+      return record('MONEY_MISMATCH');
+    if (event.outcome !== 'PAID') {
+      if (
+        event.outcome === 'IGNORED' ||
+        !(provider instanceof LocalPaymentProvider)
+      )
+        return record('IGNORED');
+      await tx
+        .update(paymentAttempts)
+        .set({
+          status: event.outcome,
+          ...(event.outcome === 'FAILED' ? { failedAt: event.occurredAt } : {}),
+          ...(event.outcome === 'EXPIRED'
+            ? { expiredAt: event.occurredAt }
+            : {}),
+          updatedAt: time,
+        })
+        .where(eq(paymentAttempts.id, attempt.id));
+      return record('LOCAL_' + event.outcome);
+    }
+    if (attempt.status === 'PAID') return record('ALREADY_PAID');
+    if (!isPayableWebstoreOrder(order)) {
+      await tx
+        .update(paymentAttempts)
+        .set({ status: 'REVIEW', paidAt: event.occurredAt, updatedAt: time })
+        .where(eq(paymentAttempts.id, attempt.id));
+      return record(
+        order.status === 'PAID' ? 'LATE_SUCCESS' : 'INELIGIBLE_ORDER',
+      );
+    }
+    const stock = await lockOrderStock(tx, order.id);
+    if (!stock) {
+      await tx
+        .update(paymentAttempts)
+        .set({ status: 'REVIEW', paidAt: event.occurredAt, updatedAt: time })
+        .where(eq(paymentAttempts.id, attempt.id));
+      return record('STOCK_REVIEW');
+    }
+    await postPaidWebstoreSale(tx, order, stock, event.occurredAt, time);
+    await tx
+      .update(paymentAttempts)
+      .set({ status: 'PAID', paidAt: event.occurredAt, updatedAt: time })
+      .where(eq(paymentAttempts.id, attempt.id));
+    await tx
+      .update(paymentAttempts)
+      .set({ status: 'CANCELLED', updatedAt: time })
+      .where(
+        and(
+          eq(paymentAttempts.orderId, order.id),
+          inArray(paymentAttempts.status, ['CREATED', 'PENDING']),
+        ),
+      );
+    await tx
+      .update(orders)
+      .set({ status: 'PAID', updatedAt: time })
+      .where(eq(orders.id, order.id));
+    return record('PAID');
+  }
+
+  const localProvider =
+    provider instanceof LocalPaymentProvider ? provider : null;
+  type LocalCheckout = {
+    customerId: string;
+    orderNumber: string;
+    requestId: string;
+  };
+  function ownedOrder(
+    connection: Database['db'] | Transaction,
+    input: LocalCheckout,
+  ) {
+    return connection
+      .select()
+      .from(orders)
+      .where(
+        and(
+          eq(orders.customerId, input.customerId),
+          eq(orders.orderNumber, input.orderNumber),
+        ),
+      );
+  }
+  function localAttempt(
+    connection: Database['db'] | Transaction,
+    orderId: string,
+    requestId: string,
+  ) {
+    return connection
+      .select()
+      .from(paymentAttempts)
+      .where(
+        and(
+          eq(paymentAttempts.orderId, orderId),
+          eq(paymentAttempts.requestId, requestId),
+          eq(paymentAttempts.provider, provider.name),
+          eq(paymentAttempts.providerAccount, provider.account),
+        ),
+      );
+  }
+  function canSimulate(order: Order, attempt: Attempt, time: Date) {
+    return (
+      isPayableWebstoreOrder(order) &&
+      attempt.status === 'PENDING' &&
+      !!attempt.expiresAt &&
+      attempt.expiresAt > time
+    );
+  }
+  const local = localProvider && {
+    async detail(input: LocalCheckout) {
+      const [order] = await ownedOrder(db, input);
+      if (!order) return null;
+      const [attempt] = await localAttempt(db, order.id, input.requestId);
+      if (!attempt) return null;
+      const time = now();
+      return {
+        amount: attempt.amount,
+        status:
+          attempt.status === 'PENDING' &&
+          attempt.expiresAt &&
+          attempt.expiresAt <= time
+            ? 'EXPIRED'
+            : attempt.status,
+        canSimulate: canSimulate(order, attempt, time),
+      };
+    },
+    simulate(input: LocalCheckout, action: LocalPaymentAction) {
+      return db.transaction(async (tx) => {
+        const [order] = await ownedOrder(tx, input).for('update');
+        if (!order) return 'missing';
+        const [attempt] = await localAttempt(tx, order.id, input.requestId).for(
+          'update',
+        );
+        if (!attempt) return 'missing';
+        const time = now();
+        const event = localProvider.simulate(attempt, action, time);
+        const [prior] = await tx
+          .select({ occurredAt: paymentNotifications.occurredAt })
+          .from(paymentNotifications)
+          .where(
+            and(
+              eq(paymentNotifications.provider, provider.name),
+              eq(paymentNotifications.eventId, event.eventId),
+            ),
+          );
+        if (!prior && !canSimulate(order, attempt, time)) return 'ineligible';
+        // Replay the original event, including its timestamp, under the order lock.
+        return settle(
+          tx,
+          prior
+            ? {
+                ...event,
+                occurredAt: prior.occurredAt,
+                requestTimestamp: prior.occurredAt,
+              }
+            : event,
+          order,
+          attempt,
+        );
+      });
+    },
+  };
 
   return {
     createPayment,
     handleNotification,
+    local,
     status: (orderId: string) => readPaymentStatus(db, orderId, now()),
   };
 }

@@ -249,6 +249,16 @@
     },
     "paymentProcessing": "Payment confirmation is being processed.",
     "paymentOffline": "Online payment is temporarily unavailable. Your order has been saved. Please try again later.",
+    "localPayment": {
+      "title": "Local payment checkout",
+      "provider": "Local development",
+      "development": "Development only. No money is collected.",
+      "order": "Order number",
+      "success": "Simulate success",
+      "failed": "Simulate failed",
+      "expired": "Simulate expired",
+      "review": "Simulate review"
+    },
     "paymentRefresh": "Refresh payment status",
     "paymentProvider": "Provider",
     "paymentAmount": "Amount",

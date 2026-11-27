@@ -33,6 +33,16 @@ at the stored total.
 
 ## Payment attempts and receipts
 
+Set `PAYMENT_PROVIDER=local` in a development or test runtime with a disposable
+database to exercise payment without DOKU. Production startup rejects local
+mode. Open a saved payable order and choose **Pay now** to start a local attempt,
+or continue the active attempt to reopen its simulator. Only the owning
+customer can open or submit the simulator, and the form requires CSRF
+validation. Simulate failure or expiry to try again. Simulated review holds
+further payment attempts for reconciliation. Success uses the same posting
+transaction as verified DOKU success. A browser return only displays the saved
+state. Local events and their posting effects persist in the selected database.
+
 - `0012_webstore_payments.sql` created payment attempts, notification receipts,
   and the order-linked sale fields. Its existing history and E2 migration
   `0013` are preserved. Additive migration `0014` binds new attempts to the

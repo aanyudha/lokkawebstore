@@ -2,6 +2,7 @@ import {
   PaymentConfigurationError,
   paymentReadiness,
   readDokuConfig,
+  readPaymentMode,
 } from '../modules/payments/config.js';
 import { readShippingRateSettings } from '../modules/shipping/jnt-rate-provider.js';
 
@@ -94,7 +95,8 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
   }
   const databaseUrl = resolveDatabaseUrl(appRuntime, source);
   const appUrl = url('APP_URL', ['http:', 'https:']);
-  const doku = readDokuConfig(source);
+  const paymentMode = readPaymentMode(source, nodeEnv);
+  const doku = paymentMode === 'doku' ? readDokuConfig(source) : null;
   if (
     doku?.environment === 'production' &&
     new URL(appUrl).protocol !== 'https:'
@@ -116,7 +118,8 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env) {
     databaseUrl,
     appUrl,
     doku,
-    paymentReadiness: paymentReadiness(source, doku),
+    paymentMode,
+    paymentReadiness: paymentReadiness(source, doku, paymentMode === 'local'),
     ...readShippingRateSettings(source),
   };
 }

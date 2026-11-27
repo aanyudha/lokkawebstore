@@ -20,6 +20,7 @@ import { createShippingRateService } from '../shipping/rates.js';
 import { JntRateProvider } from '../shipping/jnt-rate-provider.js';
 import { createCustomerAddresses } from '../customer/addresses.js';
 import { safeReturnPath } from '../customer/validation.js';
+import { localPaymentActions } from '../payments/local-provider.js';
 import {
   isPayableWebstoreOrder,
   type createPaymentService,
@@ -47,7 +48,10 @@ export async function registerCart(
   app: FastifyInstance,
   db: Database['db'],
   env: AppEnv,
-  payments?: Pick<ReturnType<typeof createPaymentService>, 'createPayment'>,
+  payments?: Pick<
+    ReturnType<typeof createPaymentService>,
+    'createPayment' | 'local'
+  >,
   shippingFetch?: typeof fetch,
 ) {
   const cart = createCartService(db);
@@ -332,6 +336,7 @@ export async function registerCart(
             ...detail,
             error,
             paymentAction,
+            localPaymentProvider: Boolean(payments?.local),
             paymentOffline:
               !payments &&
               payable &&
@@ -369,6 +374,8 @@ export async function registerCart(
             });
             if (result.status === 'missing') return reply.callNotFound();
             if (result.status === 'redirect') {
+              if (payments.local)
+                return reply.redirect(result.checkoutUrl, 303);
               reply.header('Referrer-Policy', 'no-referrer');
               return render(
                 request,
@@ -389,6 +396,46 @@ export async function registerCart(
             return reply.redirect(orderPath, 303);
           },
         );
+      }
+      const local = payments?.local;
+      if (local) {
+        type LocalParams = { orderNumber: string; requestId: string };
+        const path = `${paths.orders}/:orderNumber/payment/local/:requestId`;
+        secure.get<{ Params: LocalParams }>(path, async (request, reply) => {
+          const { orderNumber, requestId } = request.params;
+          const checkout = await local.detail({
+            ...request.params,
+            customerId: customerId(request),
+          });
+          if (!checkout) return reply.callNotFound();
+          return render(
+            request,
+            reply,
+            'order-local-payment',
+            { orderNumber, checkout, localPaymentActions },
+            `/${encodeURIComponent(orderNumber)}/payment/local/${encodeURIComponent(requestId)}`,
+          );
+        });
+        secure.post<{ Params: LocalParams }>(path, async (request, reply) => {
+          const action = localPaymentActions.find(
+            (value) => value === form(request).action,
+          );
+          if (!action)
+            return reply.code(422).send('Invalid simulation action.');
+          const result = await local.simulate(
+            { ...request.params, customerId: customerId(request) },
+            action,
+          );
+          if (result === 'missing') return reply.callNotFound();
+          if (result === 'ineligible')
+            return reply
+              .code(409)
+              .send('This checkout can no longer be simulated.');
+          return reply.redirect(
+            `${paths.orders}/${encodeURIComponent(request.params.orderNumber)}`,
+            303,
+          );
+        });
       }
       secure.post(
         `${paths.orders}/:orderNumber/cancel`,

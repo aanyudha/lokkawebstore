@@ -1,0 +1,18 @@
+<main id="main" class="catalog-page shop-page">
+  <h1><%= t('shop.localPayment.title') %></h1>
+  <p><strong><%= t('shop.localPayment.development') %></strong></p>
+  <dl>
+    <dt><%= t('shop.localPayment.order') %></dt><dd><%= orderNumber %></dd>
+    <dt><%= t('shop.paymentAmount') %></dt><dd><%= formatIdr(checkout.amount) %></dd>
+    <dt><%= t('shop.payment') %></dt><dd data-local-payment-status><%= t('shop.paymentStatus.' + checkout.status) %></dd>
+  </dl>
+  <% if (checkout.canSimulate) { %>
+    <form method="post" class="account-actions">
+      <input type="hidden" name="csrf" value="<%= csrf %>" />
+      <% for (const action of localPaymentActions) { %>
+        <button class="btn <%= action === 'success' ? 'btn-primary' : 'btn-secondary' %>" type="submit" name="action" value="<%= action %>"><%= t('shop.localPayment.' + action) %></button>
+      <% } %>
+    </form>
+  <% } %>
+  <p><a href="<%= paths.orders %>/<%= encodeURIComponent(orderNumber) %>"><%= t('shop.history.view') %></a></p>
+</main>

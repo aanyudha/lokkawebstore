@@ -249,6 +249,16 @@
     },
     "paymentProcessing": "Konfirmasi pembayaran sedang diproses.",
     "paymentOffline": "Pembayaran online sementara belum tersedia. Pesanan Anda sudah tersimpan. Silakan coba kembali nanti.",
+    "localPayment": {
+      "title": "Pembayaran lokal",
+      "provider": "Pengembangan lokal",
+      "development": "Khusus pengembangan. Tidak ada uang yang ditagih.",
+      "order": "Nomor pesanan",
+      "success": "Simulasikan berhasil",
+      "failed": "Simulasikan gagal",
+      "expired": "Simulasikan kedaluwarsa",
+      "review": "Simulasikan peninjauan"
+    },
     "paymentRefresh": "Perbarui status pembayaran",
     "paymentProvider": "Penyedia",
     "paymentAmount": "Jumlah",

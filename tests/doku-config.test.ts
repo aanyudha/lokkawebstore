@@ -13,6 +13,53 @@ const sandbox = {
   DOKU_NOTIFICATION_URL: dokuFixture.notificationUrl,
 };
 
+it('accepts local mode without DOKU credentials in development and test only', () => {
+  for (const NODE_ENV of ['development', 'test']) {
+    const env = readEnv({
+      DATABASE_URL: sandbox.DATABASE_URL,
+      APP_URL: sandbox.APP_URL,
+      PAYMENT_PROVIDER: 'local',
+      NODE_ENV,
+    });
+    expect(env.paymentMode).toBe('local');
+    expect(env.doku).toBeNull();
+    expect(env.paymentReadiness).toMatchObject({
+      provider: 'Local development',
+      developmentOnly: true,
+    });
+  }
+  expect(() =>
+    readEnv({ ...sandbox, PAYMENT_PROVIDER: 'local', NODE_ENV: 'production' }),
+  ).toThrow('PAYMENT_PROVIDER=local');
+});
+
+it('fails startup in production with local payments explicitly enabled', () => {
+  const child = spawnSync(
+    process.execPath,
+    ['--import', 'tsx', 'src/server.ts'],
+    {
+      env: {
+        ...process.env,
+        ...sandbox,
+        DATABASE_URL: process.env.TEST_DATABASE_URL ?? sandbox.DATABASE_URL,
+        APP_RUNTIME: 'fastify',
+        NODE_ENV: 'production',
+        PAYMENT_PROVIDER: 'local',
+        HOST: '127.0.0.1',
+        PORT: '3062',
+      },
+      encoding: 'utf8',
+      timeout: 10000,
+    },
+  );
+  expect(child.error).toBeUndefined();
+  expect(child.status).toBe(1);
+  expect(child.stderr).toContain(
+    'Startup failed. PAYMENT_PROVIDER=local is development/test only',
+  );
+  expect(child.stdout).not.toContain('Server listening');
+});
+
 it('accepts an HTTP LAN return address in sandbox and reports only safe readiness fields', () => {
   const env = readEnv(sandbox);
   expect(env.appUrl).toBe(sandbox.APP_URL);

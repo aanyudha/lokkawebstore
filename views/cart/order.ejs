@@ -30,7 +30,7 @@
     <% if (paymentOffline) { %><p role="status"><%= t('shop.paymentOffline') %></p><% } %>
     <% if (payment || paymentAction) { %>
       <dl>
-        <dt><%= t('shop.paymentProvider') %></dt><dd><%= payment?.provider ?? 'DOKU' %></dd>
+        <dt><%= t('shop.paymentProvider') %></dt><dd><%= payment?.provider === 'LOCAL' || (!payment && localPaymentProvider) ? t('shop.localPayment.provider') : payment?.provider ?? 'DOKU' %></dd>
         <dt><%= t('shop.paymentAmount') %></dt><dd><%= formatIdr(payment?.amount ?? order.grandTotal) %></dd>
         <% if (payment) { %>
           <dt><%= t('shop.paymentInitiated') %></dt><dd><time datetime="<%= payment.createdAt.toISOString() %>"><%= localTime(payment.createdAt) %></time></dd>

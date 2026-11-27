@@ -20,6 +20,7 @@ import { renderAdminError } from './modules/admin/presentation.js';
 import { registerCustomer } from './modules/customer/routes.js';
 import { registerCart } from './modules/cart/routes.js';
 import { DokuProvider } from './modules/payments/doku-provider.js';
+import { LocalPaymentProvider } from './modules/payments/local-provider.js';
 import { registerPaymentNotifications } from './modules/payments/routes.js';
 import { createPaymentService } from './modules/payments/service.js';
 import { registerStorefrontNavigation } from './modules/storefront/navigation.js';
@@ -312,14 +313,16 @@ export async function buildApp(
       : undefined;
     // Reset asset cache after build
     resetAssets();
-    const payments =
-      database.db && env.doku
-        ? createPaymentService(
-            database.db,
-            new DokuProvider(env.doku, options.paymentFetch),
-          )
+    const provider = env.doku
+      ? new DokuProvider(env.doku, options.paymentFetch)
+      : env.paymentMode === 'local'
+        ? new LocalPaymentProvider(env.nodeEnv)
         : undefined;
-    if (payments) await registerPaymentNotifications(app, payments);
+    const payments =
+      database.db && provider
+        ? createPaymentService(database.db, provider)
+        : undefined;
+    if (env.doku && payments) await registerPaymentNotifications(app, payments);
     if (database.db) await registerCustomer(app, database.db, env);
     if (database.db)
       await registerCart(
